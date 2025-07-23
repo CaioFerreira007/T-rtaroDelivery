@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "name": "tartaro-delivery",
   "version": "0.1.0",
   "private": true,
@@ -42,5 +43,12 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+=======
+  "dependencies": {
+    "bootstrap": "^5.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.7.0"
+>>>>>>> 3fe5f334f4520fe0b5102627e8d96bb7e598a459
   }
 }
