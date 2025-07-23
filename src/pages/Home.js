@@ -1,18 +1,30 @@
-import React from 'react';
-import { Container, Button } from 'react-bootstrap';
+import React from "react";
+import { Container, Button } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
+import "../styles/Home.css"; // arquivo de estilo
 
 function Home() {
+  const navigate = useNavigate();
+
   return (
-    <Container className="text-center mt-5">
-      <h1 className="mb-4">Tártaro Delivery 🔥</h1>
-      <p className="lead">O hambúrguer mais insano do pedaço. Faça seu pedido agora!</p>
-      <Button
-        variant="success"
-        href="https://wa.me/21988156436"
-        target="_blank"
-      >
-        Dúvidas? Fale com a gente no WhatsApp
+    <Container className="home-container text-center fade-in">
+      <h1 className="mb-3">🍔 Tártaro Delivery</h1>
+      <p className="lead mb-4">Os hambúrgueres mais épicos da mitologia!</p>
+
+      <Button variant="success" size="lg" onClick={() => navigate("/menu")}>
+        Ver Cardápio
       </Button>
+
+      <div className="mt-5">
+        <p>📍 Entregamos em Duque de Caxias e região</p>
+        <p>⏰ Funcionamento: Terça a Domingo das 18h às 23h</p>
+        <p>
+          📱{" "}
+          <a href="https://wa.me/seunumero" target="_blank" rel="noreferrer">
+            Fale conosco no WhatsApp
+          </a>
+        </p>
+      </div>
     </Container>
   );
 }
