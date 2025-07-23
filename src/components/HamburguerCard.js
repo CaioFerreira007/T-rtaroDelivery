@@ -1,6 +1,6 @@
-import React from 'react';
-import { Carousel, Card, Button } from 'react-bootstrap';
-import { FaShoppingCart } from 'react-icons/fa';
+import React from "react";
+import { Carousel, Card, Button } from "react-bootstrap";
+import { FaShoppingCart } from "react-icons/fa";
 
 // Componente que exibe um hambúrguer individual
 function HamburguerCard({ nome, descricao, preco, imagens, onAdd }) {
@@ -10,7 +10,7 @@ function HamburguerCard({ nome, descricao, preco, imagens, onAdd }) {
     <Card className="mb-4 shadow-sm rounded h-100">
       <Card.Body className="d-flex flex-column">
         {/* Carrossel de imagens */}
-        <div style={{ minHeight: '260px', overflow: 'hidden' }}>
+        <div style={{ minHeight: "260px", overflow: "hidden" }}>
           <Carousel fade interval={null}>
             {listaImagens.map((img, index) => (
               <Carousel.Item key={index}>
@@ -18,13 +18,13 @@ function HamburguerCard({ nome, descricao, preco, imagens, onAdd }) {
                   src={img}
                   alt={`${nome} ${index + 1}`}
                   style={{
-                    display: 'block',
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    aspectRatio: '4 / 3',
-                    borderRadius: '10px',
-                    backgroundColor: '#fff'
+                    display: "block",
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    aspectRatio: "4 / 3",
+                    borderRadius: "10px",
+                    backgroundColor: "#fff",
                   }}
                 />
               </Carousel.Item>

@@ -1,9 +1,14 @@
 import React from "react";
 import { Button } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import "../styles/BarraCarrinho.css"; // Estilos personalizados
+import "../styles/BarraCarrinho.css";
 
-function BarraCarrinho({ carrinho, atualizarQuantidade, limparCarrinho }) {
+function BarraCarrinho({
+  carrinho,
+  atualizarQuantidade,
+  limparCarrinho,
+  onClose,
+}) {
   const navigate = useNavigate();
 
   const total = carrinho.reduce(
@@ -14,7 +19,15 @@ function BarraCarrinho({ carrinho, atualizarQuantidade, limparCarrinho }) {
   if (carrinho.length === 0) return null;
 
   return (
-    <div className="barra-carrinho fixed-bottom bg-white border-top shadow p-3">
+    <div className="barra-carrinho bg-white border-top shadow p-3">
+      {/* Cabeçalho com botão de fechar */}
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h5 className="mb-0">🛒 Seu Carrinho</h5>
+        <Button variant="outline-danger" size="sm" onClick={onClose}>
+          ❌ Fechar
+        </Button>
+      </div>
+
       {/* Detalhes dos produtos */}
       {carrinho.map((item) => (
         <div

@@ -18,12 +18,14 @@ function Home() {
       <div className="mt-5">
         <p>📍 Entregamos em Duque de Caxias e região</p>
         <p>⏰ Funcionamento: Terça a Domingo das 18h às 23h</p>
-        <p>
-          📱{" "}
-          <a href="https://wa.me/seunumero" target="_blank" rel="noreferrer">
-            Fale conosco no WhatsApp
-          </a>
-        </p>
+        <a
+          href="https://wa.me/seunumero"
+          target="_blank"
+          rel="noreferrer"
+          className="btn btn-success d-inline-flex align-items-center gap-2 mt-2"
+        >
+          💬 Fale conosco no WhatsApp
+        </a>
       </div>
     </Container>
   );
