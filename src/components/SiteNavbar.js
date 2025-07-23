@@ -1,9 +1,22 @@
-import React from "react";
-import { Navbar, Nav, Container } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Navbar, Nav, Container, NavDropdown } from "react-bootstrap";
+import { Link, useLocation } from "react-router-dom";
 import "../styles/SiteNavbar.css";
 
 function SiteNavbar() {
+  const [clienteLogado, setClienteLogado] = useState(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    const cliente = JSON.parse(localStorage.getItem("clienteLogado"));
+    setClienteLogado(cliente);
+  }, [location]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("clienteLogado");
+    setClienteLogado(null);
+  };
+
   return (
     <Navbar bg="dark" variant="dark" expand="md" fixed="top">
       <Container>
@@ -19,9 +32,28 @@ function SiteNavbar() {
             <Nav.Link as={Link} to="/menu">
               📋 Cardápio
             </Nav.Link>
-            <Nav.Link as={Link} to="/cadastro">
-              📝 Cadastro
-            </Nav.Link>
+
+            {clienteLogado ? (
+              <NavDropdown
+                title={`👤 ${clienteLogado.nome}`}
+                id="perfil-dropdown"
+              >
+                <NavDropdown.Item as={Link} to="/perfil">
+                  🔎 Ver Dados
+                </NavDropdown.Item>
+                <NavDropdown.Item as={Link} to="/editar-perfil">
+                  ✏️ Editar Conta
+                </NavDropdown.Item>
+                <NavDropdown.Divider />
+                <NavDropdown.Item onClick={handleLogout}>
+                  🚪 Sair
+                </NavDropdown.Item>
+              </NavDropdown>
+            ) : (
+              <Nav.Link as={Link} to="/login">
+                📝 Login
+              </Nav.Link>
+            )}
           </Nav>
         </Navbar.Collapse>
       </Container>

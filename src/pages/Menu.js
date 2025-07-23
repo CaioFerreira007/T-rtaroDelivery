@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Button } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import HamburguerCard from "../components/HamburguerCard";
+import { adicionarAoCarrinho as salvarNoLocalStorage } from "../utils/carrinho"; // <-- renomeei a importada
 import BarraCarrinho from "../components/BarraCarrinho";
 import produtos from "../data/produto";
 import "../styles/Menu.css";
@@ -42,13 +43,17 @@ function Menu() {
   const adicionarAoCarrinho = (produto) => {
     setCarrinho((prevCarrinho) => {
       const existente = prevCarrinho.find((item) => item.id === produto.id);
-      return existente
+      const atualizado = existente
         ? prevCarrinho.map((item) =>
             item.id === produto.id
               ? { ...item, quantidade: item.quantidade + 1 }
               : item
           )
         : [...prevCarrinho, { ...produto, quantidade: 1 }];
+
+      // 💾 Salva no localStorage também!
+      salvarNoLocalStorage(produto);
+      return atualizado;
     });
   };
 
@@ -71,6 +76,7 @@ function Menu() {
   const limparCarrinho = () => {
     setCarrinho([]);
     setMostrarCarrinho(false);
+    localStorage.removeItem("carrinho"); // também limpa do armazenamento
   };
 
   const finalizarPedido = () => {
@@ -89,7 +95,6 @@ function Menu() {
     >
       <h2 className="text-center mb-4">🍔 Cardápio Tártaro Delivery</h2>
 
-      {/* 🔘 Botões de filtro por categoria */}
       <div className="mb-4 d-flex flex-wrap gap-2 justify-content-center">
         {categorias.map((cat) => (
           <Button
@@ -102,7 +107,6 @@ function Menu() {
         ))}
       </div>
 
-      {/* 🍽️ Produtos filtrados */}
       <Row className="gy-4">
         {produtosFiltrados.map((item) => (
           <Col key={item.id} xs={12} sm={6} lg={4}>
@@ -111,7 +115,6 @@ function Menu() {
         ))}
       </Row>
 
-      {/* 🛒 Botão flutuante para abrir o carrinho */}
       <Button
         className="btn-ver-carrinho"
         variant="success"
@@ -128,7 +131,6 @@ function Menu() {
         🛒 Ver Carrinho ({carrinho.length})
       </Button>
 
-      {/* 🧾 Painel flutuante do carrinho */}
       {mostrarCarrinho && (
         <div className="painel-carrinho">
           <BarraCarrinho

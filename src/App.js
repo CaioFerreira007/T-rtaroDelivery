@@ -1,10 +1,14 @@
 import React from "react";
 import Cadastro from "./pages/Cadastro";
-
+import Perfil from "./pages/Perfil";
+import EditarPerfil from "./pages/EditarPerfil";
+import RotaProtegida from "./components/RotaProtegida";
+import Checkout from "./pages/Checkout";
 import { Routes, Route } from "react-router-dom";
 import SiteNavbar from "./components/SiteNavbar";
 import Home from "./pages/Home";
 import Menu from "./pages/Menu";
+import Login from "./pages/Login";
 import "./styles/animations.css";
 
 function App() {
@@ -17,7 +21,19 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/menu" element={<Menu />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Cadastro />} />
+          <Route path="/perfil" element={<Perfil />} />
+          <Route path="/editar-perfil" element={<EditarPerfil />} />
+          import RotaProtegida from "./components/RotaProtegida";
+          <Route
+            path="/checkout"
+            element={
+              <RotaProtegida>
+                <Checkout />
+              </RotaProtegida>
+            }
+          />
         </Routes>
       </div>
     </>
