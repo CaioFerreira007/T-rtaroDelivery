@@ -4,25 +4,33 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // 🔌 Conexão com MySQL via EF Core
-
 builder.Services.AddDbContext<TartaroDbContext>(options =>
-    options.UseMySql(
-        builder.Configuration.GetConnectionString("TartaroDb"),
-        new MySqlServerVersion(new Version(8, 0, 34)) // ajuste conforme versão do MySQL
+    options.UseMySQL(
+        builder.Configuration.GetConnectionString("TartaroDb")
+        ?? throw new InvalidOperationException("Connection string 'TartaroDb' not found.")
     )
 );
-// Swagger ou OpenAPI (se necessário)
-builder.Services.AddOpenApi();
+
+// 📦 Ativando Swagger e Controllers
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+        options.JsonSerializerOptions.WriteIndented = true;
+    });
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+// 🚀 Ativando Swagger na pipeline
+app.UseSwagger();
+app.UseSwaggerUI();
 
+// 🔐 Redirecionamento HTTPS (se quiser ativar)
 app.UseHttpsRedirection();
 
+// 🌤 Endpoint de teste padrão
 var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm",
@@ -43,8 +51,12 @@ app.MapGet("/weatherforecast", () =>
 })
 .WithName("GetWeatherForecast");
 
+// ✅ Mapeando os Controllers corretamente
+app.MapControllers();
+
 app.Run();
 
+// 🎯 Modelo para o endpoint de teste
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
