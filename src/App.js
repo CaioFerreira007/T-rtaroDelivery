@@ -7,7 +7,7 @@ import Checkout from "./pages/Checkout";
 import { Routes, Route } from "react-router-dom";
 import SiteNavbar from "./components/SiteNavbar";
 import Home from "./pages/Home";
-import Menu from "./pages/Menu";
+import Menu from "./pages/Home";
 import Login from "./pages/Login";
 import "./styles/animations.css";
 
@@ -19,8 +19,7 @@ function App() {
         {" "}
         {/* Compensa o Navbar fixo */}
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/menu" element={<Menu />} />
+          <Route path="/home" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Cadastro />} />
           <Route path="/perfil" element={<Perfil />} />

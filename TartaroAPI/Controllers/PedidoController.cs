@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TartaroAPI.Data;
@@ -5,6 +6,7 @@ using TartaroAPI.Models;
 
 namespace TartaroAPI.Controllers;
 
+[Authorize] // 🔒 Protege todos os endpoints
 [ApiController]
 [Route("api/[controller]")]
 public class PedidoController : ControllerBase
