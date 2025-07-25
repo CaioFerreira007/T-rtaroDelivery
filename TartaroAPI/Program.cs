@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,18 +17,18 @@ builder.Services.AddDbContext<TartaroDbContext>(options =>
 );
 
 // 🔐 Configurando Autenticação JWT
+var key = builder.Configuration["Jwt:Key"];
+var issuer = builder.Configuration["Jwt:Issuer"];
+var audience = builder.Configuration["Jwt:Audience"];
+
+if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(issuer) || string.IsNullOrWhiteSpace(audience))
+{
+    throw new InvalidOperationException("Configurações de JWT ausentes em appsettings.json.");
+}
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        var key = builder.Configuration["Jwt:Key"];
-        var issuer = builder.Configuration["Jwt:Issuer"];
-        var audience = builder.Configuration["Jwt:Audience"];
-
-        if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(issuer) || string.IsNullOrWhiteSpace(audience))
-        {
-            throw new InvalidOperationException("Configurações de JWT ausentes em appsettings.json.");
-        }
-
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -40,32 +41,31 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization(); // ➕ Adicionando autorização
+builder.Services.AddAuthorization(); // ➕ Libera uso do [Authorize]
 
-// 📦 Ativando Swagger e Controllers
+// 📦 Injeções, Swagger e Controllers
 builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers()
-
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
         options.JsonSerializerOptions.WriteIndented = true;
     });
 
 var app = builder.Build();
 
-// 🚀 Ativando Swagger na pipeline
+// 🚀 Ativando middlewares
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// 🔐 Ativando HTTPS (opcional)
-app.UseHttpsRedirection();
+app.UseHttpsRedirection(); // Opcional
 
-// 🔑 Ativando autenticação e autorização
-app.UseAuthentication(); // ✅ Isso garante verificação do token JWT
+app.UseAuthentication(); // ✅ Garante verificação do token JWT
 app.UseAuthorization();
+
+app.MapControllers();
 
 // 🌤 Endpoint de teste padrão
 var summaries = new[]
@@ -88,12 +88,9 @@ app.MapGet("/weatherforecast", () =>
 })
 .WithName("GetWeatherForecast");
 
-// ✅ Mapeando os Controllers corretamente
-app.MapControllers();
-
 app.Run();
 
-// 🎯 Modelo para o endpoint de teste
+// 🎯 Modelo usado no /weatherforecast
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);

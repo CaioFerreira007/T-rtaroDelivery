@@ -17,6 +17,8 @@ namespace TartaroAPI.Data
         public DbSet<ItemPedido> ItensPedido { get; set; }
         public DbSet<Pagamento> Pagamentos { get; set; }
 
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

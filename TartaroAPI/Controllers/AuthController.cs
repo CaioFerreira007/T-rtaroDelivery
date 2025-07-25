@@ -1,19 +1,31 @@
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Mvc;
+using TartaroAPI.Data;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
-using TartaroAPI.Models;         // Supondo que Cliente esteja aqui
-using TartaroAPI.DTOs;          // Para LoginDTO
-using TartaroAPI.Services;      // Se IClienteService estiver nessa pasta
+using Microsoft.IdentityModel.Tokens;
+using BCrypt.Net;
+using TartaroAPI.DTOs;
+using Microsoft.EntityFrameworkCore;
+using TartaroAPI.Models;
+using TartaroAPI.Services;
+
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
     private readonly IClienteService _clienteService;
+    private readonly TartaroDbContext _context;
+    private readonly IConfiguration _configuration;
 
-    public AuthController(IClienteService clienteService)
+    public AuthController(
+        IClienteService clienteService,
+        TartaroDbContext context,
+        IConfiguration configuration)
     {
+        _context = context;
         _clienteService = clienteService;
+        _configuration = configuration;
     }
 
     [HttpPost("login")]
@@ -23,14 +35,138 @@ public class AuthController : ControllerBase
         if (cliente is null)
             return Unauthorized("Credenciais inválidas");
 
-        var token = GerarJwt(cliente!); // 👈 O operador ! diz “confie, não é null”
-        return Ok(new { Token = token });
+        var token = GerarJwt(cliente);
+
+        var refresh = new RefreshToken
+        {
+            Token = Guid.NewGuid().ToString(),
+            Expiracao = DateTime.UtcNow.AddDays(7),
+            ClienteId = cliente.Id
+        };
+
+        _context.RefreshTokens.Add(refresh);
+        _context.SaveChanges();
+
+        return Ok(new
+        {
+            token,
+            refreshToken = refresh.Token,
+            nome = cliente.Nome
+        });
+    }
+
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] RegisterDTO dto)
+    {
+        if (await _context.Clientes.AnyAsync(c => c.Email == dto.Email))
+            return BadRequest("Email já cadastrado.");
+
+        var senhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha);
+
+        var cliente = new Cliente
+        {
+            Nome = dto.Nome,
+            Email = dto.Email,
+            SenhaHash = senhaHash,
+            Tipo = "cliente"
+        };
+
+        _context.Clientes.Add(cliente);
+        await _context.SaveChangesAsync();
+
+        var token = GerarJwt(cliente);
+
+        var refresh = new RefreshToken
+        {
+            Token = Guid.NewGuid().ToString(),
+            Expiracao = DateTime.UtcNow.AddDays(7),
+            ClienteId = cliente.Id
+        };
+
+        _context.RefreshTokens.Add(refresh);
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            token,
+            refreshToken = refresh.Token,
+            nome = cliente.Nome
+        });
+    }
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh([FromBody] string refreshToken)
+    {
+        var tokenSalvo = await _context.RefreshTokens
+            .Include(r => r.Cliente)
+            .FirstOrDefaultAsync(r => r.Token == refreshToken && r.Expiracao > DateTime.UtcNow);
+
+        if (tokenSalvo is null)
+            return Unauthorized("Refresh token inválido ou expirado.");
+
+        _context.RefreshTokens.Remove(tokenSalvo);
+
+        var novoRefresh = new RefreshToken
+        {
+            Token = Guid.NewGuid().ToString(),
+            Expiracao = DateTime.UtcNow.AddDays(7),
+            ClienteId = tokenSalvo.ClienteId
+        };
+
+        _context.RefreshTokens.Add(novoRefresh);
+        await _context.SaveChangesAsync();
+
+        var novoJwt = GerarJwt(tokenSalvo.Cliente);
+
+        return Ok(new
+        {
+            token = novoJwt,
+            refreshToken = novoRefresh.Token,
+            nome = tokenSalvo.Cliente.Nome
+        });
+    }
+
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout([FromBody] string refreshToken)
+    {
+        var tokenSalvo = await _context.RefreshTokens
+            .FirstOrDefaultAsync(r => r.Token == refreshToken);
+
+        if (tokenSalvo is null)
+            return NotFound("Refresh token não encontrado.");
+
+        _context.RefreshTokens.Remove(tokenSalvo);
+        await _context.SaveChangesAsync();
+
+        return Ok("Logout realizado com sucesso.");
     }
 
     private string GerarJwt(Cliente cliente)
     {
+        var chaveString = _configuration["Jwt:Key"];
 
-        var token = new JwtSecurityToken();
-        return new JwtSecurityTokenHandler().WriteToken(token); // ✅ garante que token existe
+        if (string.IsNullOrWhiteSpace(chaveString))
+            throw new InvalidOperationException("A chave JWT não foi configurada corretamente.");
+
+        var chave = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(chaveString));
+        var credenciais = new SigningCredentials(chave, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, cliente.Id.ToString()),
+            new Claim(ClaimTypes.Name, cliente.Nome),
+            new Claim(ClaimTypes.Email, cliente.Email),
+            new Claim("tipo", cliente.Tipo)
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: _configuration["Jwt:Issuer"],
+            audience: "TartaroAPIClient",
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(15),
+            signingCredentials: credenciais
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using TartaroAPI.Data;
 using TartaroAPI.Models;
 
@@ -84,5 +85,23 @@ public class PedidoController : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    // 🔒 NOVA: Retorna apenas os pedidos do cliente logado
+    [HttpGet("meus")]
+    public async Task<IActionResult> MeusPedidos()
+    {
+        var clienteIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(clienteIdClaim) || !int.TryParse(clienteIdClaim, out int clienteId))
+            return Unauthorized("Token JWT inválido.");
+
+        var pedidos = await _context.Pedidos
+            .Where(p => p.ClienteId == clienteId)
+            .Include(p => p.Itens).ThenInclude(i => i.Produto)
+            .Include(p => p.Pagamento)
+            .ToListAsync();
+
+        return Ok(pedidos);
     }
 }

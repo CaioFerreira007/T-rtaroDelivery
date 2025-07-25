@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -9,6 +10,7 @@ using TartaroAPI.Models;
 
 namespace TartaroAPI.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class ClienteController : ControllerBase
@@ -22,7 +24,8 @@ namespace TartaroAPI.Controllers
             _config = config;
         }
 
-        // 🧾 Cadastro de cliente
+        // 🧾 Cadastro de cliente (liberado)
+        [AllowAnonymous]
         [HttpPost("cadastro")]
         public async Task<IActionResult> CadastrarCliente([FromBody] Cliente cliente)
         {
@@ -36,7 +39,8 @@ namespace TartaroAPI.Controllers
             return CreatedAtAction(nameof(CadastrarCliente), new { id = cliente.Id }, cliente);
         }
 
-        // 🔓 Login de cliente
+        // 🔓 Login de cliente (liberado)
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] ClienteLoginDto dto)
         {
@@ -48,41 +52,8 @@ namespace TartaroAPI.Controllers
             return Ok(new { token, nome = cliente.Nome });
         }
 
-        // 🧠 Geração de token JWT
-        private string GerarJwt(Cliente cliente)
-        {
-            var claims = new[]
-            {
-        new Claim(ClaimTypes.NameIdentifier, cliente.Id.ToString()),
-        new Claim(ClaimTypes.Email, cliente.Email),
-        new Claim(ClaimTypes.Role, cliente.Tipo)
-    };
-
-            // 🔐 Garantir que a chave está presente no appsettings.json
-            var keyString = _config["Jwt:Key"];
-            var issuer = _config["Jwt:Issuer"];
-            var audience = _config["Jwt:Audience"];
-
-            if (string.IsNullOrWhiteSpace(keyString) || string.IsNullOrWhiteSpace(issuer) || string.IsNullOrWhiteSpace(audience))
-            {
-                throw new InvalidOperationException("Configurações JWT ausentes em appsettings.json.");
-            }
-
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var token = new JwtSecurityToken(
-                issuer: issuer,
-                audience: audience,
-                claims: claims,
-                expires: DateTime.UtcNow.AddHours(1),
-                signingCredentials: creds
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-
-        // 📩 Recuperação de senha
+        // 📩 Recuperação de senha (liberado)
+        [AllowAnonymous]
         [HttpPost("recuperar-senha")]
         public async Task<IActionResult> RecuperarSenha([FromBody] string email)
         {
@@ -100,7 +71,8 @@ namespace TartaroAPI.Controllers
             return Ok("Email enviado com instruções para redefinir senha.");
         }
 
-        // 🔐 Alterar senha com token
+        // 🔐 Alterar senha com token (liberado)
+        [AllowAnonymous]
         [HttpPost("alterar-senha")]
         public async Task<IActionResult> AlterarSenha([FromBody] AlterarSenhaDto dto)
         {
@@ -115,9 +87,66 @@ namespace TartaroAPI.Controllers
 
             return Ok("Senha alterada com sucesso.");
         }
+
+        // 👤 Perfil do cliente logado (protegido)
+        [HttpGet("perfil")]
+        public IActionResult Perfil()
+        {
+            var nome = User.FindFirst(ClaimTypes.Name)?.Value;
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            var tipo = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            return Ok(new { nome, email, tipo });
+        }
+
+        // 🛑 Área exclusiva para administradores (protegida por role)
+        [Authorize(Roles = "admin")]
+        [HttpGet("admin")]
+        public IActionResult AdminArea()
+        {
+            return Ok("Bem-vindo à área administrativa.");
+        }
+
+        // 🚪 Logout simbólico (protegido)
+        [HttpPost("logout")]
+        public IActionResult Logout()
+        {
+            return Ok("Logout efetuado com sucesso. Remova o token do cliente.");
+        }
+
+        // 🧠 Geração de token JWT
+        private string GerarJwt(Cliente cliente)
+        {
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, cliente.Id.ToString()),
+                new Claim(ClaimTypes.Email, cliente.Email),
+                new Claim(ClaimTypes.Role, cliente.Tipo)
+            };
+
+            var keyString = _config["Jwt:Key"];
+            var issuer = _config["Jwt:Issuer"];
+            var audience = _config["Jwt:Audience"];
+
+            if (string.IsNullOrWhiteSpace(keyString) || string.IsNullOrWhiteSpace(issuer) || string.IsNullOrWhiteSpace(audience))
+                throw new InvalidOperationException("Configurações JWT ausentes em appsettings.json.");
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: issuer,
+                audience: audience,
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(1),
+                signingCredentials: creds
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
     }
 
-    // DTOs auxiliares
+    // 📦 DTOs auxiliares
     public class ClienteLoginDto
     {
         public string Email { get; set; } = string.Empty;
