@@ -37,7 +37,7 @@ function Checkout() {
     setPedidoConfirmado(true);
     setCarrinho([]);
     setTotal(0);
-    setTimeout(() => navigate("/"), 2500);
+    setTimeout(() => navigate("/home"), 2500);
   };
 
   return (

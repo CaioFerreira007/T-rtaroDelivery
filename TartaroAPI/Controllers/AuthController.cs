@@ -8,32 +8,30 @@ using BCrypt.Net;
 using TartaroAPI.DTOs;
 using Microsoft.EntityFrameworkCore;
 using TartaroAPI.Models;
-using TartaroAPI.Services;
 
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly IClienteService _clienteService;
     private readonly TartaroDbContext _context;
     private readonly IConfiguration _configuration;
 
-    public AuthController(
-        IClienteService clienteService,
-        TartaroDbContext context,
-        IConfiguration configuration)
+    public AuthController(TartaroDbContext context, IConfiguration configuration)
     {
         _context = context;
-        _clienteService = clienteService;
         _configuration = configuration;
     }
 
     [HttpPost("login")]
     public IActionResult Login([FromBody] LoginDTO login)
     {
-        var cliente = _clienteService.Autenticar(login.Email, login.Senha);
+        var cliente = _context.Clientes.FirstOrDefault(c => c.Email == login.Email);
         if (cliente is null)
-            return Unauthorized("Credenciais inválidas");
+            return Unauthorized("Email não encontrado.");
+
+        bool senhaValida = BCrypt.Net.BCrypt.Verify(login.Senha, cliente.SenhaHash);
+        if (!senhaValida)
+            return Unauthorized("Senha incorreta.");
 
         var token = GerarJwt(cliente);
 
@@ -56,7 +54,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterDTO dto)
+    public async Task<IActionResult> Register([FromBody] registerDTO dto)
     {
         if (await _context.Clientes.AnyAsync(c => c.Email == dto.Email))
             return BadRequest("Email já cadastrado.");
@@ -161,7 +159,7 @@ public class AuthController : ControllerBase
 
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"],
-            audience: "TartaroAPIClient",
+            audience: _configuration["Jwt:Audience"],
             claims: claims,
             expires: DateTime.UtcNow.AddMinutes(15),
             signingCredentials: credenciais

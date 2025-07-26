@@ -29,7 +29,6 @@ function Menu() {
     "Artesanais",
     "Tradicionais",
     "Bebidas",
-    "Frango",
     "Combos",
     "Batatas",
     "Molhos Adicionais",

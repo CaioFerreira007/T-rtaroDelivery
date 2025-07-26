@@ -16,7 +16,7 @@ namespace TartaroAPI.Models
         [EmailAddress]
         public string Email { get; set; } = string.Empty;
 
-        [Required]
+
         public string SenhaHash { get; set; } = string.Empty;
 
         // Campo opcional de telefone para contato do cliente

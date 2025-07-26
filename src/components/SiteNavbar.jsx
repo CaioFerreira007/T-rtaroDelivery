@@ -20,7 +20,7 @@ function SiteNavbar() {
   return (
     <Navbar bg="dark" variant="dark" expand="md" fixed="top">
       <Container>
-        <Navbar.Brand as={Link} to="/">
+        <Navbar.Brand as={Link} to="/home">
           🔥 Tártaro Delivery
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />

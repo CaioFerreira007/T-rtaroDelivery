@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Container, Form, Button, Alert } from "react-bootstrap";
-import { salvarUsuario, verificarUsuarioExistente } from "../utils/auth";
 import "../styles/Cadastro.css";
 
 function Cadastro() {
@@ -11,7 +10,7 @@ function Cadastro() {
   const [confirmado, setConfirmado] = useState(false);
   const [erro, setErro] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (senha !== confirmarSenha) {
@@ -19,19 +18,34 @@ function Cadastro() {
       return;
     }
 
-    if (verificarUsuarioExistente(email)) {
-      setErro("Este e-mail já está cadastrado.");
-      return;
+    try {
+      const response = await fetch("http://localhost:5120/api/Auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ nome, email, senha }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Erro ao criar conta.");
+      }
+
+      const data = await response.json();
+      setConfirmado(true);
+      setErro("");
+
+      setNome("");
+      setEmail("");
+      setSenha("");
+      setConfirmarSenha("");
+
+      console.log("Token JWT:", data.token);
+    } catch (error) {
+      setErro(error.message);
+      console.error("Falha no cadastro:", error);
     }
-
-    salvarUsuario({ nome, email, senha });
-    setConfirmado(true);
-    setErro("");
-
-    setNome("");
-    setEmail("");
-    setSenha("");
-    setConfirmarSenha("");
   };
 
   return (

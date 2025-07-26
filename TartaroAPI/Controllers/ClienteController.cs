@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -10,7 +11,6 @@ using TartaroAPI.Models;
 
 namespace TartaroAPI.Controllers
 {
-    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class ClienteController : ControllerBase
@@ -24,22 +24,44 @@ namespace TartaroAPI.Controllers
             _config = config;
         }
 
-        // 🧾 Cadastro de cliente (liberado)
+        // 🧾 Cadastro de cliente
         [AllowAnonymous]
         [HttpPost("cadastro")]
-        public async Task<IActionResult> CadastrarCliente([FromBody] Cliente cliente)
+        public async Task<IActionResult> CadastrarCliente([FromBody] ClienteCadastroDto dto)
         {
-            if (await _context.Clientes.AnyAsync(c => c.Email == cliente.Email))
+            if (!ModelState.IsValid)
+                return BadRequest("Dados inválidos.");
+
+            if (await _context.Clientes.AnyAsync(c => c.Email == dto.Email))
                 return BadRequest("Email já cadastrado.");
 
-            cliente.SenhaHash = BCrypt.Net.BCrypt.HashPassword(cliente.SenhaHash);
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
+            try
+            {
+                var novoCliente = new Cliente
+                {
+                    Nome = dto.Nome,
+                    Email = dto.Email,
+                    SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha),
+                    Tipo = dto.Tipo ?? "cliente"
+                };
 
-            return CreatedAtAction(nameof(CadastrarCliente), new { id = cliente.Id }, cliente);
+                _context.Clientes.Add(novoCliente);
+                await _context.SaveChangesAsync();
+
+                return CreatedAtAction(nameof(CadastrarCliente), new { id = novoCliente.Id }, new
+                {
+                    id = novoCliente.Id,
+                    nome = novoCliente.Nome,
+                    email = novoCliente.Email
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Erro ao cadastrar cliente: {ex.Message}");
+            }
         }
 
-        // 🔓 Login de cliente (liberado)
+        // 🔓 Login
         [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] ClienteLoginDto dto)
@@ -52,7 +74,7 @@ namespace TartaroAPI.Controllers
             return Ok(new { token, nome = cliente.Nome });
         }
 
-        // 📩 Recuperação de senha (liberado)
+        // 📩 Recuperação de senha
         [AllowAnonymous]
         [HttpPost("recuperar-senha")]
         public async Task<IActionResult> RecuperarSenha([FromBody] string email)
@@ -71,7 +93,7 @@ namespace TartaroAPI.Controllers
             return Ok("Email enviado com instruções para redefinir senha.");
         }
 
-        // 🔐 Alterar senha com token (liberado)
+        // 🔐 Alterar senha
         [AllowAnonymous]
         [HttpPost("alterar-senha")]
         public async Task<IActionResult> AlterarSenha([FromBody] AlterarSenhaDto dto)
@@ -88,7 +110,8 @@ namespace TartaroAPI.Controllers
             return Ok("Senha alterada com sucesso.");
         }
 
-        // 👤 Perfil do cliente logado (protegido)
+        // 👤 Perfil
+        [Authorize]
         [HttpGet("perfil")]
         public IActionResult Perfil()
         {
@@ -99,7 +122,7 @@ namespace TartaroAPI.Controllers
             return Ok(new { nome, email, tipo });
         }
 
-        // 🛑 Área exclusiva para administradores (protegida por role)
+        // 🛑 Área admin
         [Authorize(Roles = "admin")]
         [HttpGet("admin")]
         public IActionResult AdminArea()
@@ -107,14 +130,15 @@ namespace TartaroAPI.Controllers
             return Ok("Bem-vindo à área administrativa.");
         }
 
-        // 🚪 Logout simbólico (protegido)
+        // 🚪 Logout simbólico
+        [Authorize]
         [HttpPost("logout")]
         public IActionResult Logout()
         {
             return Ok("Logout efetuado com sucesso. Remova o token do cliente.");
         }
 
-        // 🧠 Geração de token JWT
+        // 🧠 Gerar JWT
         private string GerarJwt(Cliente cliente)
         {
             var claims = new[]
@@ -146,16 +170,38 @@ namespace TartaroAPI.Controllers
         }
     }
 
-    // 📦 DTOs auxiliares
+    // DTOs auxiliares
+    public class ClienteCadastroDto
+    {
+        [Required]
+        public string Nome { get; set; } = string.Empty;
+
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        public string Senha { get; set; } = string.Empty;
+
+        public string? Tipo { get; set; }
+    }
+
     public class ClienteLoginDto
     {
+        [Required]
+        [EmailAddress]
         public string Email { get; set; } = string.Empty;
+
+        [Required]
         public string Senha { get; set; } = string.Empty;
     }
 
     public class AlterarSenhaDto
     {
+        [Required]
         public string Token { get; set; } = string.Empty;
+
+        [Required]
         public string NovaSenha { get; set; } = string.Empty;
     }
 }

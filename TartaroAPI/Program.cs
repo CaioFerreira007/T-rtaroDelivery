@@ -7,23 +7,25 @@ using System.Text;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Logging.AddConsole();
 
-// 🔌 Conexão com MySQL via EF Core
+#region 🔌 Conexão com MySQL via Pomelo
 builder.Services.AddDbContext<TartaroDbContext>(options =>
-    options.UseMySQL(
-        builder.Configuration.GetConnectionString("TartaroDb")
-        ?? throw new InvalidOperationException("Connection string 'TartaroDb' not found.")
-    )
-);
+    options.UseMySql(
+        builder.Configuration.GetConnectionString("TartaroDb"),
+        new MySqlServerVersion(new Version(8, 0, 34))
+    ));
+#endregion
 
-// 🔐 Configurando Autenticação JWT
-var key = builder.Configuration["Jwt:Key"];
-var issuer = builder.Configuration["Jwt:Issuer"];
-var audience = builder.Configuration["Jwt:Audience"];
+#region 🔐 Configuração de autenticação JWT
+var jwtKey = builder.Configuration["Jwt:Key"];
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"];
 
-if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(issuer) || string.IsNullOrWhiteSpace(audience))
+if (string.IsNullOrWhiteSpace(jwtKey) || string.IsNullOrWhiteSpace(jwtIssuer) || string.IsNullOrWhiteSpace(jwtAudience))
 {
-    throw new InvalidOperationException("Configurações de JWT ausentes em appsettings.json.");
+    Console.WriteLine("❌ Configurações de JWT ausentes ou inválidas.");
+    throw new InvalidOperationException("JWT mal configurado. Verifique appsettings.json.");
 }
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -35,15 +37,28 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = issuer,
-            ValidAudience = audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
     });
 
-builder.Services.AddAuthorization(); // ➕ Libera uso do [Authorize]
+builder.Services.AddAuthorization();
+#endregion
 
-// 📦 Injeções, Swagger e Controllers
+#region 🌐 CORS para acesso externo
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("PermitirFrontEnd", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+#endregion
+
+#region 📦 Serviços, Swagger, Controllers e JSON
 builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -53,21 +68,26 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
         options.JsonSerializerOptions.WriteIndented = true;
     });
+#endregion
 
 var app = builder.Build();
 
-// 🚀 Ativando middlewares
+#region 🚀 Middlewares
+app.UseCors("PermitirFrontEnd");
+
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseHttpsRedirection(); // Opcional
-
-app.UseAuthentication(); // ✅ Garante verificação do token JWT
-app.UseAuthorization();
-
 app.MapControllers();
 
-// 🌤 Endpoint de teste padrão
+// ⚠️ HTTPS pode ser opcional em ambiente local
+// app.UseHttpsRedirection(); ← desative se estiver testando sem certificado
+#endregion
+
+#region 🌤 Endpoint de teste (weatherforecast)
 var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm",
@@ -85,13 +105,14 @@ app.MapGet("/weatherforecast", () =>
     ).ToArray();
 
     return forecast;
-})
-.WithName("GetWeatherForecast");
+}).WithName("GetWeatherForecast");
+#endregion
 
 app.Run();
 
-// 🎯 Modelo usado no /weatherforecast
+#region 🎯 Modelo usado no /weatherforecast
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 }
+#endregion

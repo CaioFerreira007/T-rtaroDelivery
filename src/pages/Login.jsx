@@ -1,25 +1,37 @@
 import React, { useState } from "react";
 import { Container, Form, Button, Alert } from "react-bootstrap";
 import { useNavigate, Link } from "react-router-dom";
-import { validarLogin } from "../utils/auth";
+import axios from "axios";
 import "../styles/Login.css";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [erro, setErro] = useState(false);
+  const [erro, setErro] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
 
-    const usuario = validarLogin(email, senha);
+    try {
+      const resposta = await axios.post(
+        "http://localhost:5120/api/Auth/login",
+        {
+          email,
+          senha,
+        }
+      );
 
-    if (usuario) {
-      localStorage.setItem("clienteLogado", JSON.stringify(usuario));
-      navigate("/"); // ajuste conforme sua rota
-    } else {
-      setErro(true);
+      // Salva os dados retornados pela API (ex: token, nome, id, etc.)
+      localStorage.setItem("token", resposta.data.token);
+      // Redireciona o usuário para a página principal
+      navigate("/home");
+    } catch (err) {
+      if (err.response && err.response.data) {
+        setErro(err.response.data.mensagem || "E-mail ou senha incorretos.");
+      } else {
+        setErro("Erro ao conectar com o servidor.");
+      }
     }
   };
 
@@ -29,7 +41,7 @@ function Login() {
 
       {erro && (
         <Alert variant="danger" className="text-center">
-          E-mail ou senha inválidos! Tente novamente.
+          {erro}
         </Alert>
       )}
 
@@ -60,6 +72,15 @@ function Login() {
           ✅ Entrar
         </Button>
       </Form>
+
+      <p className="text-center mt-3">
+        <Link
+          to="/esqueci-senha"
+          style={{ color: "#28a745", textDecoration: "underline" }}
+        >
+          Esqueci minha senha?
+        </Link>
+      </p>
 
       <p className="text-center mt-4">
         Ainda não tem conta?{" "}

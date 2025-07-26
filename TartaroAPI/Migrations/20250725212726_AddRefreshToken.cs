@@ -1,8 +1,7 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
-using MySql.EntityFrameworkCore.Metadata;
-
-#nullable disable
+using Microsoft.EntityFrameworkCore.Metadata; // ✔️ CORRETO para Pomelo
+using MySqlValueGenerationStrategy = Microsoft.EntityFrameworkCore.Metadata.MySqlValueGenerationStrategy;
 
 namespace TartaroAPI.Migrations
 {
@@ -16,8 +15,8 @@ namespace TartaroAPI.Migrations
                 name: "RefreshTokens",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    Id = table.Column<int>(type: "int", nullable: false),
+
                     Token = table.Column<string>(type: "longtext", nullable: false),
                     Expiracao = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     ClienteId = table.Column<int>(type: "int", nullable: false)
