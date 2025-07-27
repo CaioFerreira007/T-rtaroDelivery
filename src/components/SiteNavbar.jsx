@@ -11,14 +11,18 @@ function SiteNavbar() {
   const [clienteLogado, setClienteLogado] = useState(null);
 
   useEffect(() => {
-    // Atualiza o estado local com base no contexto ou localStorage
     if (user) {
       setClienteLogado(user);
     } else {
-      const localUser = localStorage.getItem("user");
-      if (localUser) {
-        setClienteLogado(JSON.parse(localUser));
-      } else {
+      try {
+        const localUser = localStorage.getItem("user");
+        if (localUser) {
+          setClienteLogado(JSON.parse(localUser));
+        } else {
+          setClienteLogado(null);
+        }
+      } catch (error) {
+        console.error("Erro ao ler usuário do localStorage:", error);
         setClienteLogado(null);
       }
     }
@@ -27,7 +31,7 @@ function SiteNavbar() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    setUser(null); // Atualiza o contexto
+    setUser(null);
     setClienteLogado(null);
     navigate("/login");
   };
@@ -62,14 +66,9 @@ function SiteNavbar() {
                 </NavDropdown.Item>
               </NavDropdown>
             ) : (
-              <>
-                <Nav.Link as={Link} to="/login">
-                  📝 Login
-                </Nav.Link>
-                <Nav.Link as={Link} to="/cadastro">
-                  👤 Cadastro
-                </Nav.Link>
-              </>
+              <Nav.Link as={Link} to="/login">
+                📝 Login
+              </Nav.Link>
             )}
           </Nav>
         </Navbar.Collapse>

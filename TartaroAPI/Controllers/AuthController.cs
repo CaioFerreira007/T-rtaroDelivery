@@ -45,11 +45,18 @@ public class AuthController : ControllerBase
         _context.RefreshTokens.Add(refresh);
         _context.SaveChanges();
 
+        // ✅ Agora retorna o objeto completo do usuário
         return Ok(new
         {
             token,
             refreshToken = refresh.Token,
-            nome = cliente.Nome
+            user = new
+            {
+                id = cliente.Id,
+                nome = cliente.Nome,
+                email = cliente.Email,
+                tipo = cliente.Tipo
+            }
         });
     }
 
@@ -84,11 +91,18 @@ public class AuthController : ControllerBase
         _context.RefreshTokens.Add(refresh);
         await _context.SaveChangesAsync();
 
+        // ✅ Também retorna o usuário completo aqui
         return Ok(new
         {
             token,
             refreshToken = refresh.Token,
-            nome = cliente.Nome
+            user = new
+            {
+                id = cliente.Id,
+                nome = cliente.Nome,
+                email = cliente.Email,
+                tipo = cliente.Tipo
+            }
         });
     }
 
@@ -120,7 +134,13 @@ public class AuthController : ControllerBase
         {
             token = novoJwt,
             refreshToken = novoRefresh.Token,
-            nome = tokenSalvo.Cliente.Nome
+            user = new
+            {
+                id = tokenSalvo.Cliente.Id,
+                nome = tokenSalvo.Cliente.Nome,
+                email = tokenSalvo.Cliente.Email,
+                tipo = tokenSalvo.Cliente.Tipo
+            }
         });
     }
 

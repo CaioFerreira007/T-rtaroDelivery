@@ -1,16 +1,19 @@
 import React, { createContext, useState, useEffect } from "react";
 
-// Cria o contexto
 export const AuthContext = createContext();
 
-// Provedor do contexto
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const localUser = localStorage.getItem("user");
-    if (localUser) {
-      setUser(JSON.parse(localUser));
+    try {
+      const localUser = localStorage.getItem("user");
+      if (localUser) {
+        setUser(JSON.parse(localUser));
+      }
+    } catch (error) {
+      console.error("Erro ao carregar usuário do localStorage:", error);
+      setUser(null);
     }
   }, []);
 

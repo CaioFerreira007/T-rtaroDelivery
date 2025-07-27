@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 import { Container, Form, Button, Alert } from "react-bootstrap";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
@@ -9,6 +10,7 @@ function Login() {
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const navigate = useNavigate();
+  const { setUser } = useContext(AuthContext); // ← Contexto corretamente acessado
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -21,16 +23,16 @@ function Login() {
           senha,
         }
       );
+      console.log("Resposta da API:", resposta.data);
 
-      // Armazena token e usuário no localStorage
-      localStorage.setItem("token", resposta.data.token);
-      localStorage.setItem("user", JSON.stringify(resposta.data.user));
-
-      // Caso use AuthContext, poderia fazer:
-      // setUser(resposta.data.user);
-
-      // Redireciona para a home
-      navigate("/home");
+      if (resposta.data && resposta.data.user) {
+        localStorage.setItem("token", resposta.data.token);
+        localStorage.setItem("user", JSON.stringify(resposta.data.user));
+        setUser(resposta.data.user);
+        navigate("/home");
+      } else {
+        setErro("Dados de usuário não retornados pelo servidor.");
+      }
     } catch (err) {
       if (err.response && err.response.data) {
         setErro(err.response.data.mensagem || "E-mail ou senha incorretos.");
@@ -59,6 +61,7 @@ function Login() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            autoComplete="email"
           />
         </Form.Group>
 
@@ -70,6 +73,7 @@ function Login() {
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
             required
+            autoComplete="current-password"
           />
         </Form.Group>
 
