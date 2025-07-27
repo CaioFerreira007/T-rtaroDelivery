@@ -22,9 +22,14 @@ function Login() {
         }
       );
 
-      // Salva os dados retornados pela API (ex: token, nome, id, etc.)
+      // Armazena token e usuário no localStorage
       localStorage.setItem("token", resposta.data.token);
-      // Redireciona o usuário para a página principal
+      localStorage.setItem("user", JSON.stringify(resposta.data.user));
+
+      // Caso use AuthContext, poderia fazer:
+      // setUser(resposta.data.user);
+
+      // Redireciona para a home
       navigate("/home");
     } catch (err) {
       if (err.response && err.response.data) {
