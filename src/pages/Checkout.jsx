@@ -1,16 +1,27 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { Container, Card, Button, Alert, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
 
 function Checkout() {
   const [carrinho, setCarrinho] = useState([]);
   const [total, setTotal] = useState(0);
   const [pedidoConfirmado, setPedidoConfirmado] = useState(false);
   const [carregando, setCarregando] = useState(true);
+  const [verificandoLogin, setVerificandoLogin] = useState(true);
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
 
   useEffect(() => {
-    // Tenta recuperar carrinho do localStorage
+    if (user === null) return; // aguarda carregamento do contexto
+
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    setVerificandoLogin(false); // login validado
+
     const itensCarrinho = JSON.parse(localStorage.getItem("carrinho")) || [];
 
     if (Array.isArray(itensCarrinho) && itensCarrinho.length > 0) {
@@ -29,16 +40,24 @@ function Checkout() {
     }
 
     setCarregando(false);
-  }, []);
+  }, [user, navigate]);
 
   const handleConfirmarPedido = () => {
-    // Simula envio de pedido
     localStorage.removeItem("carrinho");
     setPedidoConfirmado(true);
     setCarrinho([]);
     setTotal(0);
     setTimeout(() => navigate("/home"), 2500);
   };
+
+  if (verificandoLogin) {
+    return (
+      <Container className="mt-5 text-center">
+        <Spinner animation="border" variant="primary" />
+        <p className="mt-3">Verificando autenticação...</p>
+      </Container>
+    );
+  }
 
   return (
     <Container className="mt-5 fade-in">
