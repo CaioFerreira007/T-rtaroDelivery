@@ -6,7 +6,7 @@ function RotaPrivada({ children }) {
   const { user } = useContext(AuthContext);
 
   if (user === null) {
-    // aguardando o contexto carregar
+    // ainda carregando: não renderiza nada, mas evita piscar
     return null;
   }
 

@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useContext } from "react";
 import { Button } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import "../styles/BarraCarrinho.css";
+import { AuthContext } from "../context/AuthContext";
 
 function BarraCarrinho({
   carrinho,
@@ -10,6 +11,7 @@ function BarraCarrinho({
   onClose,
 }) {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
 
   const total = carrinho.reduce(
     (soma, item) => soma + item.preco * item.quantidade,
@@ -17,6 +19,14 @@ function BarraCarrinho({
   );
 
   if (carrinho.length === 0) return null;
+
+  const handlePagamento = () => {
+    if (user) {
+      navigate("/checkout");
+    } else {
+      navigate("/login");
+    }
+  };
 
   return (
     <div className="barra-carrinho bg-white border-top shadow p-3">
@@ -75,7 +85,7 @@ function BarraCarrinho({
           <Button variant="outline-danger" onClick={limparCarrinho}>
             ❌ Cancelar
           </Button>
-          <Button variant="success" onClick={() => navigate("/checkout")}>
+          <Button variant="success" onClick={handlePagamento}>
             💳 Ir para pagamento
           </Button>
         </div>
