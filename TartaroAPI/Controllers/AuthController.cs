@@ -1,12 +1,11 @@
 using System.IdentityModel.Tokens.Jwt;
-using Microsoft.AspNetCore.Mvc;
-using TartaroAPI.Data;
-using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
-using Microsoft.IdentityModel.Tokens;
-using BCrypt.Net;
-using TartaroAPI.DTOs;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using TartaroAPI.Data;
+using TartaroAPI.DTOs;
 using TartaroAPI.Models;
 
 [ApiController]
@@ -22,15 +21,17 @@ public class AuthController : ControllerBase
         _configuration = configuration;
     }
 
+    // 🔑 LOGIN
     [HttpPost("login")]
-    public IActionResult Login([FromBody] LoginDTO login)
+    public async Task<IActionResult> Login([FromBody] LoginDTO login)
     {
-        var cliente = _context.Clientes.FirstOrDefault(c => c.Email == login.Email);
+        var cliente = await _context.Clientes
+            .FirstOrDefaultAsync(c => c.Email.ToLower().Trim() == login.Email.ToLower().Trim());
+
         if (cliente is null)
             return Unauthorized("Email não encontrado.");
 
-        bool senhaValida = BCrypt.Net.BCrypt.Verify(login.Senha, cliente.SenhaHash);
-        if (!senhaValida)
+        if (!BCrypt.Net.BCrypt.Verify(login.Senha, cliente.SenhaHash))
             return Unauthorized("Senha incorreta.");
 
         var token = GerarJwt(cliente);
@@ -43,27 +44,23 @@ public class AuthController : ControllerBase
         };
 
         _context.RefreshTokens.Add(refresh);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
 
-        // ✅ Agora retorna o objeto completo do usuário
         return Ok(new
         {
             token,
             refreshToken = refresh.Token,
-            user = new
-            {
-                id = cliente.Id,
-                nome = cliente.Nome,
-                email = cliente.Email,
-                tipo = cliente.Tipo
-            }
+            user = MapUser(cliente)
         });
     }
 
+    // 👤 REGISTRO DE CLIENTE
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] registerDTO dto)
     {
-        if (await _context.Clientes.AnyAsync(c => c.Email == dto.Email))
+        var email = dto.Email.ToLower().Trim();
+
+        if (await _context.Clientes.AnyAsync(c => c.Email.ToLower() == email))
             return BadRequest("Email já cadastrado.");
 
         var senhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha);
@@ -71,16 +68,26 @@ public class AuthController : ControllerBase
         var cliente = new Cliente
         {
             Nome = dto.Nome,
-            Email = dto.Email,
+            Email = email,
             SenhaHash = senhaHash,
             Tipo = "cliente"
         };
 
         _context.Clientes.Add(cliente);
-        await _context.SaveChangesAsync();
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            var inner = ex.InnerException?.Message;
+            if (inner != null && inner.Contains("UNIQUE"))
+                return BadRequest("Email já cadastrado.");
+            throw;
+        }
 
         var token = GerarJwt(cliente);
-
         var refresh = new RefreshToken
         {
             Token = Guid.NewGuid().ToString(),
@@ -91,27 +98,61 @@ public class AuthController : ControllerBase
         _context.RefreshTokens.Add(refresh);
         await _context.SaveChangesAsync();
 
-        // ✅ Também retorna o usuário completo aqui
         return Ok(new
         {
             token,
             refreshToken = refresh.Token,
-            user = new
-            {
-                id = cliente.Id,
-                nome = cliente.Nome,
-                email = cliente.Email,
-                tipo = cliente.Tipo
-            }
+            user = MapUser(cliente)
         });
     }
 
+    // 👑 REGISTRO DE ADMINISTRADOR
+    [Authorize(Roles = "ADM")]
+    [HttpPost("register-adm")]
+    public async Task<IActionResult> RegisterADM([FromBody] registerDTO dto)
+    {
+        var email = dto.Email.ToLower().Trim();
+
+        if (await _context.Clientes.AnyAsync(c => c.Email.ToLower() == email))
+            return BadRequest("Email já cadastrado.");
+
+        var cliente = new Cliente
+        {
+            Nome = dto.Nome,
+            Email = email,
+            SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha),
+            Tipo = "ADM"
+        };
+
+        _context.Clientes.Add(cliente);
+        await _context.SaveChangesAsync();
+
+        var token = GerarJwt(cliente);
+        var refresh = new RefreshToken
+        {
+            Token = Guid.NewGuid().ToString(),
+            Expiracao = DateTime.UtcNow.AddDays(7),
+            ClienteId = cliente.Id
+        };
+
+        _context.RefreshTokens.Add(refresh);
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            token,
+            refreshToken = refresh.Token,
+            user = MapUser(cliente)
+        });
+    }
+
+    // 🔄 REFRESH
     [HttpPost("refresh")]
-    public async Task<IActionResult> Refresh([FromBody] string refreshToken)
+    public async Task<IActionResult> Refresh([FromBody] TokenDTO dto)
     {
         var tokenSalvo = await _context.RefreshTokens
             .Include(r => r.Cliente)
-            .FirstOrDefaultAsync(r => r.Token == refreshToken && r.Expiracao > DateTime.UtcNow);
+            .FirstOrDefaultAsync(r => r.Token == dto.RefreshToken && r.Expiracao > DateTime.UtcNow);
 
         if (tokenSalvo is null)
             return Unauthorized("Refresh token inválido ou expirado.");
@@ -134,21 +175,16 @@ public class AuthController : ControllerBase
         {
             token = novoJwt,
             refreshToken = novoRefresh.Token,
-            user = new
-            {
-                id = tokenSalvo.Cliente.Id,
-                nome = tokenSalvo.Cliente.Nome,
-                email = tokenSalvo.Cliente.Email,
-                tipo = tokenSalvo.Cliente.Tipo
-            }
+            user = MapUser(tokenSalvo.Cliente)
         });
     }
 
+    // 🚪 LOGOUT
     [HttpPost("logout")]
-    public async Task<IActionResult> Logout([FromBody] string refreshToken)
+    public async Task<IActionResult> Logout([FromBody] TokenDTO dto)
     {
         var tokenSalvo = await _context.RefreshTokens
-            .FirstOrDefaultAsync(r => r.Token == refreshToken);
+            .FirstOrDefaultAsync(r => r.Token == dto.RefreshToken);
 
         if (tokenSalvo is null)
             return NotFound("Refresh token não encontrado.");
@@ -159,12 +195,12 @@ public class AuthController : ControllerBase
         return Ok("Logout realizado com sucesso.");
     }
 
+    // 🔐 GERAÇÃO DE TOKEN JWT
     private string GerarJwt(Cliente cliente)
     {
         var chaveString = _configuration["Jwt:Key"];
-
         if (string.IsNullOrWhiteSpace(chaveString))
-            throw new InvalidOperationException("A chave JWT não foi configurada corretamente.");
+            throw new InvalidOperationException("JWT mal configurado.");
 
         var chave = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(chaveString));
         var credenciais = new SigningCredentials(chave, SecurityAlgorithms.HmacSha256);
@@ -174,7 +210,8 @@ public class AuthController : ControllerBase
             new Claim(ClaimTypes.NameIdentifier, cliente.Id.ToString()),
             new Claim(ClaimTypes.Name, cliente.Nome),
             new Claim(ClaimTypes.Email, cliente.Email),
-            new Claim("tipo", cliente.Tipo)
+            new Claim("tipo", cliente.Tipo),
+            new Claim(ClaimTypes.Role, cliente.Tipo.ToUpper())
         };
 
         var token = new JwtSecurityToken(
@@ -187,4 +224,22 @@ public class AuthController : ControllerBase
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    // 🧬 MAPEIA OBJETO DO USUÁRIO
+    private object MapUser(Cliente cliente)
+    {
+        return new
+        {
+            id = cliente.Id,
+            nome = cliente.Nome,
+            email = cliente.Email,
+            tipo = cliente.Tipo
+        };
+    }
+}
+
+// DTO auxiliar
+public class TokenDTO
+{
+    public required string RefreshToken { get; set; }
 }

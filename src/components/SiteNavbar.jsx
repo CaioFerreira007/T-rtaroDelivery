@@ -5,14 +5,14 @@ import { AuthContext } from "../context/AuthContext";
 import "../styles/SiteNavbar.css";
 
 function SiteNavbar() {
-  const { user, setUser } = useContext(AuthContext);
+  const { usuarioLogado, setUsuarioLogado } = useContext(AuthContext);
   const location = useLocation();
   const navigate = useNavigate();
   const [clienteLogado, setClienteLogado] = useState(null);
 
   useEffect(() => {
-    if (user) {
-      setClienteLogado(user);
+    if (usuarioLogado) {
+      setClienteLogado(usuarioLogado);
     } else {
       try {
         const localUser = localStorage.getItem("user");
@@ -26,15 +26,17 @@ function SiteNavbar() {
         setClienteLogado(null);
       }
     }
-  }, [user, location]);
+  }, [usuarioLogado, location]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    setUser(null);
+    setUsuarioLogado(null);
     setClienteLogado(null);
     navigate("/login");
   };
+
+  const isADM = clienteLogado?.tipo?.toUpperCase() === "ADM";
 
   return (
     <Navbar bg="dark" variant="dark" expand="md" fixed="top">
@@ -48,6 +50,12 @@ function SiteNavbar() {
             <Nav.Link as={Link} to="/home">
               🏠 Início
             </Nav.Link>
+
+            {isADM && (
+              <Nav.Link as={Link} to="/cadastro-produto">
+                ➕ Cadastrar Produto
+              </Nav.Link>
+            )}
 
             {clienteLogado ? (
               <NavDropdown

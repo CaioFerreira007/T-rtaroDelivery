@@ -3,22 +3,22 @@ import React, { createContext, useState, useEffect } from "react";
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [usuarioLogado, setUsuarioLogado] = useState(null);
 
   useEffect(() => {
     try {
       const localUser = localStorage.getItem("user");
       if (localUser) {
-        setUser(JSON.parse(localUser));
+        setUsuarioLogado(JSON.parse(localUser));
       }
     } catch (error) {
       console.error("Erro ao carregar usuário do localStorage:", error);
-      setUser(null);
+      setUsuarioLogado(null);
     }
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, setUser }}>
+    <AuthContext.Provider value={{ usuarioLogado, setUsuarioLogado }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Button } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+
 import HamburguerCard from "../components/HamburguerCard";
-import { adicionarAoCarrinho as salvarNoLocalStorage } from "../utils/carrinho"; // <-- renomeei a importada
+import { adicionarAoCarrinho as salvarNoLocalStorage } from "../utils/carrinho";
 import BarraCarrinho from "../components/BarraCarrinho";
-import produtos from "../data/produto";
 import "../styles/Home.css";
 
 function Menu() {
+  const [produtos, setProdutos] = useState([]);
   const [carrinho, setCarrinho] = useState([]);
   const [mostrarCarrinho, setMostrarCarrinho] = useState(false);
   const [animar, setAnimar] = useState(false);
@@ -16,12 +18,15 @@ function Menu() {
 
   useEffect(() => {
     setAnimar(true);
+    // 👇 Carrega produtos da API
+    axios
+      .get("/api/produtos")
+      .then((res) => setProdutos(res.data))
+      .catch((err) => console.error("Erro ao carregar produtos:", err));
   }, []);
 
   useEffect(() => {
-    if (carrinho.length === 0) {
-      setMostrarCarrinho(false);
-    }
+    if (carrinho.length === 0) setMostrarCarrinho(false);
   }, [carrinho]);
 
   const categorias = [
@@ -50,7 +55,6 @@ function Menu() {
           )
         : [...prevCarrinho, { ...produto, quantidade: 1 }];
 
-      // 💾 Salva no localStorage também!
       salvarNoLocalStorage(produto);
       return atualizado;
     });
@@ -75,7 +79,7 @@ function Menu() {
   const limparCarrinho = () => {
     setCarrinho([]);
     setMostrarCarrinho(false);
-    localStorage.removeItem("carrinho"); // também limpa do armazenamento
+    localStorage.removeItem("carrinho");
   };
 
   const finalizarPedido = () => {
