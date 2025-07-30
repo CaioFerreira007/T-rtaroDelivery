@@ -1,0 +1,11 @@
+@media (max-width: 768px) {
+  .barra-carrinho {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .barra-carrinho .botao-pagar {
+    margin-top: 10px;
+    width: 100%;
+  }
+}
