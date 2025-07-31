@@ -52,7 +52,7 @@ function SiteNavbar() {
             </Nav.Link>
 
             {isADM && (
-              <Nav.Link as={Link} to="/cadastro-produto">
+              <Nav.Link as={Link} to="/admin/cadastro-produto">
                 ➕ Cadastrar Produto
               </Nav.Link>
             )}

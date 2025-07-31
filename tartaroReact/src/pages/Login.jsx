@@ -2,7 +2,7 @@ import React, { useState, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { Container, Form, Button, Alert } from "react-bootstrap";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
+import axiosConfig from "../Services/axiosConfig";
 import "../styles/Login.css";
 
 function Login() {
@@ -10,35 +10,38 @@ function Login() {
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const navigate = useNavigate();
-  const { setUser } = useContext(AuthContext); // ← Contexto corretamente acessado
+  const { setUsuarioLogado } = useContext(AuthContext); // ← nome correto
 
   const handleLogin = async (e) => {
     e.preventDefault();
 
     try {
-      const resposta = await axios.post(
-        "http://localhost:5120/api/Auth/login",
-        {
-          email,
-          senha,
-        }
-      );
-      console.log("Resposta da API:", resposta.data);
+      const resposta = await axiosConfig.post("/auth/login", { email, senha });
 
-      if (resposta.data && resposta.data.user) {
+      console.log("STATUS →", resposta.status);
+      console.log("DATA →", resposta.data);
+
+      if (resposta.status === 200 && resposta.data?.token) {
         localStorage.setItem("token", resposta.data.token);
-        localStorage.setItem("user", JSON.stringify(resposta.data.user));
-        setUser(resposta.data.user);
+
+        if (resposta.data.user) {
+          localStorage.setItem("user", JSON.stringify(resposta.data.user));
+          setUsuarioLogado(resposta.data.user); // ← função correta
+        }
+
         navigate("/home");
       } else {
-        setErro("Dados de usuário não retornados pelo servidor.");
+        setErro("Login inválido ou resposta incompleta da API.");
       }
     } catch (err) {
-      if (err.response && err.response.data) {
-        setErro(err.response.data.mensagem || "E-mail ou senha incorretos.");
-      } else {
-        setErro("Erro ao conectar com o servidor.");
-      }
+      console.log("ERRO →", err.response || err);
+
+      const mensagem =
+        err.response?.data?.mensagem ||
+        err.message ||
+        "Erro ao conectar com o servidor.";
+
+      setErro(mensagem);
     }
   };
 

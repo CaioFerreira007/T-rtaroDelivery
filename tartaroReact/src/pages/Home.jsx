@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Button } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosConfig from "../Services/axiosConfig";
 
 import HamburguerCard from "../components/HamburguerCard";
 import { adicionarAoCarrinho as salvarNoLocalStorage } from "../utils/carrinho";
 import BarraCarrinho from "../components/BarraCarrinho";
 import "../styles/Home.css";
 
-function Menu() {
+function Home() {
   const [produtos, setProdutos] = useState([]);
   const [carrinho, setCarrinho] = useState([]);
   const [mostrarCarrinho, setMostrarCarrinho] = useState(false);
@@ -18,11 +18,24 @@ function Menu() {
 
   useEffect(() => {
     setAnimar(true);
-    // 👇 Carrega produtos da API
-    axios
-      .get("/api/produtos")
-      .then((res) => setProdutos(res.data))
-      .catch((err) => console.error("Erro ao carregar produtos:", err));
+    const token = localStorage.getItem("token");
+
+    axiosConfig
+      .get("/produtos", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      .then((res) => {
+        const lista = Array.isArray(res.data?.["$values"])
+          ? res.data["$values"]
+          : [];
+        console.log("Produtos carregados:", lista); // Agora vai!
+        setProdutos(lista);
+      })
+      .catch((err) => {
+        console.error("Erro ao carregar produtos:", err);
+      });
   }, []);
 
   useEffect(() => {
@@ -111,11 +124,18 @@ function Menu() {
       </div>
 
       <Row className="gy-4">
-        {produtosFiltrados.map((item) => (
-          <Col key={item.id} xs={12} sm={6} lg={4}>
-            <HamburguerCard {...item} onAdd={() => adicionarAoCarrinho(item)} />
-          </Col>
-        ))}
+        {Array.isArray(produtosFiltrados) &&
+          produtosFiltrados.map((item) => (
+            <Col key={item.id} xs={12} sm={6} lg={4}>
+              <HamburguerCard
+                nome={item.nome}
+                descricao={item.descricao}
+                preco={item.preco}
+                imagens={item.imagemUrl || ""} // ⬅️ garante que imagens sempre exista
+                onAdd={() => adicionarAoCarrinho(item)}
+              />
+            </Col>
+          ))}
       </Row>
 
       <Button
@@ -153,4 +173,4 @@ function Menu() {
   );
 }
 
-export default Menu;
+export default Home;

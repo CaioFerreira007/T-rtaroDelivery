@@ -3,19 +3,19 @@ import { Container, Card, Spinner } from "react-bootstrap";
 import { AuthContext } from "../context/AuthContext";
 
 function Perfil() {
-  const { user } = useContext(AuthContext);
+  const { usuariologado } = useContext(AuthContext);
   const [cliente, setCliente] = useState(null);
 
   useEffect(() => {
-    if (user) {
-      setCliente(user);
+    if (usuariologado) {
+      setCliente(usuariologado);
     } else {
       const localUser = localStorage.getItem("user");
       if (localUser) {
         setCliente(JSON.parse(localUser));
       }
     }
-  }, []); // ✅ dependências aqui — executa uma vez ao montar o componente
+  }, [usuariologado]); // ✅ dependências aqui — executa uma vez ao montar o componente
 
   return (
     <Container className="mt-5 fade-in">

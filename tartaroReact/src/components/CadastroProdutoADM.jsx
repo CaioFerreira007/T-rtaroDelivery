@@ -1,31 +1,47 @@
 import { useState, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import axios from "axios";
+import axiosConfig from "../Services/axiosConfig";
 import { Container, Form, Button, Alert, Spinner } from "react-bootstrap";
 
 function CadastroProdutoADM() {
-  const { usuarioLogado } = useContext(AuthContext);
+  const { usuariologado } = useContext(AuthContext);
 
   const [form, setForm] = useState({
     nome: "",
     descricao: "",
     preco: "",
     categoria: "",
-    imagemUrl: "",
     tipo: "Padrão",
   });
 
+  const [imagemFile, setImagemFile] = useState(null);
   const [previewImagem, setPreviewImagem] = useState("");
   const [sucesso, setSucesso] = useState(false);
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
 
+  const categoriasDisponiveis = [
+    "Artesanais",
+    "Tradicionais",
+    "Bebidas",
+    "Combos",
+    "Batatas",
+    "Molhos Adicionais",
+  ];
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
 
-    if (name === "imagemUrl") {
-      setPreviewImagem(value);
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImagemFile(file);
+      setPreviewImagem(URL.createObjectURL(file));
+    } else {
+      setImagemFile(null);
+      setPreviewImagem("");
     }
   };
 
@@ -41,12 +57,28 @@ function CadastroProdutoADM() {
       return;
     }
 
+    if (!imagemFile) {
+      setErro("❌ Imagem obrigatória para exibir o produto na Home.");
+      setEnviando(false);
+      return;
+    }
+
     try {
-      await axios.post("http://localhost:5120/api/produtos", form, {
+      const data = new FormData();
+      Object.entries(form).forEach(([key, value]) => {
+        data.append(key, value);
+      });
+
+      data.append("imagem", imagemFile); // imagem obrigatória
+
+      const res = await axiosConfig.post("/produtos", data, {
         headers: {
-          Authorization: `Bearer ${usuarioLogado.token}`,
+          Authorization: `Bearer ${usuariologado.token}`,
+          "Content-Type": "multipart/form-data",
         },
       });
+
+      console.log("Produto cadastrado:", res.data); // 👀 log do que foi salvo
 
       setSucesso(true);
       setForm({
@@ -54,9 +86,9 @@ function CadastroProdutoADM() {
         descricao: "",
         preco: "",
         categoria: "",
-        imagemUrl: "",
         tipo: "Padrão",
       });
+      setImagemFile(null);
       setPreviewImagem("");
     } catch (error) {
       console.error("Erro ao cadastrar:", error);
@@ -66,8 +98,7 @@ function CadastroProdutoADM() {
     }
   };
 
-  // 🔐 Verificação corrigida com .toUpperCase()
-  if (!usuarioLogado || usuarioLogado.tipo?.toUpperCase() !== "ADM") {
+  if (!usuariologado || usuariologado.tipo?.toUpperCase() !== "ADM") {
     return (
       <Alert variant="danger" className="m-5 text-center">
         ❌ Acesso negado: apenas administradores podem cadastrar produtos.
@@ -110,13 +141,19 @@ function CadastroProdutoADM() {
 
         <Form.Group className="mb-3">
           <Form.Label>Categoria</Form.Label>
-          <Form.Control
-            type="text"
+          <Form.Select
             name="categoria"
             value={form.categoria}
             onChange={handleChange}
             required
-          />
+          >
+            <option value="">Selecione uma categoria</option>
+            {categoriasDisponiveis.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </Form.Select>
         </Form.Group>
 
         <Form.Group className="mb-3">
@@ -133,12 +170,12 @@ function CadastroProdutoADM() {
         </Form.Group>
 
         <Form.Group className="mb-3">
-          <Form.Label>URL da Imagem</Form.Label>
+          <Form.Label>Imagem</Form.Label>
           <Form.Control
-            type="text"
-            name="imagemUrl"
-            value={form.imagemUrl}
-            onChange={handleChange}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            required
           />
         </Form.Group>
 
@@ -152,7 +189,10 @@ function CadastroProdutoADM() {
                 objectFit: "contain",
                 borderRadius: "10px",
               }}
-              onError={(e) => (e.target.style.display = "none")}
+              onError={(e) => {
+                e.target.style.display = "none";
+                setPreviewImagem("");
+              }}
             />
           </div>
         )}
