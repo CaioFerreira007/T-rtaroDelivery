@@ -16,21 +16,35 @@ function Home() {
   const [filtro, setFiltro] = useState("Todos");
   const navigate = useNavigate();
 
+  // Helper para pegar campo em Pascal ou camel
+  const getField = (item, field) => {
+    if (item[field] !== undefined) return item[field];
+    const lc = field.charAt(0).toLowerCase() + field.slice(1);
+    return item[lc] !== undefined ? item[lc] : undefined;
+  };
+
   useEffect(() => {
     setAnimar(true);
     const token = localStorage.getItem("token");
 
     axiosConfig
-      .get("/produtos", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      .get("/produtos", { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
-        const lista = Array.isArray(res.data?.["$values"])
-          ? res.data["$values"]
-          : [];
-        console.log("Produtos carregados:", lista); // Agora vai!
+        console.log("Resposta bruta /produtos:", res.data);
+
+        let lista = [];
+        if (Array.isArray(res.data)) {
+          lista = res.data;
+        } else if (Array.isArray(res.data["$values"])) {
+          lista = res.data["$values"];
+        }
+        console.log("Produtos carregados (array):", lista);
+
+        // Inspecione o formato de chaves do 1º item
+        if (lista.length > 0) {
+          console.log("Chaves do item[0]:", Object.keys(lista[0]).join(", "));
+        }
+
         setProdutos(lista);
       })
       .catch((err) => {
@@ -52,36 +66,37 @@ function Home() {
     "Molhos Adicionais",
   ];
 
+  // Aplica filtro de categoria usando getField
   const produtosFiltrados =
     filtro === "Todos"
       ? produtos
-      : produtos.filter((item) => item.categoria === filtro);
+      : produtos.filter((item) => getField(item, "Categoria") === filtro);
 
   const adicionarAoCarrinho = (produto) => {
-    setCarrinho((prevCarrinho) => {
-      const existente = prevCarrinho.find((item) => item.id === produto.id);
-      const atualizado = existente
-        ? prevCarrinho.map((item) =>
-            item.id === produto.id
-              ? { ...item, quantidade: item.quantidade + 1 }
-              : item
+    setCarrinho((prev) => {
+      const id = getField(produto, "Id");
+      const existe = prev.find((i) => getField(i, "Id") === id);
+      const atualizado = existe
+        ? prev.map((i) =>
+            getField(i, "Id") === id
+              ? { ...i, quantidade: i.quantidade + 1 }
+              : i
           )
-        : [...prevCarrinho, { ...produto, quantidade: 1 }];
+        : [...prev, { ...produto, quantidade: 1 }];
 
       salvarNoLocalStorage(produto);
       return atualizado;
     });
   };
 
-  const atualizarQuantidade = (id, operacao) => {
-    setCarrinho((prevCarrinho) =>
-      prevCarrinho
+  const atualizarQuantidade = (Id, operacao) => {
+    setCarrinho((prev) =>
+      prev
         .map((item) => {
-          if (item.id === id) {
+          if (getField(item, "Id") === Id) {
             const novaQtde =
               operacao === "+" ? item.quantidade + 1 : item.quantidade - 1;
-            if (novaQtde < 1) return null;
-            return { ...item, quantidade: novaQtde };
+            return novaQtde > 0 ? { ...item, quantidade: novaQtde } : null;
           }
           return item;
         })
@@ -96,22 +111,21 @@ function Home() {
   };
 
   const finalizarPedido = () => {
-    if (carrinho.length > 0) {
-      navigate("/checkout");
-    } else {
+    if (carrinho.length > 0) navigate("/checkout");
+    else
       alert(
         "Adicione pelo menos um produto ao carrinho antes de finalizar! 🍔"
       );
-    }
   };
 
   return (
     <Container
       className={`menu-container mt-5 mb-5 ${animar ? "fade-in" : ""}`}
     >
-      <h2 className="text-center mb-4">🍔 Cardápio Tártaro Delivery</h2>
+      <h1 className="text-center mb-4">🍔 Cardápio Tártaro Delivery</h1>
 
-      <div className="mb-4 d-flex flex-wrap gap-2 justify-content-center">
+      {/* Filtros */}
+      <div className="mb-4 d-flex flex-wrap gap-2 justify-content-center ">
         {categorias.map((cat) => (
           <Button
             key={cat}
@@ -123,32 +137,51 @@ function Home() {
         ))}
       </div>
 
+      {/* Produtos */}
       <Row className="gy-4">
-        {Array.isArray(produtosFiltrados) &&
-          produtosFiltrados.map((item) => (
-            <Col key={item.id} xs={12} sm={6} lg={4}>
+        {produtosFiltrados.length === 0 && (
+          <p className="text-center text-muted w-100">
+            Nenhum produto encontrado.
+          </p>
+        )}
+
+        {produtosFiltrados.map((item) => {
+          const id = getField(item, "Id") || Math.random();
+          const nome = getField(item, "Nome") || getField(item, "nome");
+          const descricao =
+            getField(item, "Descricao") || getField(item, "descricao");
+          const preco = getField(item, "Preco") || getField(item, "preco");
+          const rawImgs = getField(item, "ImagemUrls");
+          const imagens = Array.isArray(rawImgs)
+            ? rawImgs.filter((u) => typeof u === "string" && u.trim())
+            : [];
+
+          console.log(`item id=${id}, nome="${nome}", imagens=`, imagens);
+
+          return (
+            <Col key={id} xs={12} sm={6} lg={4}>
               <HamburguerCard
-                nome={item.nome}
-                descricao={item.descricao}
-                preco={item.preco}
-                imagens={item.imagemUrl || ""} // ⬅️ garante que imagens sempre exista
+                nome={nome}
+                descricao={descricao}
+                preco={preco}
+                imagens={imagens}
                 onAdd={() => adicionarAoCarrinho(item)}
               />
             </Col>
-          ))}
+          );
+        })}
       </Row>
 
+      {/* Carrinho */}
       <Button
         className="btn-ver-carrinho"
         variant="success"
         onClick={() => {
-          if (carrinho.length > 0) {
-            setMostrarCarrinho(true);
-          } else {
+          if (carrinho.length > 0) setMostrarCarrinho(true);
+          else
             alert(
               "Seu carrinho está vazio! 🍟 Adicione produtos para visualizar."
             );
-          }
         }}
       >
         🛒 Ver Carrinho ({carrinho.length})

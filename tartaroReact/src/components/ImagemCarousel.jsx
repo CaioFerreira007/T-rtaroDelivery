@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import Slider from 'react-slick';
-import { Modal } from 'react-bootstrap';
+import React, { useState } from "react";
+import Slider from "react-slick";
+import { Modal } from "react-bootstrap";
 
 function ImagemCarousel({ imagens, nome }) {
   const [zoom, setZoom] = useState(null);
@@ -11,7 +11,7 @@ function ImagemCarousel({ imagens, nome }) {
     autoplay: true,
     autoplaySpeed: 3000,
     swipeToSlide: true,
-    arrows: false
+    arrows: false,
   };
 
   return (
@@ -24,11 +24,11 @@ function ImagemCarousel({ imagens, nome }) {
               alt={`${nome} ${i + 1}`}
               onClick={() => setZoom(img)}
               style={{
-                width: '100%',
-                objectFit: 'cover',
-                aspectRatio: '4 / 3',
-                borderRadius: '10px',
-                cursor: 'zoom-in'
+                width: "100%",
+                objectFit: "cover",
+                aspectRatio: "4 / 3",
+                borderRadius: "10px",
+                cursor: "zoom-in",
               }}
             />
           </div>
@@ -40,7 +40,7 @@ function ImagemCarousel({ imagens, nome }) {
           <img
             src={zoom}
             alt="Zoom"
-            style={{ width: '100%', objectFit: 'contain' }}
+            style={{ width: "100%", objectFit: "contain" }}
           />
         </Modal.Body>
       </Modal>

@@ -14,8 +14,10 @@ function CadastroProdutoADM() {
     tipo: "Padrão",
   });
 
-  const [imagemFile, setImagemFile] = useState(null);
-  const [previewImagem, setPreviewImagem] = useState("");
+  // agora suportamos múltiplas imagens
+  const [imagemFiles, setImagemFiles] = useState([]);
+  const [previewImagens, setPreviewImagens] = useState([]);
+
   const [sucesso, setSucesso] = useState(false);
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -35,13 +37,13 @@ function CadastroProdutoADM() {
   };
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImagemFile(file);
-      setPreviewImagem(URL.createObjectURL(file));
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      setImagemFiles(files);
+      setPreviewImagens(files.map((file) => URL.createObjectURL(file)));
     } else {
-      setImagemFile(null);
-      setPreviewImagem("");
+      setImagemFiles([]);
+      setPreviewImagens([]);
     }
   };
 
@@ -57,8 +59,8 @@ function CadastroProdutoADM() {
       return;
     }
 
-    if (!imagemFile) {
-      setErro("❌ Imagem obrigatória para exibir o produto na Home.");
+    if (imagemFiles.length === 0) {
+      setErro("❌ Selecione ao menos uma imagem para o produto.");
       setEnviando(false);
       return;
     }
@@ -69,7 +71,10 @@ function CadastroProdutoADM() {
         data.append(key, value);
       });
 
-      data.append("imagem", imagemFile); // imagem obrigatória
+      // adiciona todas as imagens
+      imagemFiles.forEach((file) => {
+        data.append("imagens", file);
+      });
 
       const res = await axiosConfig.post("/produtos", data, {
         headers: {
@@ -78,7 +83,7 @@ function CadastroProdutoADM() {
         },
       });
 
-      console.log("Produto cadastrado:", res.data); // 👀 log do que foi salvo
+      console.log("Produto cadastrado:", res.data);
 
       setSucesso(true);
       setForm({
@@ -88,8 +93,8 @@ function CadastroProdutoADM() {
         categoria: "",
         tipo: "Padrão",
       });
-      setImagemFile(null);
-      setPreviewImagem("");
+      setImagemFiles([]);
+      setPreviewImagens([]);
     } catch (error) {
       console.error("Erro ao cadastrar:", error);
       setErro("❌ Erro ao cadastrar produto. Verifique os campos.");
@@ -170,30 +175,33 @@ function CadastroProdutoADM() {
         </Form.Group>
 
         <Form.Group className="mb-3">
-          <Form.Label>Imagem</Form.Label>
+          <Form.Label>Imagens</Form.Label>
           <Form.Control
             type="file"
             accept="image/*"
+            multiple
             onChange={handleFileChange}
-            required
           />
         </Form.Group>
 
-        {previewImagem && (
+        {previewImagens.length > 0 && (
           <div className="mb-3 text-center">
-            <img
-              src={previewImagem}
-              alt="Preview"
-              style={{
-                maxHeight: "200px",
-                objectFit: "contain",
-                borderRadius: "10px",
-              }}
-              onError={(e) => {
-                e.target.style.display = "none";
-                setPreviewImagem("");
-              }}
-            />
+            {previewImagens.map((url, idx) => (
+              <img
+                key={idx}
+                src={url}
+                alt={`Preview ${idx + 1}`}
+                style={{
+                  maxHeight: "150px",
+                  objectFit: "contain",
+                  borderRadius: "8px",
+                  margin: "0 5px",
+                }}
+                onError={(e) => {
+                  e.target.style.display = "none";
+                }}
+              />
+            ))}
           </div>
         )}
 
