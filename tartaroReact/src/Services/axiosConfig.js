@@ -1,33 +1,43 @@
 // axiosConfig.js
 import axios from "axios";
 
-// Função para buscar o token salvo (se existir)
+// 🔐 Função para buscar o token salvo (se existir)
 const getToken = () => localStorage.getItem("token");
 
+// 🌐 Criação da instância Axios com configurações base
 const axiosConfig = axios.create({
-  baseURL: "http://localhost:5120/api", // ✅ Ajuste conforme sua API
+  baseURL: "http://localhost:5120/api", // ⚠️ Troque para URL de produção quando necessário
   timeout: 10000, // ⏱ Tempo limite de 10 segundos
-  headers: {
-    "Content-Type": "application/json",
-  },
+  // ❌ Não defina Content-Type aqui — o Axios cuidará disso automaticamente
 });
 
-// Interceptor para adicionar o token em todas as requisições
+// 🔄 Interceptor de requisição: adiciona token JWT automaticamente
 axiosConfig.interceptors.request.use(
   (config) => {
     const token = getToken();
     if (token) {
-      config.headers["Authorization"] = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error("Erro ao configurar requisição:", error);
+    return Promise.reject(error);
+  }
 );
 
-// Interceptor para capturar respostas com erro
+// 🚨 Interceptor de resposta: captura erros globais
 axiosConfig.interceptors.response.use(
   (response) => response,
   (error) => {
+    const status = error.response?.status;
+
+    // 💡 Exemplo: redirecionar para login se token expirou
+    if (status === 401 || status === 403) {
+      console.warn("Acesso negado. Redirecionando para login...");
+      // window.location.href = "/login"; // descomente se quiser redirecionar automaticamente
+    }
+
     console.error("AXIOS ERRO →", error.response || error);
     return Promise.reject(error);
   }

@@ -14,6 +14,7 @@ import MeusPedidos from "./pages/MeusPedidos";
 import { AuthProvider } from "./context/AuthContext";
 import CadastroProdutoADM from "./components/CadastroProdutoADM";
 import RotaPrivada from "./components/RotaPrivada";
+import EditarProduto from "./components/EditarProduto";
 import SiteNavbar from "./components/SiteNavbar";
 
 import "./styles/animations.css";
@@ -40,6 +41,10 @@ function App() {
             <Route
               path="/admin/cadastro-produto"
               element={<CadastroProdutoADM />}
+            />
+            <Route
+              path="/admin/produtos/editar/:id"
+              element={<EditarProduto />}
             />
 
             {/* 🔒 Rotas protegidas (login obrigatório) */}

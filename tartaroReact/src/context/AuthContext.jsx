@@ -11,8 +11,12 @@ export const AuthProvider = ({ children }) => {
       const localUser = localStorage.getItem("user");
       const parsedUser = JSON.parse(localUser);
 
-      if (parsedUser && typeof parsedUser === "object" && parsedUser.tipo) {
-        setUsuarioLogado(parsedUser);
+      if (parsedUser && typeof parsedUser === "object") {
+        const usuarioFormatado = {
+          ...parsedUser,
+          tipo: parsedUser.role, // ✅ adapta role para tipo
+        };
+        setUsuarioLogado(usuarioFormatado);
       } else {
         setUsuarioLogado(null);
       }
@@ -28,7 +32,11 @@ export const AuthProvider = ({ children }) => {
       const localUser = localStorage.getItem("user");
       try {
         const parsedUser = JSON.parse(localUser);
-        setUsuarioLogado(parsedUser);
+        const usuarioFormatado = {
+          ...parsedUser,
+          tipo: parsedUser.role,
+        };
+        setUsuarioLogado(usuarioFormatado);
       } catch {
         setUsuarioLogado(null);
       }

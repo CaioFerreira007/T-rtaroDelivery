@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Button } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
 import axiosConfig from "../Services/axiosConfig";
 
 import HamburguerCard from "../components/HamburguerCard";
@@ -14,15 +13,22 @@ function Home() {
   const [mostrarCarrinho, setMostrarCarrinho] = useState(false);
   const [animar, setAnimar] = useState(false);
   const [filtro, setFiltro] = useState("Todos");
-  const navigate = useNavigate();
+  const [role, setRole] = useState(""); // ✅ Novo estado
 
-  // Helper para pegar campo em Pascal ou camel
+  // Helper para lidar com PascalCase e camelCase
   const getField = (item, field) => {
     if (item[field] !== undefined) return item[field];
     const lc = field.charAt(0).toLowerCase() + field.slice(1);
     return item[lc] !== undefined ? item[lc] : undefined;
   };
 
+  // Carrega role do usuário
+  useEffect(() => {
+    const storedRole = localStorage.getItem("role")?.toUpperCase()?.trim();
+    setRole(storedRole);
+  }, []);
+
+  // Carrega produtos da API
   useEffect(() => {
     setAnimar(true);
     const token = localStorage.getItem("token");
@@ -30,19 +36,12 @@ function Home() {
     axiosConfig
       .get("/produtos", { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
-        console.log("Resposta bruta /produtos:", res.data);
-
         let lista = [];
+
         if (Array.isArray(res.data)) {
           lista = res.data;
         } else if (Array.isArray(res.data["$values"])) {
           lista = res.data["$values"];
-        }
-        console.log("Produtos carregados (array):", lista);
-
-        // Inspecione o formato de chaves do 1º item
-        if (lista.length > 0) {
-          console.log("Chaves do item[0]:", Object.keys(lista[0]).join(", "));
         }
 
         setProdutos(lista);
@@ -66,7 +65,6 @@ function Home() {
     "Molhos Adicionais",
   ];
 
-  // Aplica filtro de categoria usando getField
   const produtosFiltrados =
     filtro === "Todos"
       ? produtos
@@ -76,6 +74,7 @@ function Home() {
     setCarrinho((prev) => {
       const id = getField(produto, "Id");
       const existe = prev.find((i) => getField(i, "Id") === id);
+
       const atualizado = existe
         ? prev.map((i) =>
             getField(i, "Id") === id
@@ -110,22 +109,13 @@ function Home() {
     localStorage.removeItem("carrinho");
   };
 
-  const finalizarPedido = () => {
-    if (carrinho.length > 0) navigate("/checkout");
-    else
-      alert(
-        "Adicione pelo menos um produto ao carrinho antes de finalizar! 🍔"
-      );
-  };
-
   return (
     <Container
       className={`menu-container mt-5 mb-5 ${animar ? "fade-in" : ""}`}
     >
       <h1 className="text-center mb-4">🍔 Cardápio Tártaro Delivery</h1>
 
-      {/* Filtros */}
-      <div className="mb-4 d-flex flex-wrap gap-2 justify-content-center ">
+      <div className="mb-4 d-flex flex-wrap gap-2 justify-content-center">
         {categorias.map((cat) => (
           <Button
             key={cat}
@@ -137,7 +127,6 @@ function Home() {
         ))}
       </div>
 
-      {/* Produtos */}
       <Row className="gy-4">
         {produtosFiltrados.length === 0 && (
           <p className="text-center text-muted w-100">
@@ -146,7 +135,7 @@ function Home() {
         )}
 
         {produtosFiltrados.map((item) => {
-          const id = getField(item, "Id") || Math.random();
+          const id = getField(item, "Id");
           const nome = getField(item, "Nome") || getField(item, "nome");
           const descricao =
             getField(item, "Descricao") || getField(item, "descricao");
@@ -156,23 +145,22 @@ function Home() {
             ? rawImgs.filter((u) => typeof u === "string" && u.trim())
             : [];
 
-          console.log(`item id=${id}, nome="${nome}", imagens=`, imagens);
-
           return (
             <Col key={id} xs={12} sm={6} lg={4}>
               <HamburguerCard
+                id={id}
                 nome={nome}
                 descricao={descricao}
                 preco={preco}
                 imagens={imagens}
                 onAdd={() => adicionarAoCarrinho(item)}
+                role={role} // ✅ Aqui!
               />
             </Col>
           );
         })}
       </Row>
 
-      {/* Carrinho */}
       <Button
         className="btn-ver-carrinho"
         variant="success"
@@ -195,11 +183,6 @@ function Home() {
             limparCarrinho={limparCarrinho}
             onClose={() => setMostrarCarrinho(false)}
           />
-          <div className="text-end p-3">
-            <Button variant="success" onClick={finalizarPedido}>
-              🛵 Finalizar Pedido
-            </Button>
-          </div>
         </div>
       )}
     </Container>

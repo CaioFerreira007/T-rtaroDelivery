@@ -5,14 +5,14 @@ import { AuthContext } from "../context/AuthContext";
 import "../styles/SiteNavbar.css";
 
 function SiteNavbar() {
-  const { usuarioLogado, setUsuarioLogado } = useContext(AuthContext);
+  const { usuariologado, setUsuarioLogado } = useContext(AuthContext); // ✅ corrigido
   const location = useLocation();
   const navigate = useNavigate();
   const [clienteLogado, setClienteLogado] = useState(null);
 
   useEffect(() => {
-    if (usuarioLogado) {
-      setClienteLogado(usuarioLogado);
+    if (usuariologado) {
+      setClienteLogado(usuariologado);
     } else {
       try {
         const localUser = localStorage.getItem("user");
@@ -26,7 +26,7 @@ function SiteNavbar() {
         setClienteLogado(null);
       }
     }
-  }, [usuarioLogado, location]);
+  }, [usuariologado, location]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -36,7 +36,7 @@ function SiteNavbar() {
     navigate("/login");
   };
 
-  const isADM = clienteLogado?.tipo?.toUpperCase() === "ADM";
+  const isADM = clienteLogado?.tipo?.toUpperCase() === "ADM"; // ✅ verificação segura
 
   return (
     <Navbar bg="dark" variant="dark" expand="md" fixed="top">

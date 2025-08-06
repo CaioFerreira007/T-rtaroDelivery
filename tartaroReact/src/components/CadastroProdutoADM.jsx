@@ -14,7 +14,6 @@ function CadastroProdutoADM() {
     tipo: "Padrão",
   });
 
-  // agora suportamos múltiplas imagens
   const [imagemFiles, setImagemFiles] = useState([]);
   const [previewImagens, setPreviewImagens] = useState([]);
 
@@ -71,14 +70,13 @@ function CadastroProdutoADM() {
         data.append(key, value);
       });
 
-      // adiciona todas as imagens
       imagemFiles.forEach((file) => {
         data.append("imagens", file);
       });
 
+      // ✅ Cabeçalho simplificado — token vem do interceptor
       const res = await axiosConfig.post("/produtos", data, {
         headers: {
-          Authorization: `Bearer ${usuariologado.token}`,
           "Content-Type": "multipart/form-data",
         },
       });
@@ -103,6 +101,7 @@ function CadastroProdutoADM() {
     }
   };
 
+  // 🔐 Verificação de acesso
   if (!usuariologado || usuariologado.tipo?.toUpperCase() !== "ADM") {
     return (
       <Alert variant="danger" className="m-5 text-center">

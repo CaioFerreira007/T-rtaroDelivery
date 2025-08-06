@@ -1,10 +1,13 @@
 import React from "react";
 import { Carousel, Card, Button } from "react-bootstrap";
-import { FaShoppingCart } from "react-icons/fa";
-import "../styles/HamburguerCard.css"; // Certifique-se de que o caminho está correto
+import { FaShoppingCart, FaEdit } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import "../styles/HamburguerCard.css";
 
-function HamburguerCard({ nome, descricao, preco, imagens, onAdd }) {
+function HamburguerCard({ id, nome, descricao, preco, imagens, onAdd, role }) {
   const urlBase = "http://localhost:5120/imagens/";
+  const navigate = useNavigate();
+  const isAdmin = role === "ADM";
 
   const listaImagens = Array.isArray(imagens)
     ? imagens
@@ -16,9 +19,16 @@ function HamburguerCard({ nome, descricao, preco, imagens, onAdd }) {
     ? "0.00"
     : Number(preco).toFixed(2);
 
+  const handleEditar = () => {
+    if (id) {
+      navigate(`/admin/produtos/editar/${id}`);
+    } else {
+      alert("⚠️ Produto sem ID. Não é possível editar.");
+    }
+  };
+
   return (
-    <Card className="mb-4 shadow-sm rounded h-100 hamburguer-card">
-      {/* 🖼️ Carrossel de imagens preenchido e responsivo */}
+    <Card className="hamburguer-card">
       <div className="imagem-container">
         {listaImagens.length > 0 ? (
           <Carousel fade interval={null} className="carousel-wrapper">
@@ -44,16 +54,22 @@ function HamburguerCard({ nome, descricao, preco, imagens, onAdd }) {
         )}
       </div>
 
-      {/* 📦 Conteúdo do card */}
-      <Card.Body className="d-flex flex-column conteudo-card">
+      <Card.Body className="conteudo-card">
         <Card.Title className="titulo-card">{nome}</Card.Title>
         <Card.Text className="descricao-card">{descricao}</Card.Text>
-        <div className="mt-auto d-flex justify-content-between align-items-center rodape-card">
+        <div className="rodape-card">
           <span className="preco-card">R$ {precoFormatado}</span>
-          <Button variant="success" onClick={onAdd}>
-            <FaShoppingCart className="me-2" />
-            Adicionar
-          </Button>
+          {isAdmin ? (
+            <Button variant="warning" onClick={handleEditar}>
+              <FaEdit className="me-2" />
+              Editar Produto
+            </Button>
+          ) : (
+            <Button variant="success" onClick={onAdd}>
+              <FaShoppingCart className="me-2" />
+              Adicionar
+            </Button>
+          )}
         </div>
       </Card.Body>
     </Card>

@@ -10,7 +10,7 @@ function Login() {
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const navigate = useNavigate();
-  const { setUsuarioLogado } = useContext(AuthContext); // ← nome correto
+  const { setUsuarioLogado } = useContext(AuthContext);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -22,13 +22,29 @@ function Login() {
       console.log("DATA →", resposta.data);
 
       if (resposta.status === 200 && resposta.data?.token) {
+        const user = resposta.data.user;
+        const rawRole = user.role;
+        const role =
+          typeof rawRole === "string" ? rawRole.toUpperCase().trim() : "";
+
+        console.log("ROLE recebido →", role);
+
+        // ✅ Formata o usuário para incluir 'tipo'
+        const usuarioFormatado = {
+          ...user,
+          tipo: role, // ← compatível com os componentes
+          token: resposta.data.token,
+        };
+
+        // ✅ Salva no localStorage
+        localStorage.setItem("user", JSON.stringify(usuarioFormatado));
         localStorage.setItem("token", resposta.data.token);
+        localStorage.setItem("role", role); // ← ESSENCIAL para Home.jsx
 
-        if (resposta.data.user) {
-          localStorage.setItem("user", JSON.stringify(resposta.data.user));
-          setUsuarioLogado(resposta.data.user); // ← função correta
-        }
+        // ✅ Atualiza contexto
+        setUsuarioLogado(usuarioFormatado);
 
+        // ✅ Redireciona
         navigate("/home");
       } else {
         setErro("Login inválido ou resposta incompleta da API.");
