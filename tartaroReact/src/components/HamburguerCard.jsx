@@ -1,13 +1,18 @@
-import React from "react";
+import React, { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 import { Carousel, Card, Button } from "react-bootstrap";
 import { FaShoppingCart, FaEdit } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import "../styles/HamburguerCard.css";
 
-function HamburguerCard({ id, nome, descricao, preco, imagens, onAdd, role }) {
-  const urlBase = "http://localhost:5120/imagens/";
+function HamburguerCard({ id, nome, descricao, preco, imagens, onAdd }) {
+  const { usuariologado } = useContext(AuthContext);
   const navigate = useNavigate();
-  const isAdmin = role === "ADM";
+  const urlBase = "http://localhost:5120/imagens/";
+
+  // Verifica se o usuário é ADM
+  const role = usuariologado?.tipo || "";
+  const isAdmin = role.toUpperCase().trim() === "ADM";
 
   const listaImagens = Array.isArray(imagens)
     ? imagens
