@@ -67,7 +67,7 @@ function Login() {
 
       {erro && (
         <Alert variant="danger" className="text-center">
-          {erro}
+          {"Email ou senha inválidos"}
         </Alert>
       )}
 

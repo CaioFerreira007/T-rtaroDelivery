@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using TartaroAPI.Models;
 public class ItemPedido
 {
@@ -9,5 +10,7 @@ public class ItemPedido
     public int Quantidade { get; set; }
 
     public int PedidoId { get; set; }
+
+    [JsonIgnore]
     public Pedido? Pedido { get; set; }
 }

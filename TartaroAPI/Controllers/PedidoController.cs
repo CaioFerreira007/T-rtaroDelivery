@@ -1,107 +1,195 @@
+using System;
+using System.Linq;
+using System.Security.Claims;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 using TartaroAPI.Data;
+using TartaroAPI.DTO;
 using TartaroAPI.Models;
+using TartaroAPI.Services;
 
-namespace TartaroAPI.Controllers;
-
-[Authorize] // 🔒 Protege todos os endpoints
-[ApiController]
-[Route("api/[controller]")]
-public class PedidoController : ControllerBase
+namespace TartaroAPI.Controllers
 {
-    private readonly TartaroDbContext _context;
-
-    public PedidoController(TartaroDbContext context)
+    [Authorize]
+    [ApiController]
+    [Route("api/[controller]")]
+    public class PedidoController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly TartaroDbContext _context;
 
-    // 🔹 Criar pedido
-    [HttpPost]
-    public async Task<IActionResult> CriarPedido(Pedido pedido)
-    {
-        pedido.DataPedido = DateTime.Now;
-
-        decimal total = pedido.Itens.Sum(item =>
+        public PedidoController(TartaroDbContext context)
         {
-            var produto = _context.Produtos.Find(item.ProdutoId);
-            return produto != null ? produto.Preco * item.Quantidade : 0;
-        });
+            _context = context;
+        }
 
-        pedido.Pagamento = new Pagamento
+        // 🔹 Criar pedido (rascunho ou tradicional)
+        [HttpPost("pedido")]
+        public async Task<IActionResult> CriarPedido([FromBody] PedidoCreateDTO dto)
         {
-            ValorTotal = total,
-            FormaPagamento = pedido.Pagamento?.FormaPagamento ?? "Pix",
-            Pago = false
-        };
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-        _context.Pedidos.Add(pedido);
-        await _context.SaveChangesAsync();
+            var ids = dto.Itens.Select(i => i.ProdutoId).ToList();
+            var produtos = await _context.Produtos
+                .Where(p => ids.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id);
 
-        return CreatedAtAction(nameof(ObterPedido), new { id = pedido.Id }, pedido);
-    }
+            if (produtos.Count != ids.Distinct().Count())
+                return BadRequest("Um ou mais produtos são inválidos ou indisponíveis.");
 
-    // 🔹 Listar todos os pedidos
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Pedido>>> ListarPedidos()
-    {
-        return await _context.Pedidos
-            .Include(p => p.Cliente)
-            .Include(p => p.Itens).ThenInclude(i => i.Produto)
-            .Include(p => p.Pagamento)
-            .ToListAsync();
-    }
+            decimal subtotal = 0m;
+            var itens = dto.Itens.Select(i =>
+            {
+                var prod = produtos[i.ProdutoId];
+                subtotal += prod.Preco * i.Quantidade;
 
-    // 🔹 Obter pedido por ID
-    [HttpGet("{id}")]
-    public async Task<ActionResult<Pedido>> ObterPedido(int id)
-    {
-        var pedido = await _context.Pedidos
-            .Include(p => p.Cliente)
-            .Include(p => p.Itens).ThenInclude(i => i.Produto)
-            .Include(p => p.Pagamento)
-            .FirstOrDefaultAsync(p => p.Id == id);
+                return new ItemPedido
+                {
+                    ProdutoId = prod.Id,
+                    Quantidade = i.Quantidade
+                };
+            }).ToList();
 
-        if (pedido == null) return NotFound();
+            // 🔐 Gera código único
+            string codigo;
+            do
+            {
+                codigo = OrderCodeGenerator.NewCode();
+            } while (await _context.Pedidos.AnyAsync(p => p.Codigo == codigo));
 
-        return pedido;
-    }
+            var pedido = new Pedido
+            {
+                ClienteId = dto.ClienteId,
+                DataPedido = DateTime.UtcNow,
+                Status = dto.IsRascunho ? "AGUARDANDO_CONFIRMACAO" : "Recebido",
+                Codigo = codigo,
+                NomeCliente = dto.NomeCliente,
+                Endereco = dto.Endereco,
+                Referencia = dto.Referencia,
+                Observacoes = dto.Observacoes,
+                Subtotal = subtotal,
+                Itens = itens
+            };
 
-    // 🔹 Confirmar pagamento do pedido
-    [HttpPut("{id}/confirmar-pagamento")]
-    public async Task<IActionResult> ConfirmarPagamento(int id)
-    {
-        var pedido = await _context.Pedidos
-            .Include(p => p.Pagamento)
-            .FirstOrDefaultAsync(p => p.Id == id);
+            if (!dto.IsRascunho)
+            {
+                if (string.IsNullOrWhiteSpace(dto.FormaPagamento))
+                    return BadRequest("Forma de pagamento é obrigatória para pedidos tradicionais.");
 
-        if (pedido == null || pedido.Pagamento == null)
-            return NotFound("Pedido ou pagamento não encontrado.");
+                pedido.Pagamento = new Pagamento
+                {
+                    ValorTotal = subtotal,
+                    FormaPagamento = dto.FormaPagamento,
+                    Pago = false
+                };
+            }
 
-        pedido.Pagamento.Pago = true;
-        await _context.SaveChangesAsync();
+            _context.Pedidos.Add(pedido);
+            await _context.SaveChangesAsync();
 
-        return NoContent();
-    }
+            // 🔄 Retorno padronizado com orderId
+            var resposta = new
+            {
+                orderId = pedido.Id,
+                codigo = pedido.Codigo,
+                subtotal = pedido.Subtotal,
+                status = pedido.Status,
+                dataPedido = pedido.DataPedido,
+                nomeCliente = pedido.NomeCliente,
+                endereco = pedido.Endereco,
+                referencia = pedido.Referencia,
+                observacoes = pedido.Observacoes,
+                formaPagamento = pedido.Pagamento?.FormaPagamento
+            };
 
-    // 🔒 NOVA: Retorna apenas os pedidos do cliente logado
-    [HttpGet("meus")]
-    public async Task<IActionResult> MeusPedidos()
-    {
-        var clienteIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (dto.IsRascunho)
+                return Ok(resposta);
 
-        if (string.IsNullOrEmpty(clienteIdClaim) || !int.TryParse(clienteIdClaim, out int clienteId))
-            return Unauthorized("Token JWT inválido.");
+            return CreatedAtAction(nameof(ObterPedido), new { id = pedido.Id }, resposta);
+        }
 
-        var pedidos = await _context.Pedidos
-            .Where(p => p.ClienteId == clienteId)
-            .Include(p => p.Itens).ThenInclude(i => i.Produto)
-            .Include(p => p.Pagamento)
-            .ToListAsync();
+        // 🔹 Listar todos os pedidos
+        [HttpGet]
+        public async Task<IActionResult> ListarPedidos() =>
+            Ok(await _context.Pedidos
+                .Include(p => p.Cliente)
+                .Include(p => p.Itens).ThenInclude(i => i.Produto)
+                .Include(p => p.Pagamento)
+                .ToListAsync());
 
-        return Ok(pedidos);
+        // 🔹 Obter pedido por ID
+        [HttpGet("{id}")]
+        public async Task<IActionResult> ObterPedido(int id)
+        {
+            var pedido = await _context.Pedidos
+                .Include(p => p.Cliente)
+                .Include(p => p.Itens).ThenInclude(i => i.Produto)
+                .Include(p => p.Pagamento)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            return pedido == null ? NotFound() : Ok(pedido);
+        }
+
+        // 🔹 Confirmar pagamento
+        [HttpPut("{id}/confirmar-pagamento")]
+        public async Task<IActionResult> ConfirmarPagamento(int id)
+        {
+            var pedido = await _context.Pedidos
+                .Include(p => p.Pagamento)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (pedido?.Pagamento == null)
+                return NotFound("Pedido ou pagamento não encontrado.");
+
+            pedido.Pagamento.Pago = true;
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        // 🔹 Finalizar pedido
+        [HttpPut("{id}/finalizar")]
+        public async Task<IActionResult> FinalizarPedido(int id)
+        {
+            var pedido = await _context.Pedidos
+                .Include(p => p.Pagamento)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (pedido == null)
+                return NotFound("Pedido não encontrado.");
+
+            if (pedido.Status == "Finalizado")
+                return BadRequest("Pedido já está finalizado.");
+
+            pedido.Status = "Finalizado";
+            pedido.DataPedido = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                pedido.Id,
+                pedido.Status,
+                pedido.DataPedido
+            });
+        }
+
+        // 🔒 Meus pedidos
+        [HttpGet("meus")]
+        public async Task<IActionResult> MeusPedidos()
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(claim))
+                return Unauthorized("Token JWT inválido.");
+
+            var lista = await _context.Pedidos
+                .Where(p => p.ClienteId == int.Parse(claim))
+                .Include(p => p.Itens).ThenInclude(i => i.Produto)
+                .Include(p => p.Pagamento)
+                .ToListAsync();
+
+            return Ok(lista);
+        }
     }
 }

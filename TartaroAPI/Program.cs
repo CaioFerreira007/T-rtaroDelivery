@@ -1,19 +1,19 @@
 using TartaroAPI.Data;
-using TartaroAPI.Models; // ← importa Cliente e UsuarioSeed
+using TartaroAPI.Models;
 using TartaroAPI.Services;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.AddConsole();
 
-#region 🔌 Conexão com MySQL via Pomelo
+#region 🔗 Conexão com MySQL via Pomelo
 builder.Services.AddDbContext<TartaroDbContext>(options =>
     options.UseMySql(
         builder.Configuration.GetConnectionString("TartaroDb"),
@@ -65,73 +65,52 @@ builder.Services.AddCors(options =>
 #region 📦 Serviços, Swagger, Controllers e JSON
 builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
+
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
     {
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
-        options.JsonSerializerOptions.WriteIndented = true;
+        Title = "Tartaro API",
+        Version = "v1",
+        Description = "Documentação da API Tartaro com autenticação JWT"
     });
+
+    var jwtSecurityScheme = new OpenApiSecurityScheme
+    {
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Description = "Digite o token JWT no campo abaixo. Exemplo: Bearer {seu token}",
+
+        Reference = new OpenApiReference
+        {
+            Id = JwtBearerDefaults.AuthenticationScheme,
+            Type = ReferenceType.SecurityScheme
+        }
+    };
+
+    c.AddSecurityDefinition(jwtSecurityScheme.Reference.Id, jwtSecurityScheme);
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        { jwtSecurityScheme, Array.Empty<string>() }
+    });
+});
+
+builder.Services.AddControllers()
+  .AddJsonOptions(opts =>
+  {
+      opts.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+      // mantém ReferenceHandler se precisar
+  });
 #endregion
 
 var app = builder.Build();
-
 #region 🧪 Seed segura de administrador (via admin.json)
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<TartaroDbContext>();
 
-    string jsonPath = Path.Combine("Data", "admin.json"); // ajuste o caminho se necessário
-
-    if (File.Exists(jsonPath))
-    {
-        var json = File.ReadAllText(jsonPath);
-        var admins = JsonSerializer.Deserialize<List<UsuarioSeed>>(json);
-
-        if (admins != null)
-        {
-            foreach (var admin in admins)
-            {
-                if (admin.Tipo?.ToLower() != "adm")
-                {
-                    Console.WriteLine($"⚠️ Tipo inválido para admin {admin.Email}. Esperado 'ADM', recebido '{admin.Tipo}'");
-                    continue;
-                }
-
-                var existente = db.Clientes.FirstOrDefault(c => c.Email == admin.Email);
-                if (existente == null)
-                {
-                    var novoAdm = new Cliente
-                    {
-                        Nome = admin.Nome,
-                        Email = admin.Email,
-                        SenhaHash = BCrypt.Net.BCrypt.HashPassword(admin.Senha),
-                        Tipo = "ADM"
-                    };
-
-                    db.Clientes.Add(novoAdm);
-                    Console.WriteLine($"✅ Usuário ADM {admin.Email} inserido.");
-                }
-                else
-                {
-                    Console.WriteLine($"ℹ️ ADM {admin.Email} já existe.");
-                }
-            }
-
-            db.SaveChanges();
-        }
-        else
-        {
-            Console.WriteLine($"⚠️ Falha ao deserializar admin.json.");
-        }
-    }
-    else
-    {
-        Console.WriteLine($"⚠️ Arquivo admin.json não encontrado em: {jsonPath}");
-    }
-}
 #endregion
-
 #region 🚀 Middlewares
 app.UseCors("PermitirFrontEnd");
 
@@ -141,6 +120,7 @@ app.UseAuthorization();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseStaticFiles(); // serve a pasta wwwroot automaticamente
 app.MapControllers();
 // app.UseHttpsRedirection(); ← opcional
 #endregion

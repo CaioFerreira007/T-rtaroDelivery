@@ -1,19 +1,22 @@
 using System.ComponentModel.DataAnnotations;
-public class registerDTO
+
+namespace TartaroAPI.DTO
 {
-    // DTO para cadastro de cliente
-    // Inclui validações básicas e tipo opcional para controle de acesso
-    // Ex: "cliente", "admin", etc.
+    public class RegisterDTO
+    {
+        [Required(ErrorMessage = "Nome é obrigatório.")]
+        [StringLength(100, ErrorMessage = "Nome não pode exceder 100 caracteres.")]
+        public string Nome { get; set; } = string.Empty;
 
-    [Required]
-    public string Nome { get; set; } = string.Empty;
+        [Required(ErrorMessage = "E-mail é obrigatório.")]
+        [EmailAddress(ErrorMessage = "Formato de e-mail inválido.")]
+        public string Email { get; set; } = string.Empty;
 
-    [Required]
-    [EmailAddress]
-    public string Email { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Senha é obrigatória.")]
+        [MinLength(6, ErrorMessage = "Senha deve ter ao menos 6 caracteres.")]
+        public string Senha { get; set; } = string.Empty;
 
-    [Required]
-    public string Senha { get; set; } = string.Empty;
-
-    public string? Tipo { get; set; }
+        // Opcional: só para o Admin usar
+        public string Tipo { get; set; } = string.Empty;
+    }
 }
