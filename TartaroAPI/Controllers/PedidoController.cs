@@ -25,7 +25,7 @@ namespace TartaroAPI.Controllers
         }
 
         // 🔹 Criar pedido (rascunho ou tradicional)
-        [HttpPost("pedido")]
+        [HttpPost]
         public async Task<IActionResult> CriarPedido([FromBody] PedidoCreateDTO dto)
         {
             if (!ModelState.IsValid)
@@ -92,7 +92,7 @@ namespace TartaroAPI.Controllers
             // 🔄 Retorno padronizado com orderId
             var resposta = new
             {
-                orderId = pedido.Id,
+                id = pedido.Id,
                 codigo = pedido.Codigo,
                 subtotal = pedido.Subtotal,
                 status = pedido.Status,
