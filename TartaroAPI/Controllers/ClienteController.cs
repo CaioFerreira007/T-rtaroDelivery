@@ -1,3 +1,4 @@
+using TartaroAPI.Services;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
@@ -16,14 +17,16 @@ namespace TartaroAPI.Controllers
     public class ClienteController : ControllerBase
     {
         private readonly TartaroDbContext _context;
+        private readonly IEmailService _emailService;
 
-        public ClienteController(TartaroDbContext context)
+        public ClienteController(TartaroDbContext context, IEmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
         // 🧾 Cadastro de cliente + login automático
-        [AllowAnonymous]
+
         [HttpPost("cadastro")]
         public async Task<IActionResult> CadastrarCliente([FromBody] RegisterDTO dto)
         {
@@ -55,7 +58,7 @@ namespace TartaroAPI.Controllers
         }
 
         // 🔓 Login
-        [AllowAnonymous]
+
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDTO dto)
         {
@@ -69,6 +72,116 @@ namespace TartaroAPI.Controllers
 
             var token = GerarJwt(cliente);
             return Ok(new { token, nome = cliente.Nome });
+        }
+
+        // 📧 SOLICITAR RESET DE SENHA
+
+        [HttpPost("esqueci-senha")]
+        public async Task<IActionResult> EsqueciSenha([FromBody] SolicitarRecuperacaoDTO dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var cliente = await _context.Clientes
+                .FirstOrDefaultAsync(c => c.Email.ToLower() == dto.Email.ToLower());
+
+            // Sempre retorna sucesso (por segurança, não revelar se email existe)
+            if (cliente == null)
+                return Ok("Se o e-mail existir, um link de recuperação será enviado.");
+
+            try
+            {
+                // Remove tokens antigos para este cliente
+                var tokensAntigos = _context.PasswordResetTokens
+                    .Where(t => t.ClienteId == cliente.Id);
+                _context.PasswordResetTokens.RemoveRange(tokensAntigos);
+
+                // Cria novo token
+                var resetToken = new PasswordResetToken
+                {
+                    Token = Guid.NewGuid().ToString(),
+                    ExpiraEm = DateTime.UtcNow.AddHours(1), // Expira em 1 hora
+                    ClienteId = cliente.Id,
+                    Usado = false
+                };
+
+                _context.PasswordResetTokens.Add(resetToken);
+                await _context.SaveChangesAsync();
+
+                await _emailService.EnviarEmailRecuperacaoAsync(cliente.Email, resetToken.Token);
+
+
+                // Por enquanto, vou logar o token (REMOVER EM PRODUÇÃO)
+                Console.WriteLine($"Token de reset para {cliente.Email}: {resetToken.Token}");
+                Console.WriteLine($"Link de reset: http://localhost:3000/alterar-senha/{resetToken.Token}");
+
+                return Ok("Se o e-mail existir, um link de recuperação será enviado.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Erro ao processar solicitação: {ex.Message}");
+            }
+        }
+
+        // 🔄 ALTERAR SENHA COM TOKEN
+        [HttpPost("alterar-senha")]
+        public async Task<IActionResult> AlterarSenha([FromBody] AlterarSenhaDTO dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var resetToken = await _context.PasswordResetTokens
+                .Include(t => t.Cliente)
+                .FirstOrDefaultAsync(t =>
+                    t.Token == dto.Token &&
+                    !t.Usado &&
+                    t.ExpiraEm > DateTime.UtcNow);
+
+            if (resetToken == null)
+                return BadRequest("Token inválido, expirado ou já utilizado.");
+
+            // Verifica se o e-mail confere
+            if (resetToken.Cliente.Email.ToLower() != dto.Email.ToLower())
+                return BadRequest("E-mail não confere com o token.");
+
+            try
+            {
+                // Atualiza a senha
+                resetToken.Cliente.SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.NovaSenha);
+
+                // Marca o token como usado
+                resetToken.Usado = true;
+
+                await _context.SaveChangesAsync();
+
+                return Ok("Senha alterada com sucesso!");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Erro ao alterar senha: {ex.Message}");
+            }
+        }
+
+        // 🔍 VALIDAR TOKEN (opcional - para verificar se token é válido)
+        [AllowAnonymous]
+        [HttpGet("validar-token-reset/{token}")]
+        public async Task<IActionResult> ValidarTokenReset(string token)
+        {
+            var resetToken = await _context.PasswordResetTokens
+                .Include(t => t.Cliente)
+                .FirstOrDefaultAsync(t =>
+                    t.Token == token &&
+                    !t.Usado &&
+                    t.ExpiraEm > DateTime.UtcNow);
+
+            if (resetToken == null)
+                return BadRequest("Token inválido ou expirado.");
+
+            return Ok(new
+            {
+                email = resetToken.Cliente.Email,
+                expiraEm = resetToken.ExpiraEm
+            });
         }
 
         // 👤 Perfil
@@ -97,7 +210,6 @@ namespace TartaroAPI.Controllers
         // ─── Helper ────────────────────────────────────────────────────────────────
         private string GerarJwt(Cliente c)
         {
-            // mesma implementação do AuthController...
             var keyString = HttpContext.RequestServices
                               .GetRequiredService<IConfiguration>()["Jwt:Key"]
                           ?? throw new InvalidOperationException("JWT Key não configurada.");

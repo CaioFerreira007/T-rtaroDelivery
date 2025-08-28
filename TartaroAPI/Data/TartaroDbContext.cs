@@ -16,12 +16,57 @@ namespace TartaroAPI.Data
         public DbSet<ItemPedido> ItensPedido { get; set; }
         public DbSet<Pagamento> Pagamentos { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+
+        public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+
         #endregion
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
+
+            // Configuração para Cliente
+            modelBuilder.Entity<Cliente>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Nome).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Email).IsRequired().HasMaxLength(150);
+                entity.HasIndex(e => e.Email).IsUnique(); // Email único
+                entity.Property(e => e.SenhaHash).IsRequired();
+                entity.Property(e => e.Tipo).IsRequired().HasMaxLength(20).HasDefaultValue("cliente");
+            });
+
+            // Configuração para RefreshToken
+            modelBuilder.Entity<RefreshToken>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Token).IsRequired().HasMaxLength(255);
+                entity.HasIndex(e => e.Token).IsUnique(); // Token único
+                entity.Property(e => e.Expiracao).IsRequired();
+
+                // Relacionamento com Cliente
+                entity.HasOne(e => e.Cliente)
+                      .WithMany()
+                      .HasForeignKey(e => e.ClienteId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configuração para PasswordResetToken
+            modelBuilder.Entity<PasswordResetToken>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Token).IsRequired().HasMaxLength(255);
+                entity.HasIndex(e => e.Token).IsUnique(); // Token único
+                entity.Property(e => e.ExpiraEm).IsRequired();
+                entity.Property(e => e.Usado).IsRequired().HasDefaultValue(false);
+
+                // Relacionamento com Cliente
+                entity.HasOne(e => e.Cliente)
+                      .WithMany()
+                      .HasForeignKey(e => e.ClienteId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
             // ===== PEDIDO: defaults e campos do checkout WhatsApp =====
             modelBuilder.Entity<Pedido>(e =>
             {
@@ -71,6 +116,7 @@ namespace TartaroAPI.Data
                 .WithOne(img => img.Produto)
                 .HasForeignKey(img => img.ProdutoId)
                 .OnDelete(DeleteBehavior.Cascade);
+
         }
     }
 }

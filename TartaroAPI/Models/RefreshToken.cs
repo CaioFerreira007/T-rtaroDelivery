@@ -1,3 +1,4 @@
+// RefreshToken.cs
 namespace TartaroAPI.Models
 {
     public class RefreshToken

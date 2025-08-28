@@ -21,6 +21,9 @@ builder.Services.AddDbContext<TartaroDbContext>(options =>
     ));
 #endregion
 
+//EmailService
+builder.Services.AddScoped<IEmailService, EmailService>();
+
 #region 🔐 Configuração de autenticação JWT
 var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];

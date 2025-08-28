@@ -45,7 +45,7 @@ namespace TartaroAPI.Migrations
 
                     b.HasIndex("ProdutoId");
 
-                    b.ToTable("ItensPedido");
+                    b.ToTable("ItensPedido", (string)null);
                 });
 
             modelBuilder.Entity("ProdutoImage", b =>
@@ -68,7 +68,7 @@ namespace TartaroAPI.Migrations
 
                     b.HasIndex("ProdutoId");
 
-                    b.ToTable("product_images");
+                    b.ToTable("product_images", (string)null);
                 });
 
             modelBuilder.Entity("TartaroAPI.Models.Cliente", b =>
@@ -81,7 +81,8 @@ namespace TartaroAPI.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
 
                     b.Property<string>("Nome")
                         .IsRequired()
@@ -98,7 +99,10 @@ namespace TartaroAPI.Migrations
 
                     b.Property<string>("Tipo")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("cliente");
 
                     b.Property<DateTime?>("TokenExpiraEm")
                         .HasColumnType("datetime(6)");
@@ -108,7 +112,10 @@ namespace TartaroAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Clientes");
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("Clientes", (string)null);
                 });
 
             modelBuilder.Entity("TartaroAPI.Models.Pagamento", b =>
@@ -141,7 +148,41 @@ namespace TartaroAPI.Migrations
                     b.HasIndex("PedidoId")
                         .IsUnique();
 
-                    b.ToTable("Pagamentos");
+                    b.ToTable("Pagamentos", (string)null);
+                });
+
+            modelBuilder.Entity("TartaroAPI.Models.PasswordResetToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClienteId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ExpiraEm")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<bool>("Usado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClienteId");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.ToTable("PasswordResetTokens", (string)null);
                 });
 
             modelBuilder.Entity("TartaroAPI.Models.Pedido", b =>
@@ -207,7 +248,7 @@ namespace TartaroAPI.Migrations
                     b.HasIndex("Codigo")
                         .IsUnique();
 
-                    b.ToTable("Pedidos");
+                    b.ToTable("Pedidos", (string)null);
                 });
 
             modelBuilder.Entity("TartaroAPI.Models.Produto", b =>
@@ -242,7 +283,7 @@ namespace TartaroAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Produtos");
+                    b.ToTable("Produtos", (string)null);
                 });
 
             modelBuilder.Entity("TartaroAPI.Models.RefreshToken", b =>
@@ -261,13 +302,17 @@ namespace TartaroAPI.Migrations
 
                     b.Property<string>("Token")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ClienteId");
 
-                    b.ToTable("RefreshTokens");
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.ToTable("RefreshTokens", (string)null);
                 });
 
             modelBuilder.Entity("ItemPedido", b =>
@@ -309,6 +354,17 @@ namespace TartaroAPI.Migrations
                         .IsRequired();
 
                     b.Navigation("Pedido");
+                });
+
+            modelBuilder.Entity("TartaroAPI.Models.PasswordResetToken", b =>
+                {
+                    b.HasOne("TartaroAPI.Models.Cliente", "Cliente")
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cliente");
                 });
 
             modelBuilder.Entity("TartaroAPI.Models.Pedido", b =>

@@ -12,8 +12,8 @@ using TartaroAPI.Data;
 namespace TartaroAPI.Migrations
 {
     [DbContext(typeof(TartaroDbContext))]
-    [Migration("20250811224014_EstruturaInicial")]
-    partial class EstruturaInicial
+    [Migration("20250820195206_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -84,7 +84,8 @@ namespace TartaroAPI.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
 
                     b.Property<string>("Nome")
                         .IsRequired()
@@ -101,7 +102,10 @@ namespace TartaroAPI.Migrations
 
                     b.Property<string>("Tipo")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("cliente");
 
                     b.Property<DateTime?>("TokenExpiraEm")
                         .HasColumnType("datetime(6)");
@@ -110,6 +114,9 @@ namespace TartaroAPI.Migrations
                         .HasColumnType("longtext");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
 
                     b.ToTable("Clientes");
                 });
@@ -145,6 +152,40 @@ namespace TartaroAPI.Migrations
                         .IsUnique();
 
                     b.ToTable("Pagamentos");
+                });
+
+            modelBuilder.Entity("TartaroAPI.Models.PasswordResetToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClienteId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ExpiraEm")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<bool>("Usado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClienteId");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.ToTable("PasswordResetTokens");
                 });
 
             modelBuilder.Entity("TartaroAPI.Models.Pedido", b =>
@@ -264,11 +305,15 @@ namespace TartaroAPI.Migrations
 
                     b.Property<string>("Token")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ClienteId");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
 
                     b.ToTable("RefreshTokens");
                 });
@@ -312,6 +357,17 @@ namespace TartaroAPI.Migrations
                         .IsRequired();
 
                     b.Navigation("Pedido");
+                });
+
+            modelBuilder.Entity("TartaroAPI.Models.PasswordResetToken", b =>
+                {
+                    b.HasOne("TartaroAPI.Models.Cliente", "Cliente")
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cliente");
                 });
 
             modelBuilder.Entity("TartaroAPI.Models.Pedido", b =>

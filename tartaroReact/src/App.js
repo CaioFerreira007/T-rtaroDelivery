@@ -9,9 +9,11 @@ import EditarPerfil from "./pages/EditarPerfil";
 import Checkout from "./pages/Checkout";
 import RecuperarSenha from "./pages/RecuperarSenha";
 import MeusPedidos from "./pages/MeusPedidos";
+import Dashboard from "./components/Dashboard"; // ← ADICIONE ESTA LINHA
 
 // ⚙️ Componentes
 import { AuthProvider } from "./context/AuthContext";
+import AlterarSenha from "./components/AlterarSenha";
 import CadastroProdutoADM from "./components/CadastroProdutoADM";
 import RotaPrivada from "./components/RotaPrivada";
 import EditarProduto from "./components/EditarProduto";
@@ -36,6 +38,20 @@ function App() {
             <Route path="/esqueci-senha" element={<RecuperarSenha />} />
             <Route path="/perfil" element={<Perfil />} />
             <Route path="/editar-perfil" element={<EditarPerfil />} />
+
+            <Route path="/alterar-senha/:token" element={<AlterarSenha />} />
+
+            {/* Rotas Privadas (protegidas) */}
+            <Route
+              path="/dashboard"
+              element={
+                <RotaPrivada>
+                  {" "}
+                  {/* ← CORRIGIDO */}
+                  <Dashboard />
+                </RotaPrivada>
+              }
+            />
 
             {/* 🛠️ Administração (só ADM pode acessar) */}
             <Route
