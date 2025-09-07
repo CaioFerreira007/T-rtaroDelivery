@@ -8,6 +8,9 @@ namespace TartaroAPI.DTO
         [StringLength(100, ErrorMessage = "Nome não pode exceder 100 caracteres.")]
         public string Nome { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "Telefone é obrigatório.")]
+        public string Telefone { get; set; } = string.Empty;
+
         [Required(ErrorMessage = "E-mail é obrigatório.")]
         [EmailAddress(ErrorMessage = "Formato de e-mail inválido.")]
         public string Email { get; set; } = string.Empty;

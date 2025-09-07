@@ -8,20 +8,56 @@ function EditarPerfil() {
   const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
   const [nome, setNome] = useState(clienteAtual?.nome || "");
+  const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState(clienteAtual?.email || "");
-  const [senha, setSenha] = useState(clienteAtual?.senha || "");
   const [sucesso, setSucesso] = useState(false);
   const [erro, setErro] = useState("");
 
+  const handleTelefoneChange = (e) => {
+    const formatted = formatarTelefone(e.target.value);
+    setTelefone(formatted);
+  };
+
+  const formatarTelefone = (value) => {
+    // Remove tudo que não é número
+    const cleaned = value.replace(/\D/g, "");
+
+    // Aplica a máscara (XX) XXXXX-XXXX
+    const match = cleaned.match(/^(\d{2})(\d{5})(\d{4})$/);
+    if (match) {
+      return `(${match[1]}) ${match[2]}-${match[3]}`;
+    }
+
+    // Para números parciais
+    if (cleaned.length >= 7) {
+      const match = cleaned.match(/^(\d{2})(\d{4,5})(\d{0,4})$/);
+      if (match) {
+        return `(${match[1]}) ${match[2]}${match[3] ? "-" + match[3] : ""}`;
+      }
+    } else if (cleaned.length >= 3) {
+      const match = cleaned.match(/^(\d{2})(\d{1,5})$/);
+      if (match) {
+        return `(${match[1]}) ${match[2]}`;
+      }
+    } else if (cleaned.length >= 1) {
+      const match = cleaned.match(/^(\d{1,2})$/);
+      if (match && match[1].length === 2) {
+        return `(${match[1]}) `;
+      }
+      return match[1];
+    }
+
+    return cleaned;
+  };
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!email || !nome || !senha) {
+    if (!email || !nome || !telefone) {
       setErro("Todos os campos são obrigatórios.");
       return;
     }
 
-    const atualizado = { nome, email, senha };
+    const atualizado = { nome, email, telefone };
 
     const novaLista = usuarios.map((user) =>
       user.email === clienteAtual.email ? atualizado : user
@@ -71,13 +107,14 @@ function EditarPerfil() {
             required
           />
         </Form.Group>
-
         <Form.Group className="mb-3">
-          <Form.Label>Senha</Form.Label>
+          <Form.Label>Telefone</Form.Label>
           <Form.Control
-            type="password"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
+            type="tel"
+            placeholder="(21) 99999-9999"
+            value={telefone}
+            onChange={handleTelefoneChange}
+            maxLength={15}
             required
           />
         </Form.Group>

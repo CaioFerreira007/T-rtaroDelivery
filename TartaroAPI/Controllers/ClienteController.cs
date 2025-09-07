@@ -42,6 +42,7 @@ namespace TartaroAPI.Controllers
                 {
                     Nome = dto.Nome,
                     Email = dto.Email,
+                    Telefone = dto.Telefone,
                     SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha),
                     Tipo = dto.Tipo ?? "cliente"
                 };

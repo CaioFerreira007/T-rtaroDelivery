@@ -66,6 +66,7 @@ namespace TartaroAPI.Controllers
             {
                 Nome = dto.Nome,
                 Email = email,
+                Telefone = dto.Telefone, // ← ADICIONADO
                 SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha),
                 Tipo = "cliente"
             };
@@ -97,6 +98,7 @@ namespace TartaroAPI.Controllers
             {
                 Nome = dto.Nome,
                 Email = email,
+                Telefone = dto.Telefone, // ← ADICIONADO
                 SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha),
                 Tipo = "ADM"
             };
@@ -209,6 +211,7 @@ namespace TartaroAPI.Controllers
             id = cliente.Id,
             nome = cliente.Nome,
             email = cliente.Email,
+            telefone = cliente.Telefone, // ← ADICIONADO
             role = cliente.Tipo
         };
     }
