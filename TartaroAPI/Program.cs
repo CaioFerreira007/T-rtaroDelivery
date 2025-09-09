@@ -68,6 +68,9 @@ builder.Services.AddCors(options =>
 #region 📦 Serviços, Swagger, Controllers e JSON
 builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddScoped<IPedidoService, PedidoService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IFileStorageService, LocalStorageService>();
 
 builder.Services.AddSwaggerGen(c =>
 {

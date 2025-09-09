@@ -1,42 +1,24 @@
-import React, { useContext, useEffect, useState } from "react";
+// src/components/SiteNavbar.jsx
+
+import React, { useContext } from "react";
 import { Navbar, Nav, Container, NavDropdown } from "react-bootstrap";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import { logout } from "../Services/authService"; // Importa o logout do serviço
 import "../styles/SiteNavbar.css";
 
 function SiteNavbar() {
-  const { usuariologado, setUsuarioLogado } = useContext(AuthContext); // ✅ corrigido
-  const location = useLocation();
+  // 1. A única fonte da verdade sobre o usuário é o contexto!
+  const { usuariologado, setUsuarioLogado } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [clienteLogado, setClienteLogado] = useState(null);
-
-  useEffect(() => {
-    if (usuariologado) {
-      setClienteLogado(usuariologado);
-    } else {
-      try {
-        const localUser = localStorage.getItem("user");
-        if (localUser) {
-          setClienteLogado(JSON.parse(localUser));
-        } else {
-          setClienteLogado(null);
-        }
-      } catch (error) {
-        console.error("Erro ao ler usuário do localStorage:", error);
-        setClienteLogado(null);
-      }
-    }
-  }, [usuariologado, location]);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setUsuarioLogado(null);
-    setClienteLogado(null);
+    logout(); // Chama a função do serviço que limpa o localStorage
+    setUsuarioLogado(null); // Atualiza o contexto
     navigate("/login");
   };
 
-  const isADM = clienteLogado?.tipo?.toUpperCase() === "ADM"; // ✅ verificação segura
+  const isADM = usuariologado?.tipo === "ADM";
 
   return (
     <Navbar bg="dark" variant="dark" expand="md" fixed="top">
@@ -57,9 +39,9 @@ function SiteNavbar() {
               </Nav.Link>
             )}
 
-            {clienteLogado ? (
+            {usuariologado ? ( // 2. Usa o estado do contexto diretamente
               <NavDropdown
-                title={`👤 ${clienteLogado.nome}`}
+                title={`👤 ${usuariologado.nome}`}
                 id="perfil-dropdown"
               >
                 <NavDropdown.Item as={Link} to="/perfil">
