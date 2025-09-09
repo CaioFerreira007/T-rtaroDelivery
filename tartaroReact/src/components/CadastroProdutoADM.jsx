@@ -74,7 +74,7 @@ function CadastroProdutoADM() {
         data.append("imagens", file);
       });
 
-      // ✅ Cabeçalho simplificado — token vem do interceptor
+      // Cabeçalho simplificado — token vem do interceptor
       const res = await axiosConfig.post("/produtos", data, {
         headers: {
           "Content-Type": "multipart/form-data",
