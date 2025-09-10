@@ -1,7 +1,14 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axiosConfig from "../Services/axiosConfig";
-import { Form, Button, Container, Alert } from "react-bootstrap";
+import {
+  Form,
+  Button,
+  Container,
+  Alert,
+  Carousel,
+  Spinner,
+} from "react-bootstrap";
 import { AuthContext } from "../context/AuthContext";
 import "../styles/EditarProduto.css";
 
@@ -9,6 +16,15 @@ function EditarProduto() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { usuariologado } = useContext(AuthContext);
+
+  const categoriasDisponiveis = [
+    "Artesanais",
+    "Tradicionais",
+    "Bebidas",
+    "Combos",
+    "Batatas",
+    "Molhos Adicionais",
+  ];
 
   const [produto, setProduto] = useState(null);
   const [erro, setErro] = useState("");
@@ -57,8 +73,8 @@ function EditarProduto() {
     axiosConfig
       .put(`/produtos/${id}`, formData)
       .then(() => {
-        setSucesso("Produto atualizado com sucesso!");
-        setTimeout(() => navigate("/admin/produtos"), 1500);
+        setSucesso("Produto atualizado com sucesso! Redirecionando...");
+        setTimeout(() => navigate("/home"), 2000);
       })
       .catch((err) => {
         const msg = err.response?.data?.message || "Erro ao atualizar produto.";
@@ -66,7 +82,14 @@ function EditarProduto() {
       });
   };
 
-  if (!produto) return <p>Carregando...</p>;
+  if (!produto) {
+    return (
+      <Container className="text-center mt-5">
+        <Spinner animation="border" />
+        <p>Carregando produto...</p>
+      </Container>
+    );
+  }
 
   return (
     <Container className="editar-produto-container">
@@ -75,18 +98,25 @@ function EditarProduto() {
       {erro && <Alert variant="danger">{erro}</Alert>}
       {sucesso && <Alert variant="success">{sucesso}</Alert>}
 
-      {produto.imagemUrls?.length > 0 && (
-        <div className="preview-imagens">
-          {produto.imagemUrls.map((url, index) => (
-            <img
-              key={index}
-              src={url}
-              alt={`Imagem ${index + 1}`}
-              className="imagem-preview"
-            />
-          ))}
-        </div>
-      )}
+      <Form.Group className="mb-4">
+        {produto.imagemUrls?.length > 0 ? (
+          <div className="carousel-container-edit">
+            <Carousel fade interval={null}>
+              {produto.imagemUrls.map((url, index) => (
+                <Carousel.Item key={index}>
+                  <img
+                    className="d-block w-100 carousel-image-edit"
+                    src={url}
+                    alt={`Imagem ${index + 1}`}
+                  />
+                </Carousel.Item>
+              ))}
+            </Carousel>
+          </div>
+        ) : (
+          <p className="text-muted">Este produto não possui imagens.</p>
+        )}
+      </Form.Group>
 
       <Form onSubmit={handleSubmit} encType="multipart/form-data">
         <Form.Group className="mb-3">
@@ -97,7 +127,6 @@ function EditarProduto() {
             value={produto.nome || ""}
             onChange={handleChange}
             required
-            minLength={3}
           />
         </Form.Group>
 
@@ -105,9 +134,11 @@ function EditarProduto() {
           <Form.Label>Descrição</Form.Label>
           <Form.Control
             as="textarea"
+            rows={3}
             name="descricao"
             value={produto.descricao || ""}
             onChange={handleChange}
+            required
           />
         </Form.Group>
 
@@ -119,30 +150,41 @@ function EditarProduto() {
             value={produto.preco || ""}
             onChange={handleChange}
             step="0.01"
-            min="0"
+            min="0.01"
             required
           />
         </Form.Group>
 
         <Form.Group className="mb-3">
           <Form.Label>Categoria</Form.Label>
-          <Form.Control
-            type="text"
+          <Form.Select
             name="categoria"
             value={produto.categoria || ""}
             onChange={handleChange}
             required
-          />
+          >
+            <option value="" disabled>
+              Selecione uma categoria
+            </option>
+            {categoriasDisponiveis.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </Form.Select>
         </Form.Group>
 
         <Form.Group className="mb-3">
-          <Form.Label>Imagens novas</Form.Label>
+          <Form.Label>Substituir Imagens (opcional)</Form.Label>
           <Form.Control
             type="file"
             multiple
             accept=".jpg,.jpeg,.png,.webp"
             onChange={handleImagemChange}
           />
+          <Form.Text className="text-muted">
+            Se você enviar novas imagens, as antigas serão substituídas.
+          </Form.Text>
         </Form.Group>
 
         <Button variant="primary" type="submit">

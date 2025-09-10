@@ -1,75 +1,98 @@
-import React, { useState } from "react";
-import { Container, Form, Button, Alert } from "react-bootstrap";
+import React, { useState, useContext, useEffect } from "react";
+import { Container, Form, Button, Alert, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
+import axiosConfig from "../Services/axiosConfig";
 
 function EditarPerfil() {
   const navigate = useNavigate();
-  const clienteAtual = JSON.parse(localStorage.getItem("clienteLogado")) || {};
-  const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+  const { usuariologado, setUsuarioLogado } = useContext(AuthContext);
 
-  const [nome, setNome] = useState(clienteAtual?.nome || "");
-  const [telefone, setTelefone] = useState("");
-  const [email, setEmail] = useState(clienteAtual?.email || "");
+  const [form, setForm] = useState({
+    nome: "",
+    telefone: "",
+  });
   const [sucesso, setSucesso] = useState(false);
   const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(true);
 
-  const handleTelefoneChange = (e) => {
-    const formatted = formatarTelefone(e.target.value);
-    setTelefone(formatted);
-  };
+  useEffect(() => {
+    if (usuariologado) {
+      setForm({
+        nome: usuariologado.nome || "",
+        telefone: usuariologado.telefone || "",
+      });
+      setCarregando(false);
+    }
+  }, [usuariologado]);
 
   const formatarTelefone = (value) => {
-    // Remove tudo que não é número
-    const cleaned = value.replace(/\D/g, "");
-
-    // Aplica a máscara (XX) XXXXX-XXXX
-    const match = cleaned.match(/^(\d{2})(\d{5})(\d{4})$/);
-    if (match) {
-      return `(${match[1]}) ${match[2]}-${match[3]}`;
-    }
-
-    // Para números parciais
-    if (cleaned.length >= 7) {
-      const match = cleaned.match(/^(\d{2})(\d{4,5})(\d{0,4})$/);
-      if (match) {
-        return `(${match[1]}) ${match[2]}${match[3] ? "-" + match[3] : ""}`;
-      }
-    } else if (cleaned.length >= 3) {
-      const match = cleaned.match(/^(\d{2})(\d{1,5})$/);
-      if (match) {
-        return `(${match[1]}) ${match[2]}`;
-      }
-    } else if (cleaned.length >= 1) {
-      const match = cleaned.match(/^(\d{1,2})$/);
-      if (match && match[1].length === 2) {
-        return `(${match[1]}) `;
-      }
-      return match[1];
-    }
-
-    return cleaned;
+    return value
+      .replace(/\D/g, "")
+      .replace(/(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{5})(\d)/, "$1-$2")
+      .replace(/(-\d{4})\d+?$/, "$1");
   };
-  const handleSubmit = (e) => {
+
+  // Função genérica para qualquer campo
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((formAtual) => ({
+      ...formAtual,
+      [name]: value,
+    }));
+  };
+
+  // Função específica para o telefone, que formata E atualiza o estado corretamente
+  const handleTelefoneChange = (e) => {
+    const valorFormatado = formatarTelefone(e.target.value);
+    setForm((formAtual) => ({
+      ...formAtual,
+      telefone: valorFormatado,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!email || !nome || !telefone) {
-      setErro("Todos os campos são obrigatórios.");
-      return;
-    }
-
-    const atualizado = { nome, email, telefone };
-
-    const novaLista = usuarios.map((user) =>
-      user.email === clienteAtual.email ? atualizado : user
-    );
-
-    localStorage.setItem("usuarios", JSON.stringify(novaLista));
-    localStorage.setItem("clienteLogado", JSON.stringify(atualizado));
-    setSucesso(true);
     setErro("");
+    setSucesso(false);
+    setCarregando(true);
 
-    setTimeout(() => navigate("/perfil"), 1500);
+    try {
+      const response = await axiosConfig.put("/cliente/perfil", form);
+      const usuarioAtualizado = { ...response.data, tipo: response.data.role };
+
+      setUsuarioLogado(usuarioAtualizado);
+      localStorage.setItem("user", JSON.stringify(usuarioAtualizado));
+
+      setSucesso(true);
+      setTimeout(() => navigate("/perfil"), 2000);
+    } catch (err) {
+      // Tenta pegar a mensagem de erro específica do backend
+      const validationErrors = err.response?.data?.errors;
+      if (validationErrors) {
+        const firstError = Object.values(validationErrors)[0];
+        setErro(firstError[0]);
+      } else {
+        setErro(
+          err.response?.data?.message ||
+            err.response?.data ||
+            "Erro ao atualizar os dados."
+        );
+      }
+    } finally {
+      setCarregando(false);
+    }
   };
+
+  if (carregando && !sucesso) {
+    return (
+      <Container className="text-center mt-5">
+        <Spinner animation="border" />
+        <p>Carregando perfil...</p>
+      </Container>
+    );
+  }
 
   return (
     <Container className="mt-5 fade-in">
@@ -77,7 +100,7 @@ function EditarPerfil() {
 
       {sucesso && (
         <Alert variant="success" className="text-center">
-          Dados atualizados com sucesso! 🎉
+          Dados atualizados com sucesso! 🎉 Redirecionando...
         </Alert>
       )}
 
@@ -92,8 +115,9 @@ function EditarPerfil() {
           <Form.Label>Nome</Form.Label>
           <Form.Control
             type="text"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
+            name="nome"
+            value={form.nome}
+            onChange={handleChange}
             required
           />
         </Form.Group>
@@ -102,25 +126,37 @@ function EditarPerfil() {
           <Form.Label>E-mail</Form.Label>
           <Form.Control
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={form.email}
+            name="email"
+            onChange={handleChange}
             required
           />
         </Form.Group>
+
         <Form.Group className="mb-3">
           <Form.Label>Telefone</Form.Label>
           <Form.Control
             type="tel"
+            name="telefone"
             placeholder="(21) 99999-9999"
-            value={telefone}
-            onChange={handleTelefoneChange}
+            value={form.telefone}
+            onChange={handleTelefoneChange} // <-- Usa a função corrigida
             maxLength={15}
             required
           />
         </Form.Group>
 
-        <Button type="submit" variant="success" className="w-100 mt-3">
-          💾 Salvar Alterações
+        <Button
+          type="submit"
+          variant="success"
+          className="w-100 mt-3"
+          disabled={carregando}
+        >
+          {carregando ? (
+            <Spinner as="span" animation="border" size="sm" />
+          ) : (
+            "💾 Salvar Alterações"
+          )}
         </Button>
       </Form>
     </Container>

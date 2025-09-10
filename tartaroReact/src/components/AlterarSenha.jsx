@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Container, Form, Button, Alert, Card } from "react-bootstrap";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { Container, Form, Button, Alert, Card, Spinner } from "react-bootstrap";
+import { useParams, useNavigate } from "react-router-dom";
 import axiosConfig from "../Services/axiosConfig";
 
 export default function AlterarSenha() {
-  const { token } = useParams(); // Token vem da URL
+  const { token } = useParams();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -14,13 +14,27 @@ export default function AlterarSenha() {
   });
 
   const [tokenValido, setTokenValido] = useState(null);
-  const [tokenInfo, setTokenInfo] = useState(null);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState(false);
   const [carregando, setCarregando] = useState(false);
 
-  // Valida o token ao carregar o componente
   useEffect(() => {
+    async function validarToken() {
+      try {
+        const response = await axiosConfig.get(
+          `/auth/validar-token-reset/${token}`
+        );
+        setTokenValido(true);
+        setFormData((prev) => ({ ...prev, email: response.data.email }));
+      } catch (err) {
+        setTokenValido(false);
+        setErro(
+          err.response?.data ||
+            "Token inválido ou expirado. Solicite um novo link."
+        );
+      }
+    }
+
     if (token) {
       validarToken();
     } else {
@@ -29,28 +43,8 @@ export default function AlterarSenha() {
     }
   }, [token]);
 
-  async function validarToken() {
-    try {
-      const response = await axiosConfig.get(
-        `/cliente/validar-token-reset/${token}`
-      );
-      setTokenValido(true);
-      setTokenInfo(response.data);
-      setFormData((prev) => ({ ...prev, email: response.data.email }));
-    } catch (err) {
-      setTokenValido(false);
-      setErro(
-        err.response?.data ||
-          "Token inválido ou expirado. Solicite um novo link de recuperação."
-      );
-    }
-  }
-
   function handleChange(e) {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   }
 
   async function handleSubmit(e) {
@@ -58,125 +52,81 @@ export default function AlterarSenha() {
     setErro("");
     setCarregando(true);
 
-    // Validação das senhas
     if (formData.novaSenha !== formData.confirmarSenha) {
       setErro("As senhas não conferem.");
       setCarregando(false);
       return;
     }
-
     if (formData.novaSenha.length < 6) {
-      setErro("A senha deve ter pelo menos 6 caracteres.");
+      setErro("A senha deve ter no mínimo 6 caracteres.");
       setCarregando(false);
       return;
     }
 
     try {
-      await axiosConfig.post("/cliente/alterar-senha", {
+      await axiosConfig.post("/auth/alterar-senha", {
         token: token,
         email: formData.email,
         novaSenha: formData.novaSenha,
       });
 
       setSucesso(true);
-
-      // Redireciona para login após 5 segundos
-      setTimeout(() => {
-        navigate("/login");
-      }, 5000);
+      setTimeout(() => navigate("/login"), 5000);
     } catch (err) {
-      console.error("Erro ao alterar senha:", err);
-      setErro(
-        err.response?.data ||
-          "Erro ao alterar senha. Tente novamente ou solicite um novo link."
-      );
+      setErro(err.response?.data || "Erro ao alterar senha. Tente novamente.");
     } finally {
       setCarregando(false);
     }
   }
 
-  // Token inválido
-  if (tokenValido === false) {
-    return (
-      <Container className="mt-5 login-container fade-in">
-        <Card className="text-center">
-          <Card.Body>
-            <Alert variant="danger">
-              <h4>❌ Token Inválido</h4>
-              <p>{erro}</p>
-            </Alert>
-            <div className="d-grid gap-2">
-              <Button
-                variant="primary"
-                onClick={() => navigate("/recuperar-senha")}
-              >
-                Solicitar Novo Link
-              </Button>
-              <Link to="/login" className="btn btn-outline-secondary">
-                Voltar ao Login
-              </Link>
-            </div>
-          </Card.Body>
-        </Card>
-      </Container>
-    );
-  }
-
-  // Carregando validação do token
+  // Estado de Carregamento (validando token)
   if (tokenValido === null) {
     return (
       <Container className="mt-5 text-center">
-        <Card>
-          <Card.Body>
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Carregando...</span>
-            </div>
-            <p className="mt-3 mb-0">Validando token...</p>
-          </Card.Body>
-        </Card>
+        <Spinner animation="border" />
+        <p>Validando token...</p>
       </Container>
     );
   }
 
-  // Sucesso
+  // Estado de Token Inválido
+  if (tokenValido === false) {
+    return (
+      <Container className="mt-5 text-center">
+        <Alert variant="danger">
+          <h4>❌ Token Inválido</h4>
+          <p>{erro}</p>
+        </Alert>
+        <Button variant="primary" onClick={() => navigate("/esqueci-senha")}>
+          Solicitar Novo Link
+        </Button>
+      </Container>
+    );
+  }
+
+  // Estado de Sucesso
   if (sucesso) {
     return (
-      <Container className="mt-5 login-container fade-in">
-        <Card className="text-center">
-          <Card.Body>
-            <Alert variant="success">
-              <h4>✅ Senha Alterada com Sucesso!</h4>
-              <p>
-                Sua senha foi alterada com sucesso para:{" "}
-                <strong>{formData.email}</strong>
-              </p>
-              <p>Você será redirecionado para o login em alguns segundos...</p>
-            </Alert>
-            <Button
-              variant="primary"
-              onClick={() => navigate("/login")}
-              className="w-100"
-            >
-              Ir para Login Agora
-            </Button>
-          </Card.Body>
-        </Card>
+      <Container className="mt-5 text-center">
+        <Alert variant="success">
+          <h4>✅ Senha Alterada com Sucesso!</h4>
+          <p>
+            Você será redirecionado para a tela de login em alguns segundos.
+          </p>
+        </Alert>
+        <Button variant="primary" onClick={() => navigate("/login")}>
+          Ir para Login Agora
+        </Button>
       </Container>
     );
   }
 
-  // Formulário principal
+  // Estado Principal: Formulário para alterar a senha
   return (
     <Container className="mt-5 login-container fade-in">
       <Card>
-        <Card.Header className="text-center">
-          <h2 className="mb-0">🔑 Nova Senha</h2>
-          {tokenInfo && (
-            <small className="text-muted">
-              Token expira em:{" "}
-              {new Date(tokenInfo.expiraEm).toLocaleString("pt-BR")}
-            </small>
-          )}
+        <Card.Header as="h4" className="text-center">
+          🔑 Nova Senha
         </Card.Header>
         <Card.Body>
           <Form onSubmit={handleSubmit}>
@@ -186,59 +136,38 @@ export default function AlterarSenha() {
                 type="email"
                 value={formData.email}
                 readOnly
-                className="bg-light"
+                disabled
               />
-              <Form.Text className="text-muted">
-                E-mail associado ao token de recuperação
-              </Form.Text>
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Nova Senha *</Form.Label>
+              <Form.Label>Nova Senha</Form.Label>
               <Form.Control
                 type="password"
                 name="novaSenha"
-                placeholder="Digite sua nova senha"
                 value={formData.novaSenha}
                 onChange={handleChange}
                 required
                 minLength={6}
-                disabled={carregando}
+                placeholder="Digite a nova senha"
               />
-              <Form.Text className="text-muted">
-                A senha deve ter pelo menos 6 caracteres
-              </Form.Text>
             </Form.Group>
 
-            <Form.Group className="mb-4">
-              <Form.Label>Confirmar Nova Senha *</Form.Label>
+            <Form.Group className="mb-3">
+              <Form.Label>Confirmar Nova Senha</Form.Label>
               <Form.Control
                 type="password"
                 name="confirmarSenha"
-                placeholder="Confirme sua nova senha"
                 value={formData.confirmarSenha}
                 onChange={handleChange}
                 required
                 minLength={6}
-                disabled={carregando}
-                className={
+                placeholder="Confirme a nova senha"
+                isInvalid={
                   formData.confirmarSenha &&
                   formData.novaSenha !== formData.confirmarSenha
-                    ? "is-invalid"
-                    : formData.confirmarSenha &&
-                      formData.novaSenha === formData.confirmarSenha
-                    ? "is-valid"
-                    : ""
                 }
               />
-              {formData.confirmarSenha &&
-                formData.novaSenha !== formData.confirmarSenha && (
-                  <div className="invalid-feedback">As senhas não conferem</div>
-                )}
-              {formData.confirmarSenha &&
-                formData.novaSenha === formData.confirmarSenha && (
-                  <div className="valid-feedback">Senhas conferem!</div>
-                )}
             </Form.Group>
 
             {erro && (
@@ -247,29 +176,18 @@ export default function AlterarSenha() {
               </Alert>
             )}
 
-            <div className="d-grid gap-2">
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                disabled={
-                  carregando || formData.novaSenha !== formData.confirmarSenha
-                }
-              >
-                {carregando ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" />
-                    Alterando Senha...
-                  </>
-                ) : (
-                  "Alterar Senha"
-                )}
-              </Button>
-
-              <Link to="/login" className="btn btn-outline-secondary">
-                Cancelar e Voltar ao Login
-              </Link>
-            </div>
+            <Button
+              type="submit"
+              variant="success"
+              className="w-100"
+              disabled={carregando}
+            >
+              {carregando ? (
+                <Spinner as="span" animation="border" size="sm" />
+              ) : (
+                "Salvar Nova Senha"
+              )}
+            </Button>
           </Form>
         </Card.Body>
       </Card>

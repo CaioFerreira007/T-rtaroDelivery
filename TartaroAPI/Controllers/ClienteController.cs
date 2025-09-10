@@ -4,12 +4,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TartaroAPI.Data;
+using TartaroAPI.DTOs;
 
 namespace TartaroAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize] //  Protege todos os endpoints deste controller. Apenas usuários logados podem acessar.
+    [Authorize]
     public class ClienteController : ControllerBase
     {
         private readonly TartaroDbContext _context;
@@ -19,6 +20,37 @@ namespace TartaroAPI.Controllers
             _context = context;
         }
 
+        [HttpPut("perfil")]
+        public async Task<IActionResult> UpdatePerfil([FromBody] ClienteUpdateDTO dto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
+            {
+                return Unauthorized("Token inválido.");
+            }
+
+            var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.Id == int.Parse(userId));
+
+            if (cliente == null)
+            {
+                return NotFound("Cliente não encontrado.");
+            }
+
+            cliente.Nome = dto.Nome;
+            cliente.Telefone = dto.Telefone;
+
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                id = cliente.Id,
+                nome = cliente.Nome,
+                email = cliente.Email,
+                telefone = cliente.Telefone,
+                role = cliente.Tipo
+            });
+        }
         //  BUSCAR DADOS DO PRÓPRIO PERFIL
         [HttpGet("perfil")]
         public async Task<IActionResult> GetPerfil()
@@ -50,8 +82,6 @@ namespace TartaroAPI.Controllers
             });
         }
 
-        // Futuramente, você pode adicionar outros endpoints aqui, como:
-        // [HttpPut("perfil")] para atualizar dados
-        // [HttpGet("meus-pedidos")] para listar os pedidos do cliente
+
     }
 }

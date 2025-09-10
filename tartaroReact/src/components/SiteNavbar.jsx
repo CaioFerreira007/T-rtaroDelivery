@@ -39,7 +39,7 @@ function SiteNavbar() {
               </Nav.Link>
             )}
 
-            {usuariologado ? ( // 2. Usa o estado do contexto diretamente
+            {usuariologado ? (
               <NavDropdown
                 title={`👤 ${usuariologado.nome}`}
                 id="perfil-dropdown"

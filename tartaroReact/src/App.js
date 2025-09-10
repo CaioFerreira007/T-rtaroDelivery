@@ -1,6 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 
-// 🌐 Páginas
+//  Páginas
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Cadastro from "./pages/Cadastro";
@@ -9,9 +9,9 @@ import EditarPerfil from "./pages/EditarPerfil";
 import Checkout from "./pages/Checkout";
 import RecuperarSenha from "./pages/RecuperarSenha";
 import MeusPedidos from "./pages/MeusPedidos";
-import Dashboard from "./components/Dashboard"; // ← ADICIONE ESTA LINHA
+import Dashboard from "./components/Dashboard";
 
-// ⚙️ Componentes
+//  Componentes
 import { AuthProvider } from "./context/AuthContext";
 import AlterarSenha from "./components/AlterarSenha";
 import CadastroProdutoADM from "./components/CadastroProdutoADM";
@@ -29,7 +29,7 @@ function App() {
 
         <div style={{ paddingTop: "70px" }}>
           <Routes>
-            {/* 🏠 Rotas públicas */}
+            {/*  Rotas públicas */}
             <Route path="/" element={<Home />} />
             <Route path="/home" element={<Home />} />
             <Route path="/login" element={<Login />} />
@@ -53,7 +53,7 @@ function App() {
               }
             />
 
-            {/* 🛠️ Administração (só ADM pode acessar) */}
+            {/* Administração (só ADM pode acessar) */}
             <Route
               path="/admin/cadastro-produto"
               element={<CadastroProdutoADM />}
@@ -63,7 +63,7 @@ function App() {
               element={<EditarProduto />}
             />
 
-            {/* 🔒 Rotas protegidas (login obrigatório) */}
+            {/*  Rotas protegidas (login obrigatório) */}
             <Route
               path="/checkout"
               element={

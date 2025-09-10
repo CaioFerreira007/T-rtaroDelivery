@@ -1,8 +1,12 @@
 import React, { useState, useContext } from "react";
 import { Container, Form, Button, Alert } from "react-bootstrap";
 import { useNavigate, Link } from "react-router-dom";
+
+// Importações para a nova arquitetura
 import { AuthContext } from "../context/AuthContext";
-import { register } from "../Services/authService"; // Importa o serviço
+import { register } from "../Services/authService";
+
+// Estilos
 import "../styles/Cadastro.css";
 
 function Cadastro() {
@@ -12,10 +16,10 @@ function Cadastro() {
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(false);
   const { setUsuarioLogado } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // A função de formatar telefone continua a mesma...
   const formatarTelefone = (value) => {
     return value
       .replace(/\D/g, "")
@@ -31,32 +35,30 @@ function Cadastro() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErro("");
+    setCarregando(true);
 
     if (senha !== confirmarSenha) {
+      setCarregando(false);
       return setErro("As senhas não coincidem!");
     }
 
     const telefoneNumeros = telefone.replace(/\D/g, "");
     if (telefoneNumeros.length < 10) {
-      // Validação mais simples
+      setCarregando(false);
       return setErro("Por favor, insira um telefone válido com DDD!");
     }
 
     try {
       const dadosCadastro = { nome, email, telefone, senha };
-
-      // 1. Chama o serviço de registro
       const usuario = await register(dadosCadastro);
-
-      // 2. Atualiza o estado global no AuthContext
       setUsuarioLogado(usuario);
-
-      // 3. Redireciona para a home
       navigate("/home");
     } catch (err) {
       const mensagem =
         err.response?.data || "Erro ao criar conta. Verifique os dados.";
       setErro(mensagem);
+    } finally {
+      setCarregando(false);
     }
   };
 
@@ -64,8 +66,89 @@ function Cadastro() {
     <Container className="mt-5 cadastro-container fade-in">
       <h2 className="text-center mb-4">📝 Criar Conta</h2>
 
-      {/* O resto do seu JSX (Form, Alert, etc.) continua exatamente o mesmo */}
-      <Form onSubmit={handleSubmit}>{/* ... Seus Form.Group ... */}</Form>
+      {erro && (
+        <Alert variant="danger" className="text-center">
+          {typeof erro === "string" ? erro : "Ocorreu um erro."}
+        </Alert>
+      )}
+
+      <Form onSubmit={handleSubmit}>
+        <Form.Group className="mb-3">
+          <Form.Label>Nome completo</Form.Label>
+          <Form.Control
+            type="text"
+            placeholder="Digite seu nome"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            required
+          />
+        </Form.Group>
+
+        <Form.Group className="mb-3">
+          <Form.Label>E-mail</Form.Label>
+          <Form.Control
+            type="email"
+            placeholder="Digite seu e-mail"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </Form.Group>
+
+        <Form.Group className="mb-3">
+          <Form.Label>Telefone</Form.Label>
+          <Form.Control
+            type="tel"
+            placeholder="(21) 99999-9999"
+            value={telefone}
+            onChange={handleTelefoneChange}
+            maxLength={15}
+            required
+          />
+        </Form.Group>
+
+        <Form.Group className="mb-3">
+          <Form.Label>Senha</Form.Label>
+          <Form.Control
+            type="password"
+            placeholder="Crie uma senha"
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
+            required
+            minLength={6}
+          />
+        </Form.Group>
+
+        <Form.Group className="mb-3">
+          <Form.Label>Confirmar Senha</Form.Label>
+          <Form.Control
+            type="password"
+            placeholder="Repita sua senha"
+            value={confirmarSenha}
+            onChange={(e) => setConfirmarSenha(e.target.value)}
+            required
+          />
+        </Form.Group>
+
+        <Button
+          type="submit"
+          variant="success"
+          className="w-100 mt-3"
+          disabled={carregando}
+        >
+          {carregando ? "Criando conta..." : "✅ Criar Conta"}
+        </Button>
+
+        <p className="text-center mt-4">
+          Já tem uma conta?{" "}
+          <Link
+            to="/login"
+            style={{ color: "#28a745", textDecoration: "underline" }}
+          >
+            Faça o login
+          </Link>
+        </p>
+      </Form>
     </Container>
   );
 }

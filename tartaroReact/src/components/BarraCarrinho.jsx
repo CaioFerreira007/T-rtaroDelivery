@@ -70,37 +70,42 @@ function BarraCarrinho({
       const { id, codigo, subtotal } = resposta.data;
 
       const produtosList = carrinho
-        .map(
-          (item, index) =>
-            `${index + 1}. ${item.nome} (${item.quantidade}x) - R$${(
-              item.preco * item.quantidade
-            ).toFixed(2)}`
-        )
+        .map((item) => {
+          const nome = item.nome.padEnd(20, "."); // Adiciona pontos para alinhar
+          const preco = `R$ ${item.preco.toFixed(2)}`;
+          return `(${item.quantidade}x) ${nome} ${preco}`;
+        })
         .join("\n");
 
       const mensagem = [
-        "🍔 *NOVO PEDIDO - TÁRTARO DELIVERY*",
-        `🆔 *Pedido:* #${codigo} (ID ${id})`,
-        `👤 *Cliente:* ${usuariologado.nome}`,
-        `📧 ${usuariologado.email}`,
+        "*TÁRTARO DELIVERY - NOVO PEDIDO*",
+        "================================",
+        `*PEDIDO:* #${codigo} (ID: ${id})`,
+        `*DATA/HORA:* ${new Date().toLocaleString("pt-BR")}`,
         "",
-        `📍 *Endereço:* ${dadosEntrega.endereco}`,
+        `*CLIENTE:* ${usuariologado.nome}`,
+        `*TELEFONE:* ${usuariologado.telefone}`,
+        "",
+        `*ENDEREÇO:* ${dadosEntrega.endereco}`,
         dadosEntrega.pontoReferencia
-          ? `📌 *Referência:* ${dadosEntrega.pontoReferencia}`
+          ? `*REFERÊNCIA:* ${dadosEntrega.pontoReferencia}`
           : null,
-        dadosEntrega.observacoes
-          ? `📝 *Obs:* ${dadosEntrega.observacoes}`
-          : null,
+        "--------------------------------",
+        "*ITENS DO PEDIDO:*",
         "",
-        "🛒 *Produtos:*",
         produtosList,
         "",
-        `💰 *Subtotal:* R$${subtotal.toFixed(2)}`,
-        "🚚 + *Taxa de entrega*",
+        "--------------------------------",
+        dadosEntrega.observacoes
+          ? `*OBSERVAÇÕES:*\n${dadosEntrega.observacoes}`
+          : null,
+        "================================",
+        `*Subtotal:* R$ ${subtotal.toFixed(2)}`,
+        "*Taxa de Entrega:* a confirmar",
         "",
-        "*Aguardando confirmação!* ✅",
+        `*FORMA DE PAGAMENTO:* ${dadosEntrega.formaPagamento}`,
       ]
-        .filter(Boolean)
+        .filter(Boolean) // Remove linhas nulas (como referência ou obs. vazias)
         .join("\n");
 
       const urlWhatsApp = `https://web.whatsapp.com/send?phone=${NUMERO_WHATSAPP}&text=${encodeURIComponent(

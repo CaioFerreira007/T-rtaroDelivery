@@ -22,6 +22,18 @@ namespace TartaroAPI.Controllers
             _storageService = storageService;
         }
 
+        [HttpGet("categorias")]
+
+        public async Task<IActionResult> GetCategorias()
+        {
+            var categorias = await _context.Produtos
+                .Select(p => p.Categoria)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToListAsync();
+
+            return Ok(categorias);
+        }
         //  GET com paginação 
         [HttpGet]
         public async Task<IActionResult> GetAll(int page = 1, int pageSize = 10)
