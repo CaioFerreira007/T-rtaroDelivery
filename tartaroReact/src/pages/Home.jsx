@@ -9,17 +9,72 @@ import "../styles/Home.css";
 
 function Home() {
   const [produtos, setProdutos] = useState([]);
-  const [carrinho, setCarrinho] = useState(() => {
+  const [carrinho, setCarrinho] = useState([]);
+  const [mostrarCarrinho, setMostrarCarrinho] = useState(false);
+  const [filtro, setFiltro] = useState("Todos");
+  const [usuarioId, setUsuarioId] = useState(null);
+
+  // Função para obter ID do usuário autenticado
+  const obterUsuarioId = () => {
     try {
-      const carrinhoSalvo = localStorage.getItem("carrinho");
+      const userData = localStorage.getItem("user");
+      if (userData) {
+        const user = JSON.parse(userData);
+        return user.id ? String(user.id) : null;
+      }
+    } catch (error) {
+      console.error("Erro ao obter dados do usuário:", error);
+    }
+    return null;
+  };
+
+  // Função para obter carrinho específico do usuário
+  const obterCarrinhoUsuario = (userId) => {
+    try {
+      const carrinhoKey = `carrinho_${userId}`;
+      const carrinhoSalvo = localStorage.getItem(carrinhoKey);
       return carrinhoSalvo ? JSON.parse(carrinhoSalvo) : [];
     } catch (error) {
       console.error("Erro ao ler carrinho do localStorage:", error);
       return [];
     }
-  });
-  const [mostrarCarrinho, setMostrarCarrinho] = useState(false);
-  const [filtro, setFiltro] = useState("Todos");
+  };
+
+  // Função para salvar carrinho específico do usuário
+  const salvarCarrinhoUsuario = (userId, carrinhoData) => {
+    try {
+      const carrinhoKey = `carrinho_${userId}`;
+      localStorage.setItem(carrinhoKey, JSON.stringify(carrinhoData));
+    } catch (error) {
+      console.error("Erro ao salvar carrinho no localStorage:", error);
+    }
+  };
+
+  // Função para limpar carrinho do usuário após finalizar pedido
+  const limparCarrinhoUsuario = (userId) => {
+    try {
+      const carrinhoKey = `carrinho_${userId}`;
+      localStorage.removeItem(carrinhoKey);
+    } catch (error) {
+      console.error("Erro ao limpar carrinho do localStorage:", error);
+    }
+  };
+
+  // Inicialização do componente
+  useEffect(() => {
+    const userId = obterUsuarioId();
+    
+    if (!userId) {
+      // Usuário não está logado - redirecionar ou mostrar tela de login
+      console.warn("Usuário não autenticado");
+      // window.location.href = '/login'; // Descomente se quiser redirecionar
+      return;
+    }
+    
+    setUsuarioId(userId);
+    const carrinhoUsuario = obterCarrinhoUsuario(userId);
+    setCarrinho(carrinhoUsuario);
+  }, []);
 
   useEffect(() => {
     const carregarProdutos = async () => {
@@ -33,12 +88,15 @@ function Home() {
     carregarProdutos();
   }, []);
 
+  // Salva o carrinho sempre que ele for atualizado
   useEffect(() => {
-    localStorage.setItem("carrinho", JSON.stringify(carrinho));
-    if (carrinho.length === 0) {
-      setMostrarCarrinho(false);
+    if (usuarioId) {
+      salvarCarrinhoUsuario(usuarioId, carrinho);
+      if (carrinho.length === 0) {
+        setMostrarCarrinho(false);
+      }
     }
-  }, [carrinho]);
+  }, [carrinho, usuarioId]);
 
   const adicionarAoCarrinho = (produto) => {
     setCarrinho((prevCarrinho) => {
@@ -74,6 +132,72 @@ function Home() {
     setMostrarCarrinho(false);
   };
 
+  // Função para finalizar pedido (chame esta função quando o pedido for realizado)
+  const finalizarPedido = async () => {
+    try {
+      // Aqui você faria a chamada para sua API para processar o pedido
+      // const resultado = await processarPedido(carrinho, usuarioId);
+      
+      console.log("Pedido finalizado para usuário:", usuarioId);
+      console.log("Itens do pedido:", carrinho);
+      
+      // Limpar carrinho após finalizar pedido
+      limparCarrinhoUsuario(usuarioId);
+      setCarrinho([]);
+      setMostrarCarrinho(false);
+      
+      // Mostrar mensagem de sucesso
+      alert("Pedido realizado com sucesso!");
+      
+    } catch (error) {
+      console.error("Erro ao finalizar pedido:", error);
+      alert("Erro ao finalizar pedido. Tente novamente.");
+    }
+  };
+
+  // Função para logout - limpar carrinho do usuário atual
+  const handleLogout = () => {
+    if (usuarioId) {
+      limparCarrinhoUsuario(usuarioId);
+      setCarrinho([]);
+      setUsuarioId(null);
+    }
+    // Limpar dados do usuário do localStorage
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    // Redirecionar para login se necessário
+    // window.location.href = '/login';
+  };
+
+  // Escutar mudanças no usuário logado (útil se o login/logout acontecer em outra aba)
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'user') {
+        // Usuario foi alterado em outra aba
+        const novoUserId = obterUsuarioId();
+        
+        if (novoUserId !== usuarioId) {
+          // Limpar carrinho do usuário anterior
+          if (usuarioId) {
+            limparCarrinhoUsuario(usuarioId);
+          }
+          
+          // Carregar carrinho do novo usuário
+          setUsuarioId(novoUserId);
+          if (novoUserId) {
+            const carrinhoNovoUsuario = obterCarrinhoUsuario(novoUserId);
+            setCarrinho(carrinhoNovoUsuario);
+          } else {
+            setCarrinho([]);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [usuarioId]);
+
   const categorias = [
     "Todos",
     "Artesanais",
@@ -92,6 +216,15 @@ function Home() {
   return (
     <Container className="menu-container mt-5 mb-5 fade-in">
       <h1 className="text-center mb-4">🍔 Cardápio Tártaro Delivery</h1>
+      
+  
+
+      {!usuarioId && (
+        <div className="alert alert-warning text-center">
+          <h5>⚠️ Usuário não autenticado</h5>
+          <p>Faça login para adicionar itens ao carrinho.</p>
+        </div>
+      )}
 
       <div className="mb-4 d-flex flex-wrap gap-2 justify-content-center">
         {categorias.map((cat) => (
@@ -142,6 +275,7 @@ function Home() {
             atualizarQuantidade={atualizarQuantidade}
             limparCarrinho={limparCarrinho}
             onClose={() => setMostrarCarrinho(false)}
+            onFinalizarPedido={finalizarPedido}
           />
         </div>
       )}
