@@ -1,16 +1,11 @@
-# Etapa 1: Build da aplicação a partir da Solution (.sln)
-# Usamos a imagem oficial do SDK do .NET 6.0 (ajuste se a sua for diferente)
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+# Etapa 1: Build com SDK do .NET 8
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copia o arquivo da solution e os arquivos de projeto primeiro
 COPY ["T-rtaroDelivery.sln", "."]
 COPY ["TartaroAPI/TartaroAPI.csproj", "TartaroAPI/"]
-
-# Restaura as dependências para toda a solution
 RUN dotnet restore "T-rtaroDelivery.sln"
 
-# Copia todo o resto do código
 COPY . .
 WORKDIR "/src/TartaroAPI"
 RUN dotnet build "TartaroAPI.csproj" -c Release -o /app/build
@@ -18,8 +13,8 @@ RUN dotnet build "TartaroAPI.csproj" -c Release -o /app/build
 FROM build AS publish
 RUN dotnet publish "TartaroAPI.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-# Etapa 2: Imagem final para produção
-FROM mcr.microsoft.com/dotnet/aspnet:6.0
+# Etapa 2: Imagem final com ASP.NET 8
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "TartaroAPI.dll"]
