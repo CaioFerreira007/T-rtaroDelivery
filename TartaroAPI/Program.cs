@@ -13,7 +13,7 @@ using System.Text.Json;
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.AddConsole();
 
-#region 🔗 Conexão com MySQL via Pomelo
+#region  Conexão com MySQL via Pomelo
 builder.Services.AddDbContext<TartaroDbContext>(options =>
     options.UseMySql(
         builder.Configuration.GetConnectionString("TartaroDb"),
@@ -151,6 +151,8 @@ app.MapGet("/weatherforecast", () =>
     return forecast;
 }).WithName("GetWeatherForecast");
 #endregion
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+app.Urls.Add($"http://*:{port}");
 
 app.Run();
 
