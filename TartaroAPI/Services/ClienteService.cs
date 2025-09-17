@@ -16,7 +16,7 @@ namespace TartaroAPI.Services
         public Cliente? Autenticar(string email, string senha)
         {
             return _context.Clientes
-                .FirstOrDefault(c => c.Email == email && c.SenhaHash == senha); // ⚠️ use hash de senha depois!
+                .FirstOrDefault(c => c.Email == email && c.SenhaHash == senha); 
         }
     }
 }
