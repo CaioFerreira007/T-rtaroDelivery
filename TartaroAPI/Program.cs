@@ -13,7 +13,7 @@ using System.Text.Json;
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.AddConsole();
 
-#region 🔗 Conexão com MySQL via Pomelo
+#region  Conexão com MySQL via Pomelo
 builder.Services.AddDbContext<TartaroDbContext>(options =>
     options.UseMySql(
         builder.Configuration.GetConnectionString("TartaroDb"),
@@ -24,7 +24,7 @@ builder.Services.AddDbContext<TartaroDbContext>(options =>
 //EmailService
 builder.Services.AddScoped<IEmailService, EmailService>();
 
-#region 🔐 Configuração de autenticação JWT
+#region  Configuração de autenticação JWT
 var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
@@ -53,7 +53,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 #endregion
 
-#region 🌐 CORS para acesso externo
+#region  CORS para acesso externo
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("PermitirFrontEnd", policy =>
@@ -65,7 +65,7 @@ builder.Services.AddCors(options =>
 });
 #endregion
 
-#region 📦 Serviços, Swagger, Controllers e JSON
+#region  Serviços, Swagger, Controllers e JSON
 builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddScoped<IPedidoService, PedidoService>();
@@ -114,10 +114,10 @@ builder.Services.AddControllers()
 #endregion
 
 var app = builder.Build();
-#region 🧪 Seed segura de administrador (via admin.json)
+#region  Seed segura de administrador (via admin.json)
 
 #endregion
-#region 🚀 Middlewares
+#region  Middlewares
 app.UseCors("PermitirFrontEnd");
 
 app.UseAuthentication();
@@ -131,7 +131,7 @@ app.MapControllers();
 // app.UseHttpsRedirection(); ← opcional
 #endregion
 
-#region 🌤 Endpoint de teste (weatherforecast)
+#region Endpoint de teste (weatherforecast)
 var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm",
@@ -151,10 +151,12 @@ app.MapGet("/weatherforecast", () =>
     return forecast;
 }).WithName("GetWeatherForecast");
 #endregion
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+app.Urls.Add($"http://*:{port}");
 
 app.Run();
 
-#region 🎯 Modelo usado no /weatherforecast
+#region  Modelo usado no /weatherforecast
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
