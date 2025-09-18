@@ -3,14 +3,14 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
 # Copie os arquivos de projeto
-COPY TártaroAPI/*.csproj TártaroAPI/
-RUN dotnet restore TártaroAPI/
+COPY TartaroAPI/*.csproj TartaroAPI/
+RUN dotnet restore TartaroAPI/
 
 # Copie todo o código fonte
-COPY TártaroAPI/ TártaroAPI/
+COPY TartaroAPI/ TartaroAPI/
 
 # Faça o build da aplicação
-RUN dotnet publish TártaroAPI/ -c Release -o out
+RUN dotnet publish TartaroAPI/ -c Release -o out
 
 # Use a imagem runtime do .NET
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
@@ -21,7 +21,9 @@ COPY --from=build /app/out .
 
 # Exponha a porta
 EXPOSE 80
-EXPOSE 443
+
+# Configure variáveis de ambiente
+ENV ASPNETCORE_URLS=http://+:80
 
 # Configure o comando de entrada
-ENTRYPOINT ["dotnet", "TártaroAPI.dll"]
+ENTRYPOINT ["dotnet", "TartaroAPI.dll"]
