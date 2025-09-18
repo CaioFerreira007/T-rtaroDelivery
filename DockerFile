@@ -1,21 +1,27 @@
-# Etapa 1: Build da aplicação com SDK do .NET 8
+# Use a imagem base do .NET SDK para build
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /src
-
-# Copia o arquivo da solution e os arquivos de projeto primeiro
-COPY ["T-rtaroDelivery.sln", "."]
-COPY ["TartaroAPI/TartaroAPI.csproj", "TartaroAPI/"]
-
-# Restaura as dependências para toda a solution
-RUN dotnet restore "T-rtaroDelivery.sln"
-
-# Copia todo o resto do código e publica a aplicação
-COPY . .
-WORKDIR "/src/TartaroAPI"
-RUN dotnet publish "TartaroAPI.csproj" -c Release -o /app/publish /p:UseAppHost=false
-
-# Etapa 2: Imagem final de produção com ASP.NET 8
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
-COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "TartaroAPI.dll"]
+
+# Copie os arquivos de projeto
+COPY TártaroAPI/*.csproj TártaroAPI/
+RUN dotnet restore TártaroAPI/
+
+# Copie todo o código fonte
+COPY TártaroAPI/ TártaroAPI/
+
+# Faça o build da aplicação
+RUN dotnet publish TártaroAPI/ -c Release -o out
+
+# Use a imagem runtime do .NET
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+
+# Copie os arquivos publicados
+COPY --from=build /app/out .
+
+# Exponha a porta
+EXPOSE 80
+EXPOSE 443
+
+# Configure o comando de entrada
+ENTRYPOINT ["dotnet", "TártaroAPI.dll"]
