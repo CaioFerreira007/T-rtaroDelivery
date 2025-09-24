@@ -8,84 +8,238 @@ using Microsoft.IdentityModel.Tokens;
 using TartaroAPI.Data;
 using TartaroAPI.DTO;
 using TartaroAPI.Models;
-using TartaroAPI.Services; // Precisa do IEmailService
+using TartaroAPI.Services;
 
 namespace TartaroAPI.Controllers
 {
     [ApiController]
-    [Route("api/auth")] // Rota base para autenticação
+    [Route("api/auth")]
     public class AuthController : ControllerBase
     {
         private readonly TartaroDbContext _context;
         private readonly IConfiguration _configuration;
-        private readonly IEmailService _emailService; // Adicionada dependência
-
-        // Sliding expiration de 1 hora
+        private readonly IEmailService _emailService;
         private static readonly TimeSpan TokenTtl = TimeSpan.FromHours(1);
 
-        public AuthController(TartaroDbContext context, IConfiguration configuration, IEmailService emailService) // Injetar IEmailService
+        public AuthController(TartaroDbContext context, IConfiguration configuration, IEmailService emailService)
         {
             _context = context;
             _configuration = configuration;
             _emailService = emailService;
         }
 
-        //  LOGIN
+        // TESTE - Endpoint para verificar se a API está funcionando
+        [HttpGet("test")]
+        [AllowAnonymous]
+        public IActionResult Test()
+        {
+            return Ok(new { 
+                message = "API Tartaro Delivery funcionando!", 
+                timestamp = DateTime.UtcNow,
+                version = "1.0.0"
+            });
+        }
+
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginDTO login)
         {
-            var cliente = await _context.Clientes
-                .FirstOrDefaultAsync(c => c.Email.ToLower().Trim() == login.Email.ToLower().Trim());
-
-            if (cliente is null)
-                return Unauthorized("E-mail ou senha incorretos.");
-
-            if (!BCrypt.Net.BCrypt.Verify(login.Senha, cliente.SenhaHash))
-                return Unauthorized("E-mail ou senha incorretos.");
-
-            string jwt = GerarJwt(cliente);
-            string rToken = await CriarRefreshTokenAsync(cliente.Id);
-
-            return Ok(new
+            try
             {
-                token = jwt,
-                refreshToken = rToken,
-                user = MapUser(cliente)
-            });
+                // Log para debug
+                Console.WriteLine($"Tentativa de login: {login.Email}");
+
+                if (string.IsNullOrWhiteSpace(login.Email) || string.IsNullOrWhiteSpace(login.Senha))
+                {
+                    return BadRequest("Email e senha são obrigatórios.");
+                }
+
+                var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.Email.ToLower().Trim() == login.Email.ToLower().Trim());
+                
+                if (cliente is null)
+                {
+                    Console.WriteLine($"Cliente não encontrado: {login.Email}");
+                    return Unauthorized("E-mail ou senha incorretos.");
+                }
+
+                if (!BCrypt.Net.BCrypt.Verify(login.Senha, cliente.SenhaHash))
+                {
+                    Console.WriteLine($"Senha incorreta para: {login.Email}");
+                    return Unauthorized("E-mail ou senha incorretos.");
+                }
+
+                string jwt = GerarJwt(cliente);
+                string rToken = await CriarRefreshTokenAsync(cliente.Id);
+                
+                var response = new { token = jwt, refreshToken = rToken, user = MapUser(cliente) };
+                Console.WriteLine($"Login bem-sucedido: {cliente.Email}");
+                
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro no login: {ex.Message}");
+                return StatusCode(500, "Erro interno do servidor.");
+            }
         }
 
-        //  REGISTRO DE CLIENTE
         [HttpPost("register")]
+        [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] RegisterDTO dto)
         {
-            var email = dto.Email.ToLower().Trim();
-            if (await _context.Clientes.AnyAsync(c => c.Email.ToLower() == email))
-                return BadRequest("E-mail já cadastrado.");
-
-            var cliente = new Cliente
+            try
             {
-                Nome = dto.Nome,
-                Email = email,
-                Telefone = dto.Telefone,
-                SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha),
-                Tipo = "cliente" // Define explicitamente o tipo
-            };
+                Console.WriteLine($"Tentativa de cadastro: {dto.Email}");
 
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
+                // Validações
+                if (string.IsNullOrWhiteSpace(dto.Nome) || dto.Nome.Trim().Length < 2)
+                {
+                    return BadRequest("Nome deve ter pelo menos 2 caracteres.");
+                }
 
-            string jwt = GerarJwt(cliente);
-            string rToken = await CriarRefreshTokenAsync(cliente.Id);
+                if (string.IsNullOrWhiteSpace(dto.Email) || !IsValidEmail(dto.Email))
+                {
+                    return BadRequest("Email inválido.");
+                }
 
-            return Ok(new
+                if (string.IsNullOrWhiteSpace(dto.Senha) || dto.Senha.Length < 6)
+                {
+                    return BadRequest("Senha deve ter pelo menos 6 caracteres.");
+                }
+
+                var telefoneNumeros = dto.Telefone?.Replace(System.Text.RegularExpressions.Regex.Replace(dto.Telefone, @"\D", ""), "") ?? "";
+                if (telefoneNumeros.Length < 10)
+                {
+                    return BadRequest("Telefone inválido. Inclua o DDD.");
+                }
+
+                var email = dto.Email.ToLower().Trim();
+                
+                if (await _context.Clientes.AnyAsync(c => c.Email.ToLower() == email))
+                {
+                    Console.WriteLine($"Email já existe: {email}");
+                    return BadRequest("E-mail já cadastrado.");
+                }
+
+                var cliente = new Cliente
+                {
+                    Nome = dto.Nome.Trim(),
+                    Email = email,
+                    Telefone = telefoneNumeros,
+                    SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha),
+                    Tipo = "cliente"
+                };
+
+                _context.Clientes.Add(cliente);
+                await _context.SaveChangesAsync();
+
+                string jwt = GerarJwt(cliente);
+                string rToken = await CriarRefreshTokenAsync(cliente.Id);
+                
+                var response = new { token = jwt, refreshToken = rToken, user = MapUser(cliente) };
+                Console.WriteLine($"Cadastro bem-sucedido: {cliente.Email} - ID: {cliente.Id}");
+                
+                return Ok(response);
+            }
+            catch (Exception ex)
             {
-                token = jwt,
-                refreshToken = rToken,
-                user = MapUser(cliente)
-            });
+                Console.WriteLine($"Erro no cadastro: {ex.Message}");
+                return StatusCode(500, "Erro interno do servidor.");
+            }
         }
 
-        //  REGISTRO DE ADMINISTRADOR (Apenas ADMs logados podem fazer)
+        [HttpPost("refresh")]
+        [AllowAnonymous]
+        public async Task<IActionResult> Refresh([FromBody] RefreshTokenDTO dto)
+        {
+            try
+            {
+                var refreshToken = await _context.RefreshTokens
+                    .Include(r => r.Cliente)
+                    .FirstOrDefaultAsync(r => r.Token == dto.Token && r.Expiracao > DateTime.UtcNow);
+
+                if (refreshToken == null)
+                {
+                    return Unauthorized("Refresh token inválido ou expirado.");
+                }
+
+                // Gerar novo JWT
+                string newJwt = GerarJwt(refreshToken.Cliente);
+                
+                // Opcional: Gerar novo refresh token
+                string newRefreshToken = await CriarRefreshTokenAsync(refreshToken.ClienteId);
+                
+                // Remover o refresh token usado
+                _context.RefreshTokens.Remove(refreshToken);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { token = newJwt, refreshToken = newRefreshToken });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro no refresh token: {ex.Message}");
+                return StatusCode(500, "Erro interno do servidor.");
+            }
+        }
+
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout([FromBody] RefreshTokenDTO dto)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(dto.Token))
+                {
+                    var refreshToken = await _context.RefreshTokens.FirstOrDefaultAsync(r => r.Token == dto.Token);
+                    if (refreshToken != null)
+                    {
+                        _context.RefreshTokens.Remove(refreshToken);
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                return Ok(new { message = "Logout realizado com sucesso." });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro no logout: {ex.Message}");
+                return Ok(new { message = "Logout realizado." }); // Mesmo com erro, considera logout
+            }
+        }
+
+        [HttpPost("forgot-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDTO dto)
+        {
+            try
+            {
+                var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.Email.ToLower() == dto.Email.ToLower());
+                
+                if (cliente == null)
+                {
+                    // Por segurança, sempre retorna sucesso mesmo se email não existir
+                    return Ok(new { message = "Se o email existir, você receberá instruções para redefinir sua senha." });
+                }
+
+                // Gerar token de recuperação
+                var resetToken = Guid.NewGuid().ToString();
+                cliente.TokenRecuperacao = resetToken;
+                cliente.TokenExpiraEm = DateTime.UtcNow.AddHours(1);
+
+                await _context.SaveChangesAsync();
+
+                // Enviar email (implementar conforme seu IEmailService)
+                // await _emailService.SendPasswordResetEmail(cliente.Email, resetToken);
+
+                return Ok(new { message = "Se o email existir, você receberá instruções para redefinir sua senha." });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro no forgot password: {ex.Message}");
+                return StatusCode(500, "Erro interno do servidor.");
+            }
+        }
+
         [Authorize(Roles = "ADM")]
         [HttpPost("register-adm")]
         public async Task<IActionResult> RegisterADM([FromBody] RegisterDTO dto)
@@ -100,173 +254,80 @@ namespace TartaroAPI.Controllers
                 Email = email,
                 Telefone = dto.Telefone,
                 SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha),
-                Tipo = "ADM" // Define explicitamente o tipo
+                Tipo = "ADM"
             };
-
             _context.Clientes.Add(admin);
             await _context.SaveChangesAsync();
-
-            // Para registro de admin, não retornamos login automático, apenas sucesso.
             return Ok(new { message = "Administrador criado com sucesso.", user = MapUser(admin) });
         }
-
-        //  REFRESH (sliding expiration)
-        [HttpPost("refresh")]
-        public async Task<IActionResult> Refresh([FromBody] TokenDTO dto)
+        
+        [AllowAnonymous]
+        [HttpPost("setup-admins")]
+        public async Task<IActionResult> SetupAdmins([FromQuery] string secretKey)
         {
-            var tokenSalvo = await _context.RefreshTokens
-                .Include(r => r.Cliente)
-                .FirstOrDefaultAsync(r => r.Token == dto.RefreshToken && r.Expiracao > DateTime.UtcNow);
-
-            if (tokenSalvo is null)
-                return Unauthorized("Refresh token inválido ou expirado.");
-
-            // Remove o antigo
-            _context.RefreshTokens.Remove(tokenSalvo);
-            await _context.SaveChangesAsync();
-
-            // Cria um novo par de tokens
-            string novoJwt = GerarJwt(tokenSalvo.Cliente);
-            string novoRToken = await CriarRefreshTokenAsync(tokenSalvo.ClienteId);
-
-            return Ok(new
+            var setupKey = _configuration["SetupSecretKey"];
+            if (string.IsNullOrEmpty(setupKey) || secretKey != setupKey)
             {
-                token = novoJwt,
-                refreshToken = novoRToken,
-                user = MapUser(tokenSalvo.Cliente)
-            });
-        }
-
-        // 🚪 LOGOUT
-        [HttpPost("logout")]
-        public async Task<IActionResult> Logout([FromBody] TokenDTO dto)
-        {
-            var tokenSalvo = await _context.RefreshTokens.FirstOrDefaultAsync(r => r.Token == dto.RefreshToken);
-
-            if (tokenSalvo != null)
-            {
-                _context.RefreshTokens.Remove(tokenSalvo);
-                await _context.SaveChangesAsync();
+                return Unauthorized("Chave secreta para setup inválida.");
             }
 
-            return Ok("Logout realizado com sucesso.");
-        }
+            var results = new List<string>();
 
-        //  ESQUECI SENHA (SOLICITAÇÃO)
-        [HttpPost("esqueci-senha")]
-        public async Task<IActionResult> EsqueciSenha([FromBody] SolicitarRecuperacaoDTO dto)
-        {
-            var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.Email.ToLower() == dto.Email.ToLower());
-
-            // Por segurança, não revele se o email existe ou não.
-            if (cliente != null)
+            if (!await _context.Clientes.AnyAsync(c => c.Email == "myprofilejobs07@outlook.com"))
             {
-                var tokensAntigos = _context.PasswordResetTokens.Where(t => t.ClienteId == cliente.Id);
-                _context.PasswordResetTokens.RemoveRange(tokensAntigos);
+                _context.Clientes.Add(new Cliente { Nome = "Caio Gustavo", Email = "myprofilejobs07@outlook.com", SenhaHash = BCrypt.Net.BCrypt.HashPassword("cocodopou"), Tipo = "ADM", Telefone = "" });
+                results.Add("Usuário 'Caio Gustavo' criado com sucesso.");
+            } else { results.Add("Usuário 'Caio Gustavo' já existe."); }
 
-                var resetToken = new PasswordResetToken
-                {
-                    Token = Guid.NewGuid().ToString(),
-                    ExpiraEm = DateTime.UtcNow.AddHours(1),
-                    ClienteId = cliente.Id,
-                };
-
-                _context.PasswordResetTokens.Add(resetToken);
-                await _context.SaveChangesAsync();
-
-                await _emailService.EnviarEmailRecuperacaoAsync(cliente.Email, resetToken.Token);
-            }
-
-            return Ok("Se o e-mail existir em nossa base, um link de recuperação será enviado.");
-        }
-
-        //  ALTERAR SENHA (COM TOKEN)
-        [HttpPost("alterar-senha")]
-        public async Task<IActionResult> AlterarSenha([FromBody] AlterarSenhaDTO dto)
-        {
-            var resetToken = await _context.PasswordResetTokens
-                .Include(t => t.Cliente)
-                .FirstOrDefaultAsync(t => t.Token == dto.Token && !t.Usado && t.ExpiraEm > DateTime.UtcNow);
-
-            if (resetToken == null)
-                return BadRequest("Token inválido, expirado ou já utilizado.");
-
-            if (resetToken.Cliente.Email.ToLower() != dto.Email.ToLower())
-                return BadRequest("E-mail não corresponde ao token.");
-
-            resetToken.Cliente.SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.NovaSenha);
-            resetToken.Usado = true;
+            if (!await _context.Clientes.AnyAsync(c => c.Email == "gabriel@tartaro.com"))
+            {
+                _context.Clientes.Add(new Cliente { Nome = "Gabriel", Email = "gabriel@tartaro.com", SenhaHash = BCrypt.Net.BCrypt.HashPassword("tartarohamburgueriadelivery2025"), Tipo = "ADM", Telefone = "" });
+                results.Add("Usuário 'Gabriel' criado com sucesso.");
+            } else { results.Add("Usuário 'Gabriel' já existe."); }
+            
             await _context.SaveChangesAsync();
-
-            return Ok("Senha alterada com sucesso!");
+            return Ok(results);
         }
 
-        //  VALIDAR TOKEN DE RESET
-        [HttpGet("validar-token-reset/{token}")]
-        public async Task<IActionResult> ValidarTokenReset(string token)
-        {
-            var resetToken = await _context.PasswordResetTokens
-                .Include(t => t.Cliente)
-                .FirstOrDefaultAsync(t => t.Token == token && !t.Usado && t.ExpiraEm > DateTime.UtcNow);
-
-            if (resetToken == null)
-                return BadRequest("Token inválido ou expirado.");
-
-            return Ok(new { email = resetToken.Cliente.Email, expiraEm = resetToken.ExpiraEm });
-        }
-
-
-        // ─── Métodos Auxiliares ──────────────────────────────────────────────────
-
+        // Métodos auxiliares
         private string GerarJwt(Cliente cliente)
         {
             var keyString = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key não configurada.");
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var expiresAt = DateTime.UtcNow.Add(TokenTtl);
-
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, cliente.Id.ToString()),
                 new Claim(ClaimTypes.Name, cliente.Nome),
                 new Claim(ClaimTypes.Email, cliente.Email),
-                new Claim(ClaimTypes.Role, cliente.Tipo.ToUpper()), // Padroniza para maiúsculas
-                new Claim("tipo", cliente.Tipo) // Claim customizada se necessário
+                new Claim(ClaimTypes.Role, cliente.Tipo.ToUpper()),
             };
-
-            var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
-                claims: claims,
-                expires: expiresAt,
-                signingCredentials: creds
-            );
-
+            var token = new JwtSecurityToken(_configuration["Jwt:Issuer"], _configuration["Jwt:Audience"], claims, expires: expiresAt, signingCredentials: creds);
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
         private async Task<string> CriarRefreshTokenAsync(int clienteId)
         {
-            var refresh = new RefreshToken
-            {
-                Token = Guid.NewGuid().ToString(),
-                Expiracao = DateTime.UtcNow.AddDays(7), // Refresh token com maior duração
-                ClienteId = clienteId
-            };
-
+            var refresh = new RefreshToken { Token = Guid.NewGuid().ToString(), Expiracao = DateTime.UtcNow.AddDays(7), ClienteId = clienteId };
             _context.RefreshTokens.Add(refresh);
-            await _context.SaveChangesAsync(); // Usar versão assíncrona
-
+            await _context.SaveChangesAsync();
             return refresh.Token;
         }
 
-        private object MapUser(Cliente cliente) => new
+        private object MapUser(Cliente cliente) => new { id = cliente.Id, nome = cliente.Nome, email = cliente.Email, telefone = cliente.Telefone, role = cliente.Tipo };
+
+        private bool IsValidEmail(string email)
         {
-            id = cliente.Id,
-            nome = cliente.Nome,
-            email = cliente.Email,
-            telefone = cliente.Telefone,
-            role = cliente.Tipo
-        };
+            try
+            {
+                var addr = new System.Net.Mail.MailAddress(email);
+                return addr.Address == email;
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }

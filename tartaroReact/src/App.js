@@ -1,5 +1,5 @@
 import { Routes, Route } from "react-router-dom";
-
+import React from "react";
 //  Páginas
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -15,6 +15,7 @@ import Dashboard from "./components/Dashboard";
 import { AuthProvider } from "./context/AuthContext";
 import AlterarSenha from "./components/AlterarSenha";
 import CadastroProdutoADM from "./components/CadastroProdutoADM";
+import DebugTartaro from './components/DebugTartaro';
 import RotaPrivada from "./components/RotaPrivada";
 import EditarProduto from "./components/EditarProduto";
 import SiteNavbar from "./components/SiteNavbar";
@@ -38,7 +39,7 @@ function App() {
             <Route path="/esqueci-senha" element={<RecuperarSenha />} />
             <Route path="/perfil" element={<Perfil />} />
             <Route path="/editar-perfil" element={<EditarPerfil />} />
-
+<Route path="/debug" element={<DebugTartaro />} />
             <Route path="/alterar-senha/:token" element={<AlterarSenha />} />
 
             {/* Rotas Privadas (protegidas) */}
@@ -47,7 +48,7 @@ function App() {
               element={
                 <RotaPrivada>
                   {" "}
-                  {/* ← CORRIGIDO */}
+               
                   <Dashboard />
                 </RotaPrivada>
               }

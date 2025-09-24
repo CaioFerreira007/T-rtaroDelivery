@@ -1,4 +1,3 @@
-// src/components/SiteNavbar.jsx
 
 import React, { useContext } from "react";
 import { Navbar, Nav, Container, NavDropdown } from "react-bootstrap";
@@ -50,6 +49,7 @@ function SiteNavbar() {
                 <NavDropdown.Item as={Link} to="/editar-perfil">
                   ✏️ Editar Conta
                 </NavDropdown.Item>
+                <NavDropdown.Item as={Link} to="/meus-pedidos" >Meus Pedidos</NavDropdown.Item>
                 <NavDropdown.Divider />
                 <NavDropdown.Item onClick={handleLogout}>
                   🚪 Sair

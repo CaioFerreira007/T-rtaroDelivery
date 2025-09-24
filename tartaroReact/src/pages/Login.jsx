@@ -1,3 +1,4 @@
+// Login.jsx - CORRIGIDO
 import React, { useState, useContext } from "react";
 import { Container, Form, Button, Alert } from "react-bootstrap";
 import { useNavigate, Link } from "react-router-dom";
@@ -11,7 +12,7 @@ function Login() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
-  const [carregando, setCarregando] = useState(false); // Adicionado para feedback no botão
+  const [carregando, setCarregando] = useState(false);
   const navigate = useNavigate();
   const { setUsuarioLogado } = useContext(AuthContext);
 
@@ -21,11 +22,29 @@ function Login() {
     setCarregando(true);
 
     try {
+      console.log("Tentando fazer login com:", { email, senha: "***" });
+      
       const usuario = await loginService(email, senha);
+      console.log("Login bem-sucedido:", usuario);
+      
       setUsuarioLogado(usuario);
       navigate("/home");
     } catch (err) {
-      const mensagem = err.response?.data || "Email ou senha inválidos.";
+      console.error("Erro completo no login:", err);
+      
+      // CORREÇÃO: Tratamento correto do erro
+      let mensagem = "Email ou senha inválidos.";
+      
+      if (err.message) {
+        // Se o authService já processou o erro e retornou uma mensagem
+        mensagem = err.message;
+      } else if (err.response?.data) {
+        // Se é uma resposta HTTP com dados
+        const errorData = err.response.data;
+        mensagem = typeof errorData === 'string' ? errorData : errorData.message || errorData.Message || mensagem;
+      }
+      
+      console.log("Mensagem de erro a ser exibida:", mensagem);
       setErro(mensagem);
     } finally {
       setCarregando(false);
@@ -38,7 +57,7 @@ function Login() {
 
       {erro && (
         <Alert variant="danger" className="text-center">
-          {typeof erro === "string" ? erro : "Ocorreu um erro."}
+          {erro}
         </Alert>
       )}
 

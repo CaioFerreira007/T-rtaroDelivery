@@ -1,40 +1,77 @@
 using TartaroAPI.Data;
-using TartaroAPI.Models;
 using TartaroAPI.Services;
-
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-
 using System.Text;
-using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Logging.AddConsole();
 
-#region  Conexão com MySQL via Pomelo
-builder.Services.AddDbContext<TartaroDbContext>(options =>
-    options.UseMySql(
-        builder.Configuration.GetConnectionString("TartaroDb"),
-        new MySqlServerVersion(new Version(8, 0, 34))
-    ));
-#endregion
+// --- NOME DA POLÍTICA DE CORS ---
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
-//EmailService
-builder.Services.AddScoped<IEmailService, EmailService>();
-
-#region  Configuração de autenticação JWT
-var jwtKey = builder.Configuration["Jwt:Key"];
-var jwtIssuer = builder.Configuration["Jwt:Issuer"];
-var jwtAudience = builder.Configuration["Jwt:Audience"];
-
-if (string.IsNullOrWhiteSpace(jwtKey) || string.IsNullOrWhiteSpace(jwtIssuer) || string.IsNullOrWhiteSpace(jwtAudience))
+// Adiciona a política de CORS segura
+builder.Services.AddCors(options =>
 {
-    Console.WriteLine("❌ Configurações de JWT ausentes ou inválidas.");
-    throw new InvalidOperationException("JWT mal configurado. Verifique appsettings.json.");
-}
+    options.AddPolicy(name: MyAllowSpecificOrigins,
+                      policy =>
+                      {
+                          policy.WithOrigins("http://localhost:3000",
+                                             "https://tartarodelivery.com.br",
+                                             "http://tartarodelivery.com.br")
+                                .AllowAnyHeader()
+                                .AllowAnyMethod();
+                      });
+});
 
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Tartaro API", Version = "v1" });
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Please enter a valid token",
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        BearerFormat = "JWT",
+        Scheme = "Bearer"
+    });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[]{}
+        }
+    });
+});
+
+// Conexão com o Banco de Dados
+builder.Services.AddDbContext<TartaroDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("TartaroDb")));
+
+// Injeção de Dependências dos seus Serviços
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IPedidoService, PedidoService>();
+builder.Services.AddScoped<IClienteService, ClienteService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IFileStorageService, LocalStorageService>();
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
+
+// Configuração de Autenticação JWT
+var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured.");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -44,121 +81,39 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtIssuer,
-            ValidAudience = jwtAudience,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
     });
-
 builder.Services.AddAuthorization();
-#endregion
 
-#region  CORS para acesso externo
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("PermitirFrontEnd", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
-});
-#endregion
-
-#region  Serviços, Swagger, Controllers e JSON
-builder.Services.AddScoped<IClienteService, ClienteService>();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddScoped<IPedidoService, PedidoService>();
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<IFileStorageService, LocalStorageService>();
-
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "Tartaro API",
-        Version = "v1",
-        Description = "Documentação da API Tartaro com autenticação JWT"
-    });
-
-    var jwtSecurityScheme = new OpenApiSecurityScheme
-    {
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.Http,
-        Description = "Digite o token JWT no campo abaixo. Exemplo: Bearer {seu token}",
-
-        Reference = new OpenApiReference
-        {
-            Id = JwtBearerDefaults.AuthenticationScheme,
-            Type = ReferenceType.SecurityScheme
-        }
-    };
-
-    c.AddSecurityDefinition(jwtSecurityScheme.Reference.Id, jwtSecurityScheme);
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        { jwtSecurityScheme, Array.Empty<string>() }
-    });
-});
-
-builder.Services.AddControllers()
-  .AddJsonOptions(opts =>
-  {
-      opts.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-      // mantém ReferenceHandler se precisar
-  });
-#endregion
 
 var app = builder.Build();
-#region  Seed segura de administrador (via admin.json)
 
-#endregion
-#region  Middlewares
-app.UseCors("PermitirFrontEnd");
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+
+app.UseStaticFiles();
+
+app.UseRouting();
+
+// Aplica a política de CORS
+app.UseCors(MyAllowSpecificOrigins);
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseSwagger();
-app.UseSwaggerUI();
-
-app.UseStaticFiles(); // serve a pasta wwwroot automaticamente
 app.MapControllers();
-// app.UseHttpsRedirection(); ← opcional
-#endregion
 
-#region Endpoint de teste (weatherforecast)
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm",
-    "Balmy", "Hot", "Sweltering", "Scorching"
-};
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast(
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        )
-    ).ToArray();
-
-    return forecast;
-}).WithName("GetWeatherForecast");
-#endregion
-var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
-app.Urls.Add($"http://*:{port}");
+app.MapFallbackToFile("index.html");
 
 app.Run();
-
-#region  Modelo usado no /weatherforecast
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
-#endregion

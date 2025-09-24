@@ -1,53 +1,65 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect, useCallback } from 'react';
+import { login as loginService, register as registerService, logout as logoutService } from '../Services/authService';
+import axiosConfig from '../Services/axiosConfig';
 
-export const AuthContext = createContext();
+export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [usuariologado, setUsuarioLogado] = useState(null);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true); 
 
-  // Carregar usuário inicial do localStorage
+  // Função para carregar o usuário do localStorage na primeira vez que a página abre
   useEffect(() => {
     try {
-      const localUser = localStorage.getItem("user");
-      const parsedUser = JSON.parse(localUser);
-
-      if (parsedUser && typeof parsedUser === "object") {
-        const usuarioFormatado = {
-          ...parsedUser,
-          tipo: parsedUser.role, // ✅ adapta role para tipo
-        };
-        setUsuarioLogado(usuarioFormatado);
-      } else {
-        setUsuarioLogado(null);
+      const storedUser = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+      
+      if (storedUser && token) {
+        setUser(JSON.parse(storedUser));
+        axiosConfig.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       }
     } catch (error) {
-      console.error("Erro ao carregar usuário do localStorage:", error);
-      setUsuarioLogado(null);
+      console.error("Erro ao carregar dados do usuário:", error);
+      // Limpa dados corrompidos
+      localStorage.clear();
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  // Sincronizar se localStorage mudar em outra aba
-  useEffect(() => {
-    const syncUser = () => {
-      const localUser = localStorage.getItem("user");
-      try {
-        const parsedUser = JSON.parse(localUser);
-        const usuarioFormatado = {
-          ...parsedUser,
-          tipo: parsedUser.role,
-        };
-        setUsuarioLogado(usuarioFormatado);
-      } catch {
-        setUsuarioLogado(null);
-      }
-    };
-
-    window.addEventListener("storage", syncUser);
-    return () => window.removeEventListener("storage", syncUser);
+  const login = useCallback(async (email, password) => {
+    const userData = await loginService(email, password);
+    setUser(userData);
+    return userData;
   }, []);
 
+  const register = useCallback(async (registerData) => {
+    const userData = await registerService(registerData);
+    setUser(userData);
+    return userData;
+  }, []);
+
+  const logout = useCallback(() => {
+    logoutService();
+    setUser(null);
+    delete axiosConfig.defaults.headers.common['Authorization'];
+    // Redirecionar para home ou login, pode ser feito no componente que chama o logout
+  }, []);
+
+  // O "value" é o que os componentes filhos poderão acessar
+  const value = {
+    user,
+    setUser,
+    login,
+    register,
+    logout,
+    isAuthenticated: !!user,
+    isAdmin: user?.tipo === 'ADM',
+    loading,
+  };
+
   return (
-    <AuthContext.Provider value={{ usuariologado, setUsuarioLogado }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

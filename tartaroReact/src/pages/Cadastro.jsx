@@ -42,6 +42,7 @@ function Cadastro() {
       return setErro("As senhas não coincidem!");
     }
 
+    // CORREÇÃO: Extrair apenas números do telefone antes de enviar
     const telefoneNumeros = telefone.replace(/\D/g, "");
     if (telefoneNumeros.length < 10) {
       setCarregando(false);
@@ -49,13 +50,42 @@ function Cadastro() {
     }
 
     try {
-      const dadosCadastro = { nome, email, telefone, senha };
+      // IMPORTANTE: Enviar telefone apenas com números
+      const dadosCadastro = { 
+        nome, 
+        email, 
+        telefone: telefoneNumeros, // Aqui estava o problema - enviando formatado
+        senha 
+      };
+      
+      console.log("Tentando cadastrar com dados:", { 
+        ...dadosCadastro, 
+        senha: "***",
+        telefoneOriginal: telefone,
+        telefoneEnviado: telefoneNumeros
+      });
+      
       const usuario = await register(dadosCadastro);
+      console.log("Cadastro bem-sucedido:", usuario);
+      
       setUsuarioLogado(usuario);
       navigate("/home");
     } catch (err) {
-      const mensagem =
-        err.response?.data || "Erro ao criar conta. Verifique os dados.";
+      console.error("Erro completo no cadastro:", err);
+      
+      // CORREÇÃO: Tratamento correto do erro
+      let mensagem = "Erro ao criar conta. Verifique os dados.";
+      
+      if (err.message) {
+        // Se o authService já processou o erro e retornou uma mensagem
+        mensagem = err.message;
+      } else if (err.response?.data) {
+        // Se é uma resposta HTTP com dados
+        const errorData = err.response.data;
+        mensagem = typeof errorData === 'string' ? errorData : errorData.message || errorData.Message || mensagem;
+      }
+      
+      console.log("Mensagem de erro a ser exibida:", mensagem);
       setErro(mensagem);
     } finally {
       setCarregando(false);
@@ -68,7 +98,7 @@ function Cadastro() {
 
       {erro && (
         <Alert variant="danger" className="text-center">
-          {typeof erro === "string" ? erro : "Ocorreu um erro."}
+          {erro}
         </Alert>
       )}
 

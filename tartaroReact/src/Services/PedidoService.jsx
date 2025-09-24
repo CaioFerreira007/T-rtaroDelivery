@@ -1,18 +1,12 @@
-import axiosConfig from "axios";
+import axiosConfig from "./axiosConfig";
 
 export async function buscarMeusPedidos() {
-  const token = localStorage.getItem("token");
+  try {
+    const response = await axiosConfig.get("/api/pedido/meus");
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao buscar meus pedidos:", error);
 
-  if (!token) throw new Error("Usuário não autenticado.");
-
-  const response = await axiosConfig.get(
-    "http://localhost:5000/api/pedido/meus",
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  return response.data;
+    throw error;
+  }
 }

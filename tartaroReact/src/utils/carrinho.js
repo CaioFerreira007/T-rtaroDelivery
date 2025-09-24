@@ -1,5 +1,4 @@
-// src/utils/carrinho.js
-
+import React from "react";
 export const adicionarAoCarrinho = (item) => {
   const carrinhoAtual = JSON.parse(localStorage.getItem("carrinho")) || [];
 
