@@ -43,9 +43,19 @@ namespace TartaroAPI.Controllers
                     return BadRequest(new { message = "Nome é obrigatório." });
                 }
 
+                // Validação do telefone se fornecido
+                if (!string.IsNullOrEmpty(dto.Telefone))
+                {
+                    var telefoneNumeros = System.Text.RegularExpressions.Regex.Replace(dto.Telefone, @"\D", "");
+                    if (telefoneNumeros.Length < 10 || telefoneNumeros.Length > 11)
+                    {
+                        return BadRequest(new { message = "Telefone inválido. Inclua o DDD." });
+                    }
+                    cliente.Telefone = telefoneNumeros;
+                }
+
                 // Atualiza os dados
                 cliente.Nome = dto.Nome.Trim();
-                cliente.Telefone = dto.Telefone?.Trim() ?? "";
 
                 await _context.SaveChangesAsync();
 
@@ -64,6 +74,7 @@ namespace TartaroAPI.Controllers
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Erro ao atualizar perfil: {ex.Message}");
                 return StatusCode(500, new { message = "Erro interno do servidor.", error = ex.Message });
             }
         }
@@ -101,6 +112,7 @@ namespace TartaroAPI.Controllers
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Erro ao buscar perfil: {ex.Message}");
                 return StatusCode(500, new { message = "Erro interno do servidor.", error = ex.Message });
             }
         }
@@ -145,6 +157,7 @@ namespace TartaroAPI.Controllers
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Erro ao listar clientes: {ex.Message}");
                 return StatusCode(500, new { message = "Erro interno do servidor.", error = ex.Message });
             }
         }
@@ -175,6 +188,7 @@ namespace TartaroAPI.Controllers
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Erro ao deletar cliente: {ex.Message}");
                 return StatusCode(500, new { message = "Erro interno do servidor.", error = ex.Message });
             }
         }

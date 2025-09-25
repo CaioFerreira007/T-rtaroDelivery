@@ -1,119 +1,131 @@
-// Login.jsx - CORRIGIDO
-import React, { useState, useContext } from "react";
+import React, { useState } from "react";
 import { Container, Form, Button, Alert } from "react-bootstrap";
 import { useNavigate, Link } from "react-router-dom";
-
-import { AuthContext } from "../context/AuthContext";
-import { login as loginService } from "../Services/authService";
-
-import "../styles/Login.css";
+import { useAuth } from "../context/AuthContext";
 
 function Login() {
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
-  const [erro, setErro] = useState("");
-  const [carregando, setCarregando] = useState(false);
   const navigate = useNavigate();
-  const { setUsuarioLogado } = useContext(AuthContext);
+  const { login, loading: authLoading } = useAuth();
+  
+  const [formData, setFormData] = useState({ email: "", senha: "" });
+  const [erro, setErro] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
 
-  const handleLogin = async (e) => {
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({ ...prev, [name]: "" }));
+    }
+    if (erro) setErro("");
+  };
+
+  const validateField = (name, value) => {
+    switch (name) {
+      case "email":
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return !emailRegex.test(value) ? "Email inválido" : "";
+      case "senha":
+        return value.length < 6 ? "Senha deve ter pelo menos 6 caracteres" : "";
+      default:
+        return "";
+    }
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    Object.keys(formData).forEach(key => {
+      const error = validateField(key, formData[key]);
+      if (error) errors[key] = error;
+    });
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErro("");
-    setCarregando(true);
+    if (!validateForm()) {
+      setErro("Por favor, corrija os erros no formulário.");
+      return;
+    }
 
+    setLoading(true);
     try {
-      console.log("Tentando fazer login com:", { email, senha: "***" });
-      
-      const usuario = await loginService(email, senha);
-      console.log("Login bem-sucedido:", usuario);
-      
-      setUsuarioLogado(usuario);
+      await login(formData.email.trim(), formData.senha);
       navigate("/home");
-    } catch (err) {
-      console.error("Erro completo no login:", err);
-      
-      // CORREÇÃO: Tratamento correto do erro
-      let mensagem = "Email ou senha inválidos.";
-      
-      if (err.message) {
-        // Se o authService já processou o erro e retornou uma mensagem
-        mensagem = err.message;
-      } else if (err.response?.data) {
-        // Se é uma resposta HTTP com dados
-        const errorData = err.response.data;
-        mensagem = typeof errorData === 'string' ? errorData : errorData.message || errorData.Message || mensagem;
-      }
-      
-      console.log("Mensagem de erro a ser exibida:", mensagem);
-      setErro(mensagem);
+    } catch (error) {
+      setErro(error.message || "Erro ao fazer login. Tente novamente.");
     } finally {
-      setCarregando(false);
+      setLoading(false);
     }
   };
 
   return (
-    <Container className="mt-5 login-container fade-in">
-      <h2 className="text-center mb-4">🔐 Entrar</h2>
+    <Container className="cadastro-container">
+      <div className="form-wrapper">
+        <h2 className="text-center mb-4">Entrar - Tártaro Delivery</h2>
+        
+        {erro && (
+          <Alert variant="danger" dismissible onClose={() => setErro("")}>
+            <strong>Erro:</strong> {erro}
+          </Alert>
+        )}
 
-      {erro && (
-        <Alert variant="danger" className="text-center">
-          {erro}
-        </Alert>
-      )}
+        <Form onSubmit={handleSubmit}>
+          <Form.Group className="mb-3">
+            <Form.Label>E-mail</Form.Label>
+            <Form.Control
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              placeholder="exemplo@email.com"
+              required
+              isInvalid={!!validationErrors.email}
+              disabled={loading || authLoading}
+            />
+            <Form.Control.Feedback type="invalid">{validationErrors.email}</Form.Control.Feedback>
+          </Form.Group>
 
-      <Form onSubmit={handleLogin}>
-        <Form.Group className="mb-3">
-          <Form.Label>E-mail</Form.Label>
-          <Form.Control
-            type="email"
-            placeholder="Digite seu e-mail"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-          />
-        </Form.Group>
+          <Form.Group className="mb-4">
+            <Form.Label>Senha</Form.Label>
+            <Form.Control
+              type="password"
+              name="senha"
+              value={formData.senha}
+              onChange={handleInputChange}
+              placeholder="Digite sua senha"
+              required
+              isInvalid={!!validationErrors.senha}
+              disabled={loading || authLoading}
+            />
+            <Form.Control.Feedback type="invalid">{validationErrors.senha}</Form.Control.Feedback>
+          </Form.Group>
 
-        <Form.Group className="mb-3">
-          <Form.Label>Senha</Form.Label>
-          <Form.Control
-            type="password"
-            placeholder="Digite sua senha"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            required
-            autoComplete="current-password"
-          />
-        </Form.Group>
+          <Button 
+            variant="success" 
+            type="submit" 
+            size="lg" 
+            className="w-100 mb-3"
+            disabled={loading || authLoading}
+          >
+            {loading || authLoading ? (
+              <><span className="spinner-border spinner-border-sm me-2" role="status"></span>Entrando...</>
+            ) : ("Entrar")}
+          </Button>
 
-        <Button
-          type="submit"
-          variant="success"
-          className="w-100 mt-3"
-          disabled={carregando}
-        >
-          {carregando ? "Entrando..." : "✅ Entrar"}
-        </Button>
-      </Form>
-
-      <p className="text-center mt-3">
-        <Link
-          to="/esqueci-senha"
-          style={{ color: "#28a745", textDecoration: "underline" }}
-        >
-          Esqueci minha senha
-        </Link>
-      </p>
-
-      <p className="text-center mt-4">
-        Ainda não tem conta?{" "}
-        <Link
-          to="/cadastro"
-          style={{ color: "#28a745", textDecoration: "underline" }}
-        >
-          Cadastre-se aqui
-        </Link>
-      </p>
+          <div className="text-center">
+            <p className="mb-2">
+              <Link to="/esqueci-senha" className="text-decoration-none">Esqueci minha senha</Link>
+            </p>
+            <p className="mb-0">
+              Não tem uma conta? <Link to="/cadastro" className="text-decoration-none fw-bold">Cadastre-se aqui</Link>
+            </p>
+          </div>
+        </Form>
+      </div>
     </Container>
   );
 }

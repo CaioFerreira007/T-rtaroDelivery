@@ -1,30 +1,27 @@
 import React, { useState, useContext, useEffect } from "react";
 import { Container, Form, Button, Alert, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import { AuthContext } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import axiosConfig from "../Services/axiosConfig";
 
 function EditarPerfil() {
   const navigate = useNavigate();
-  const { usuariologado, setUsuarioLogado } = useContext(AuthContext);
+  const { usuarioLogado, atualizarUsuario, loading: authLoading } = useAuth();
 
-  const [form, setForm] = useState({
-    nome: "",
-    telefone: "",
-  });
+  const [form, setForm] = useState({ nome: "", email: "", telefone: "" });
   const [sucesso, setSucesso] = useState(false);
   const [erro, setErro] = useState("");
-  const [carregando, setCarregando] = useState(true);
+  const [carregando, setCarregando] = useState(false);
 
   useEffect(() => {
-    if (usuariologado) {
+    if (usuarioLogado) {
       setForm({
-        nome: usuariologado.nome || "",
-        telefone: usuariologado.telefone || "",
+        nome: usuarioLogado.nome || "",
+        email: usuarioLogado.email || "",
+        telefone: usuarioLogado.telefone || "",
       });
-      setCarregando(false);
     }
-  }, [usuariologado]);
+  }, [usuarioLogado]);
 
   const formatarTelefone = (value) => {
     return value
@@ -34,22 +31,14 @@ function EditarPerfil() {
       .replace(/(-\d{4})\d+?$/, "$1");
   };
 
-  // Função genérica para qualquer campo
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((formAtual) => ({
-      ...formAtual,
-      [name]: value,
-    }));
+    setForm((formAtual) => ({ ...formAtual, [name]: value }));
   };
-
-  // Função específica para o telefone, que formata E atualiza o estado corretamente
+  
   const handleTelefoneChange = (e) => {
     const valorFormatado = formatarTelefone(e.target.value);
-    setForm((formAtual) => ({
-      ...formAtual,
-      telefone: valorFormatado,
-    }));
+    setForm((formAtual) => ({ ...formAtual, telefone: valorFormatado }));
   };
 
   const handleSubmit = async (e) => {
@@ -60,32 +49,22 @@ function EditarPerfil() {
 
     try {
       const response = await axiosConfig.put("/cliente/perfil", form);
-      const usuarioAtualizado = { ...response.data, tipo: response.data.role };
-
-      setUsuarioLogado(usuarioAtualizado);
-      localStorage.setItem("user", JSON.stringify(usuarioAtualizado));
+      const usuarioAtualizado = { ...usuarioLogado, ...response.data };
+      
+      // Atualiza o estado global e o localStorage de forma centralizada
+      atualizarUsuario(usuarioAtualizado);
 
       setSucesso(true);
       setTimeout(() => navigate("/perfil"), 2000);
     } catch (err) {
-      // Tenta pegar a mensagem de erro específica do backend
-      const validationErrors = err.response?.data?.errors;
-      if (validationErrors) {
-        const firstError = Object.values(validationErrors)[0];
-        setErro(firstError[0]);
-      } else {
-        setErro(
-          err.response?.data?.message ||
-            err.response?.data ||
-            "Erro ao atualizar os dados."
-        );
-      }
+      const errorMsg = err.response?.data?.message || err.response?.data || "Erro ao atualizar os dados.";
+      setErro(errorMsg);
     } finally {
       setCarregando(false);
     }
   };
 
-  if (carregando && !sucesso) {
+  if (authLoading) {
     return (
       <Container className="text-center mt-5">
         <Spinner animation="border" />
@@ -97,42 +76,21 @@ function EditarPerfil() {
   return (
     <Container className="mt-5 fade-in">
       <h2 className="text-center mb-4">✏️ Editar Conta</h2>
-
       {sucesso && (
         <Alert variant="success" className="text-center">
           Dados atualizados com sucesso! 🎉 Redirecionando...
         </Alert>
       )}
-
-      {erro && (
-        <Alert variant="danger" className="text-center">
-          {erro}
-        </Alert>
-      )}
-
+      {erro && (<Alert variant="danger" className="text-center">{erro}</Alert>)}
       <Form onSubmit={handleSubmit}>
         <Form.Group className="mb-3">
           <Form.Label>Nome</Form.Label>
-          <Form.Control
-            type="text"
-            name="nome"
-            value={form.nome}
-            onChange={handleChange}
-            required
-          />
+          <Form.Control type="text" name="nome" value={form.nome} onChange={handleChange} required />
         </Form.Group>
-
         <Form.Group className="mb-3">
           <Form.Label>E-mail</Form.Label>
-          <Form.Control
-            type="email"
-            value={form.email}
-            name="email"
-            onChange={handleChange}
-            required
-          />
+          <Form.Control type="email" value={form.email} name="email" onChange={handleChange} required />
         </Form.Group>
-
         <Form.Group className="mb-3">
           <Form.Label>Telefone</Form.Label>
           <Form.Control
@@ -140,23 +98,15 @@ function EditarPerfil() {
             name="telefone"
             placeholder="(21) 99999-9999"
             value={form.telefone}
-            onChange={handleTelefoneChange} // <-- Usa a função corrigida
+            onChange={handleTelefoneChange}
             maxLength={15}
             required
           />
         </Form.Group>
-
-        <Button
-          type="submit"
-          variant="success"
-          className="w-100 mt-3"
-          disabled={carregando}
-        >
+        <Button type="submit" variant="success" className="w-100 mt-3" disabled={carregando}>
           {carregando ? (
             <Spinner as="span" animation="border" size="sm" />
-          ) : (
-            "💾 Salvar Alterações"
-          )}
+          ) : ("💾 Salvar Alterações")}
         </Button>
       </Form>
     </Container>

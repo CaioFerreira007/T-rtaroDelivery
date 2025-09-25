@@ -1,184 +1,121 @@
-import React, { useState, useContext } from "react";
+import React, { useState } from "react";
 import { Container, Form, Button, Alert } from "react-bootstrap";
 import { useNavigate, Link } from "react-router-dom";
-
-// Importações para a nova arquitetura
-import { AuthContext } from "../context/AuthContext";
-import { register } from "../Services/authService";
-
-// Estilos
-import "../styles/Cadastro.css";
+import { useAuth } from "../context/AuthContext";
 
 function Cadastro() {
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [senha, setSenha] = useState("");
-  const [confirmarSenha, setConfirmarSenha] = useState("");
-  const [erro, setErro] = useState("");
-  const [carregando, setCarregando] = useState(false);
-  const { setUsuarioLogado } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { register } = useAuth();
+  
+  const [formData, setFormData] = useState({
+    nome: "", email: "", telefone: "", endereco: "", senha: "", confirmarSenha: ""
+  });
+  const [erro, setErro] = useState("");
+  const [sucesso, setSucesso] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
 
-  const formatarTelefone = (value) => {
-    return value
-      .replace(/\D/g, "")
-      .replace(/(\d{2})(\d)/, "($1) $2")
-      .replace(/(\d{5})(\d)/, "$1-$2")
-      .replace(/(-\d{4})\d+?$/, "$1");
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({ ...prev, [name]: "" }));
+    }
+    if (erro) setErro("");
   };
 
-  const handleTelefoneChange = (e) => {
-    setTelefone(formatarTelefone(e.target.value));
+  const validateField = (name, value) => {
+    switch (name) {
+      case "nome": return value.length < 2 ? "Nome deve ter pelo menos 2 caracteres" : "";
+      case "email": return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? "Email inválido" : "";
+      case "telefone":
+        const phone = value.replace(/\D/g, "");
+        return phone.length < 10 || phone.length > 11 ? "Telefone deve ter 10 ou 11 dígitos" : "";
+      case "endereco": return value.length < 5 ? "Endereço deve ter pelo menos 5 caracteres" : "";
+      case "senha": return value.length < 6 ? "Senha deve ter pelo menos 6 caracteres" : "";
+      case "confirmarSenha": return value !== formData.senha ? "Senhas não coincidem" : "";
+      default: return "";
+    }
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    Object.keys(formData).forEach(key => {
+      const error = validateField(key, formData[key]);
+      if (error) errors[key] = error;
+    });
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErro("");
-    setCarregando(true);
-
-    if (senha !== confirmarSenha) {
-      setCarregando(false);
-      return setErro("As senhas não coincidem!");
+    setSucesso("");
+    if (!validateForm()) {
+      setErro("Por favor, corrija os erros no formulário.");
+      return;
     }
-
-    // CORREÇÃO: Extrair apenas números do telefone antes de enviar
-    const telefoneNumeros = telefone.replace(/\D/g, "");
-    if (telefoneNumeros.length < 10) {
-      setCarregando(false);
-      return setErro("Por favor, insira um telefone válido com DDD!");
-    }
-
+    
+    setLoading(true);
     try {
-      // IMPORTANTE: Enviar telefone apenas com números
-      const dadosCadastro = { 
-        nome, 
-        email, 
-        telefone: telefoneNumeros, // Aqui estava o problema - enviando formatado
-        senha 
-      };
-      
-      console.log("Tentando cadastrar com dados:", { 
-        ...dadosCadastro, 
-        senha: "***",
-        telefoneOriginal: telefone,
-        telefoneEnviado: telefoneNumeros
-      });
-      
-      const usuario = await register(dadosCadastro);
-      console.log("Cadastro bem-sucedido:", usuario);
-      
-      setUsuarioLogado(usuario);
-      navigate("/home");
-    } catch (err) {
-      console.error("Erro completo no cadastro:", err);
-      
-      // CORREÇÃO: Tratamento correto do erro
-      let mensagem = "Erro ao criar conta. Verifique os dados.";
-      
-      if (err.message) {
-        // Se o authService já processou o erro e retornou uma mensagem
-        mensagem = err.message;
-      } else if (err.response?.data) {
-        // Se é uma resposta HTTP com dados
-        const errorData = err.response.data;
-        mensagem = typeof errorData === 'string' ? errorData : errorData.message || errorData.Message || mensagem;
-      }
-      
-      console.log("Mensagem de erro a ser exibida:", mensagem);
-      setErro(mensagem);
+      await register(formData);
+      setSucesso("Cadastro realizado com sucesso! Redirecionando...");
+      setTimeout(() => navigate("/home"), 1500);
+    } catch (error) {
+      setErro(error.message || "Erro ao cadastrar. Tente novamente.");
     } finally {
-      setCarregando(false);
+      setLoading(false);
     }
   };
 
+  const senhasCoincident = formData.senha && formData.confirmarSenha && formData.senha === formData.confirmarSenha;
+
   return (
-    <Container className="mt-5 cadastro-container fade-in">
-      <h2 className="text-center mb-4">📝 Criar Conta</h2>
-
-      {erro && (
-        <Alert variant="danger" className="text-center">
-          {erro}
-        </Alert>
-      )}
-
-      <Form onSubmit={handleSubmit}>
-        <Form.Group className="mb-3">
-          <Form.Label>Nome completo</Form.Label>
-          <Form.Control
-            type="text"
-            placeholder="Digite seu nome"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            required
-          />
-        </Form.Group>
-
-        <Form.Group className="mb-3">
-          <Form.Label>E-mail</Form.Label>
-          <Form.Control
-            type="email"
-            placeholder="Digite seu e-mail"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </Form.Group>
-
-        <Form.Group className="mb-3">
-          <Form.Label>Telefone</Form.Label>
-          <Form.Control
-            type="tel"
-            placeholder="(21) 99999-9999"
-            value={telefone}
-            onChange={handleTelefoneChange}
-            maxLength={15}
-            required
-          />
-        </Form.Group>
-
-        <Form.Group className="mb-3">
-          <Form.Label>Senha</Form.Label>
-          <Form.Control
-            type="password"
-            placeholder="Crie uma senha"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            required
-            minLength={6}
-          />
-        </Form.Group>
-
-        <Form.Group className="mb-3">
-          <Form.Label>Confirmar Senha</Form.Label>
-          <Form.Control
-            type="password"
-            placeholder="Repita sua senha"
-            value={confirmarSenha}
-            onChange={(e) => setConfirmarSenha(e.target.value)}
-            required
-          />
-        </Form.Group>
-
-        <Button
-          type="submit"
-          variant="success"
-          className="w-100 mt-3"
-          disabled={carregando}
-        >
-          {carregando ? "Criando conta..." : "✅ Criar Conta"}
-        </Button>
-
-        <p className="text-center mt-4">
-          Já tem uma conta?{" "}
-          <Link
-            to="/login"
-            style={{ color: "#28a745", textDecoration: "underline" }}
-          >
-            Faça o login
-          </Link>
-        </p>
-      </Form>
+    <Container className="cadastro-container">
+      <div className="form-wrapper">
+        <h2 className="text-center mb-4">Criar Conta - Tártaro Delivery</h2>
+        {erro && <Alert variant="danger" dismissible onClose={() => setErro("")}><strong>Erro:</strong> {erro}</Alert>}
+        {sucesso && <Alert variant="success"><strong>Sucesso:</strong> {sucesso}</Alert>}
+        <Form onSubmit={handleSubmit}>
+          <Form.Group className="mb-3">
+            <Form.Label>Nome Completo</Form.Label>
+            <Form.Control type="text" name="nome" value={formData.nome} onChange={handleInputChange} required isInvalid={!!validationErrors.nome} />
+            <Form.Control.Feedback type="invalid">{validationErrors.nome}</Form.Control.Feedback>
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Label>E-mail</Form.Label>
+            <Form.Control type="email" name="email" value={formData.email} onChange={handleInputChange} required isInvalid={!!validationErrors.email} />
+            <Form.Control.Feedback type="invalid">{validationErrors.email}</Form.Control.Feedback>
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Label>Telefone</Form.Label>
+            <Form.Control type="tel" name="telefone" value={formData.telefone} onChange={handleInputChange} required isInvalid={!!validationErrors.telefone} />
+            <Form.Control.Feedback type="invalid">{validationErrors.telefone}</Form.Control.Feedback>
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Label>Endereço</Form.Label>
+            <Form.Control type="text" name="endereco" value={formData.endereco} onChange={handleInputChange} required isInvalid={!!validationErrors.endereco} />
+            <Form.Control.Feedback type="invalid">{validationErrors.endereco}</Form.Control.Feedback>
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Label>Senha</Form.Label>
+            <Form.Control type="password" name="senha" value={formData.senha} onChange={handleInputChange} required isInvalid={!!validationErrors.senha} />
+            <Form.Control.Feedback type="invalid">{validationErrors.senha}</Form.Control.Feedback>
+          </Form.Group>
+          <Form.Group className="mb-4">
+            <Form.Label>Confirmar Senha</Form.Label>
+            <Form.Control type="password" name="confirmarSenha" value={formData.confirmarSenha} onChange={handleInputChange} required isInvalid={!!validationErrors.confirmarSenha} isValid={senhasCoincident} />
+            <Form.Control.Feedback type="invalid">{validationErrors.confirmarSenha}</Form.Control.Feedback>
+          </Form.Group>
+          <Button variant="success" type="submit" size="lg" className="w-100 mb-3" disabled={loading || !senhasCoincident}>
+            {loading ? "Criando conta..." : "Criar Conta"}
+          </Button>
+          <div className="text-center">
+            <p className="mb-0">Já tem uma conta? <Link to="/login" className="text-decoration-none fw-bold">Faça login aqui</Link></p>
+          </div>
+        </Form>
+      </div>
     </Container>
   );
 }

@@ -1,56 +1,48 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState } from "react";
 import { Container, Card, Button, Alert, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import { AuthContext } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 
 function Checkout() {
   const [carrinho, setCarrinho] = useState([]);
   const [total, setTotal] = useState(0);
   const [pedidoConfirmado, setPedidoConfirmado] = useState(false);
-  const [carregando, setCarregando] = useState(true);
-  const [verificandoLogin, setVerificandoLogin] = useState(true);
+  const [carregandoCarrinho, setCarregandoCarrinho] = useState(true);
   const navigate = useNavigate();
-  const { user } = useContext(AuthContext);
+  const { usuarioLogado, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (user === null) return; // aguarda carregamento do contexto
+    // Roda apenas depois que a autenticação foi verificada e temos um usuário
+    if (usuarioLogado) {
+      const carrinhoKey = `carrinho_${usuarioLogado.id}`;
+      const itensCarrinho = JSON.parse(localStorage.getItem(carrinhoKey)) || [];
 
-    if (!user) {
-      navigate("/login");
-      return;
+      if (Array.isArray(itensCarrinho) && itensCarrinho.length > 0) {
+        setCarrinho(itensCarrinho);
+        const valorTotal = itensCarrinho.reduce(
+          (acc, item) => acc + (Number(item.preco) || 0) * (Number(item.quantidade) || 1),
+          0
+        );
+        setTotal(valorTotal);
+      } else {
+        setCarrinho([]);
+        setTotal(0);
+      }
+      setCarregandoCarrinho(false);
     }
-
-    setVerificandoLogin(false); // login validado
-
-    const itensCarrinho = JSON.parse(localStorage.getItem("carrinho")) || [];
-
-    if (Array.isArray(itensCarrinho) && itensCarrinho.length > 0) {
-      setCarrinho(itensCarrinho);
-
-      const valorTotal = itensCarrinho.reduce((acc, item) => {
-        const preco = Number(item.preco) || 0;
-        const qtd = Number(item.quantidade) || 1;
-        return acc + preco * qtd;
-      }, 0);
-
-      setTotal(valorTotal);
-    } else {
-      setCarrinho([]);
-      setTotal(0);
-    }
-
-    setCarregando(false);
-  }, [user, navigate]);
+  }, [usuarioLogado]);
 
   const handleConfirmarPedido = () => {
-    localStorage.removeItem("carrinho");
+    if (usuarioLogado) {
+      localStorage.removeItem(`carrinho_${usuarioLogado.id}`);
+    }
     setPedidoConfirmado(true);
     setCarrinho([]);
     setTotal(0);
     setTimeout(() => navigate("/home"), 2500);
   };
 
-  if (verificandoLogin) {
+  if (authLoading) {
     return (
       <Container className="mt-5 text-center">
         <Spinner animation="border" variant="primary" />
@@ -62,8 +54,7 @@ function Checkout() {
   return (
     <Container className="mt-5 fade-in">
       <h2 className="text-center mb-4">🧾 Checkout</h2>
-
-      {carregando ? (
+      {carregandoCarrinho ? (
         <div className="text-center my-5">
           <Spinner animation="border" variant="primary" />
           <p className="mt-3">Carregando carrinho...</p>
@@ -83,15 +74,12 @@ function Checkout() {
               <Card.Body>
                 <Card.Title>{item.nome}</Card.Title>
                 <Card.Text>
-                  Quantidade: {item.quantidade} | Valor: R${" "}
-                  {(item.preco * item.quantidade).toFixed(2)}
+                  Quantidade: {item.quantidade} | Valor: R$ {(item.preco * item.quantidade).toFixed(2)}
                 </Card.Text>
               </Card.Body>
             </Card>
           ))}
-
           <h4 className="text-end">💸 Total: R$ {total.toFixed(2)}</h4>
-
           <Button
             variant="success"
             className="w-100 mt-4"

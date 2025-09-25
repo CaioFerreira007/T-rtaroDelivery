@@ -1,6 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import React from "react";
-//  Páginas
+// Páginas
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Cadastro from "./pages/Cadastro";
@@ -11,7 +11,7 @@ import RecuperarSenha from "./pages/RecuperarSenha";
 import MeusPedidos from "./pages/MeusPedidos";
 import Dashboard from "./components/Dashboard";
 
-//  Componentes
+// Componentes
 import { AuthProvider } from "./context/AuthContext";
 import AlterarSenha from "./components/AlterarSenha";
 import CadastroProdutoADM from "./components/CadastroProdutoADM";
@@ -25,57 +25,30 @@ import "./styles/animations.css";
 function App() {
   return (
     <AuthProvider>
-      <>
-        <SiteNavbar />
+      <SiteNavbar />
+      <div style={{ paddingTop: "70px" }}>
+        <Routes>
+          {/* Rotas públicas */}
+          <Route path="/" element={<Home />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/cadastro" element={<Cadastro />} />
+          <Route path="/esqueci-senha" element={<RecuperarSenha />} />
+          <Route path="/alterar-senha/:token" element={<AlterarSenha />} />
+          <Route path="/debug" element={<DebugTartaro />} />
 
-        <div style={{ paddingTop: "70px" }}>
-          <Routes>
-            {/*  Rotas públicas */}
-            <Route path="/" element={<Home />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/cadastro" element={<Cadastro />} />
-            <Route path="/meus-pedidos" element={<MeusPedidos />} />
-            <Route path="/esqueci-senha" element={<RecuperarSenha />} />
-            <Route path="/perfil" element={<Perfil />} />
-            <Route path="/editar-perfil" element={<EditarPerfil />} />
-<Route path="/debug" element={<DebugTartaro />} />
-            <Route path="/alterar-senha/:token" element={<AlterarSenha />} />
-
-            {/* Rotas Privadas (protegidas) */}
-            <Route
-              path="/dashboard"
-              element={
-                <RotaPrivada>
-                  {" "}
-               
-                  <Dashboard />
-                </RotaPrivada>
-              }
-            />
-
-            {/* Administração (só ADM pode acessar) */}
-            <Route
-              path="/admin/cadastro-produto"
-              element={<CadastroProdutoADM />}
-            />
-            <Route
-              path="/admin/produtos/editar/:id"
-              element={<EditarProduto />}
-            />
-
-            {/*  Rotas protegidas (login obrigatório) */}
-            <Route
-              path="/checkout"
-              element={
-                <RotaPrivada>
-                  <Checkout />
-                </RotaPrivada>
-              }
-            />
-          </Routes>
-        </div>
-      </>
+          {/* Rotas Privadas (login obrigatório) */}
+          <Route path="/perfil" element={<RotaPrivada><Perfil /></RotaPrivada>} />
+          <Route path="/editar-perfil" element={<RotaPrivada><EditarPerfil /></RotaPrivada>} />
+          <Route path="/meus-pedidos" element={<RotaPrivada><MeusPedidos /></RotaPrivada>} />
+          <Route path="/checkout" element={<RotaPrivada><Checkout /></RotaPrivada>} />
+          
+          {/* Rotas de Admin (também protegidas) */}
+          <Route path="/dashboard" element={<RotaPrivada><Dashboard /></RotaPrivada>} />
+          <Route path="/admin/cadastro-produto" element={<RotaPrivada><CadastroProdutoADM /></RotaPrivada>} />
+          <Route path="/admin/produtos/editar/:id" element={<RotaPrivada><EditarProduto /></RotaPrivada>} />
+        </Routes>
+      </div>
     </AuthProvider>
   );
 }

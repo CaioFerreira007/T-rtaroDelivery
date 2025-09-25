@@ -1,16 +1,30 @@
-import { useContext } from "react";
-import { Navigate } from "react-router-dom";
-import { AuthContext } from "../context/AuthContext";
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { Spinner, Container } from 'react-bootstrap';
 
 function RotaPrivada({ children }) {
-  const { user } = useContext(AuthContext);
+  const { usuarioLogado, loading } = useAuth();
+  const location = useLocation();
 
-  if (user === null) {
-    // ainda carregando: não renderiza nada, mas evita piscar
-    return null;
+  // 1. Enquanto o contexto verifica o login, exibe um spinner
+  if (loading) {
+    return (
+      <Container className="d-flex justify-content-center align-items-center" style={{ height: '80vh' }}>
+        <Spinner animation="border" variant="success" role="status">
+          <span className="visually-hidden">Carregando...</span>
+        </Spinner>
+      </Container>
+    );
   }
 
-  return user ? children : <Navigate to="/login" replace />;
+  // 2. Após a verificação, se não houver usuário, redireciona para a página de login
+  if (!usuarioLogado) {
+    // Salva a página que o usuário tentava acessar, para redirecioná-lo de volta depois
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // 3. Se houver usuário, exibe a página protegida
+  return children;
 }
 
 export default RotaPrivada;

@@ -1,62 +1,96 @@
-
-import React, { useContext } from "react";
-import { Navbar, Nav, Container, NavDropdown } from "react-bootstrap";
+import React from "react";
+import { Navbar, Nav, Container, NavDropdown, Spinner } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
-import { AuthContext } from "../context/AuthContext";
-import { logout } from "../Services/authService"; // Importa o logout do serviço
+import { useAuth } from "../context/AuthContext"; // Caminho correto para o contexto
 import "../styles/SiteNavbar.css";
 
 function SiteNavbar() {
-  // 1. A única fonte da verdade sobre o usuário é o contexto!
-  const { usuariologado, setUsuarioLogado } = useContext(AuthContext);
+  // Pega os valores do nosso novo AuthContext padronizado
+  const { usuarioLogado, logout, loading } = useAuth(); // <-- MUDANÇA AQUI
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout(); // Chama a função do serviço que limpa o localStorage
-    setUsuarioLogado(null); // Atualiza o contexto
+    logout(); // <-- MUDANÇA AQUI: Usa a função de logout simplificada
     navigate("/login");
   };
 
-  const isADM = usuariologado?.tipo === "ADM";
+  // Lógica para verificar se o usuário é admin, agora dentro do componente
+  const isAdmin = usuarioLogado?.tipo === "ADM"; // <-- MUDANÇA AQUI
+
+  // Mostra um spinner enquanto o contexto está carregando o estado inicial do usuário
+  if (loading) {
+    return (
+      <Navbar bg="dark" variant="dark" expand="md" fixed="top">
+        <Container>
+          <Navbar.Brand as={Link} to="/home">
+            🔥 Tártaro Delivery
+          </Navbar.Brand>
+          <Nav className="ms-auto">
+            <Spinner animation="border" size="sm" variant="light" />
+          </Nav>
+        </Container>
+      </Navbar>
+    );
+  }
 
   return (
-    <Navbar bg="dark" variant="dark" expand="md" fixed="top">
+    <Navbar bg="dark" variant="dark" expand="md" fixed="top" className="custom-navbar">
       <Container>
-        <Navbar.Brand as={Link} to="/home">
+        <Navbar.Brand as={Link} to="/home" className="brand-logo">
           🔥 Tártaro Delivery
         </Navbar.Brand>
+        
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
+        
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="ms-auto">
-            <Nav.Link as={Link} to="/home">
+            <Nav.Link as={Link} to="/home" className="nav-link-custom">
               🏠 Início
             </Nav.Link>
 
-            {isADM && (
-              <Nav.Link as={Link} to="/admin/cadastro-produto">
-                ➕ Cadastrar Produto
-              </Nav.Link>
+            {/* Links de admin, usam a nova variável 'isAdmin' */}
+            {isAdmin && ( // <-- MUDANÇA AQUI
+              <>
+                <Nav.Link as={Link} to="/admin/cadastro-produto" className="nav-link-custom admin-link">
+                  ➕ Cadastrar Produto
+                </Nav.Link>
+                <Nav.Link as={Link} to="/dashboard" className="nav-link-custom admin-link">
+                  📊 Dashboard
+                </Nav.Link>
+              </>
             )}
 
-            {usuariologado ? (
+            {/* Verifica 'usuarioLogado' para mostrar o menu ou o botão de login */}
+            {usuarioLogado ? ( // <-- MUDANÇA AQUI
               <NavDropdown
-                title={`👤 ${usuariologado.nome}`}
+                title={
+                  <span className="user-dropdown-title">
+                    👤 {usuarioLogado.nome} {/* <-- MUDANÇA AQUI */}
+                    {isAdmin && <span className="admin-badge"> ADM</span>} {/* <-- MUDANÇA AQUI */}
+                  </span>
+                }
                 id="perfil-dropdown"
+                className="user-dropdown"
               >
                 <NavDropdown.Item as={Link} to="/perfil">
-                  🔎 Ver Dados
+                  🔎 Ver Perfil
                 </NavDropdown.Item>
                 <NavDropdown.Item as={Link} to="/editar-perfil">
                   ✏️ Editar Conta
                 </NavDropdown.Item>
-                <NavDropdown.Item as={Link} to="/meus-pedidos" >Meus Pedidos</NavDropdown.Item>
+                <NavDropdown.Item as={Link} to="/meus-pedidos">
+                  📦 Meus Pedidos
+                </NavDropdown.Item>
                 <NavDropdown.Divider />
-                <NavDropdown.Item onClick={handleLogout}>
+                <NavDropdown.Item 
+                  onClick={handleLogout}
+                  className="logout-item"
+                >
                   🚪 Sair
                 </NavDropdown.Item>
               </NavDropdown>
             ) : (
-              <Nav.Link as={Link} to="/login">
+              <Nav.Link as={Link} to="/login" className="nav-link-custom login-link">
                 📝 Login
               </Nav.Link>
             )}

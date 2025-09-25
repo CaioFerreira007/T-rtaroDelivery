@@ -1,66 +1,66 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
-import { login as loginService, register as registerService, logout as logoutService } from '../Services/authService';
-import axiosConfig from '../Services/axiosConfig';
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { login as apiLogin, register as apiRegister, logout as apiLogout } from "../Services/authService";
 
-export const AuthContext = createContext(null);
+export const AuthContext = createContext();
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
+  }
+  return context;
+};
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); 
+  const [usuarioLogado, setUsuarioLogado] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Função para carregar o usuário do localStorage na primeira vez que a página abre
   useEffect(() => {
     try {
-      const storedUser = localStorage.getItem('user');
-      const token = localStorage.getItem('token');
-      
-      if (storedUser && token) {
-        setUser(JSON.parse(storedUser));
-        axiosConfig.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      const token = localStorage.getItem("token");
+      const userString = localStorage.getItem("user");
+      if (token && userString) {
+        setUsuarioLogado(JSON.parse(userString));
       }
     } catch (error) {
-      console.error("Erro ao carregar dados do usuário:", error);
-      // Limpa dados corrompidos
-      localStorage.clear();
+      console.error("Erro ao carregar dados de autenticação do localStorage:", error);
+      apiLogout(); // Limpa localStorage se estiver corrompido
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const login = useCallback(async (email, password) => {
-    const userData = await loginService(email, password);
-    setUser(userData);
-    return userData;
-  }, []);
+  const login = async (email, senha) => {
+    const usuario = await apiLogin(email, senha);
+    setUsuarioLogado(usuario);
+    return usuario;
+  };
 
-  const register = useCallback(async (registerData) => {
-    const userData = await registerService(registerData);
-    setUser(userData);
-    return userData;
-  }, []);
+  const register = async (dadosCadastro) => {
+    const { user } = await apiRegister(dadosCadastro);
+    setUsuarioLogado(user);
+    return user;
+  };
 
-  const logout = useCallback(() => {
-    logoutService();
-    setUser(null);
-    delete axiosConfig.defaults.headers.common['Authorization'];
-    // Redirecionar para home ou login, pode ser feito no componente que chama o logout
-  }, []);
+  const logout = () => {
+    apiLogout();
+    setUsuarioLogado(null);
+  };
 
-  // O "value" é o que os componentes filhos poderão acessar
+  const atualizarUsuario = useCallback((novosDados) => {
+    const usuarioAtualizado = { ...usuarioLogado, ...novosDados };
+    localStorage.setItem("user", JSON.stringify(usuarioAtualizado));
+    setUsuarioLogado(usuarioAtualizado);
+  }, [usuarioLogado]);
+
   const value = {
-    user,
-    setUser,
+    usuarioLogado,
+    loading,
     login,
     register,
     logout,
-    isAuthenticated: !!user,
-    isAdmin: user?.tipo === 'ADM',
-    loading,
+    atualizarUsuario,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

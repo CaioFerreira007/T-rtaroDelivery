@@ -107,10 +107,25 @@ namespace TartaroAPI.Controllers
                     return BadRequest("Senha deve ter pelo menos 6 caracteres.");
                 }
 
-                var telefoneNumeros = dto.Telefone?.Replace(System.Text.RegularExpressions.Regex.Replace(dto.Telefone, @"\D", ""), "") ?? "";
-                if (telefoneNumeros.Length < 10)
+                // 🔧 CORREÇÃO: Validação do telefone corrigida
+                var telefoneNumeros = string.IsNullOrEmpty(dto.Telefone) ? "" : 
+                    System.Text.RegularExpressions.Regex.Replace(dto.Telefone, @"\D", "");
+                
+                Console.WriteLine($"Telefone recebido: '{dto.Telefone}' -> Números: '{telefoneNumeros}'");
+                
+                if (telefoneNumeros.Length < 10 || telefoneNumeros.Length > 11)
                 {
-                    return BadRequest("Telefone inválido. Inclua o DDD.");
+                    return BadRequest("Telefone inválido. Inclua o DDD e verifique se tem 10 ou 11 dígitos.");
+                }
+
+                // Validação adicional para DDD brasileiro
+                if (telefoneNumeros.Length >= 2)
+                {
+                    var ddd = int.Parse(telefoneNumeros.Substring(0, 2));
+                    if (ddd < 11 || ddd > 99)
+                    {
+                        return BadRequest("DDD inválido. Use um DDD brasileiro válido (11-99).");
+                    }
                 }
 
                 var email = dto.Email.ToLower().Trim();
@@ -121,11 +136,18 @@ namespace TartaroAPI.Controllers
                     return BadRequest("E-mail já cadastrado.");
                 }
 
+                // Verificar se telefone já existe (opcional)
+                if (await _context.Clientes.AnyAsync(c => c.Telefone == telefoneNumeros))
+                {
+                    Console.WriteLine($"Telefone já existe: {telefoneNumeros}");
+                    return BadRequest("Telefone já cadastrado.");
+                }
+
                 var cliente = new Cliente
                 {
                     Nome = dto.Nome.Trim(),
                     Email = email,
-                    Telefone = telefoneNumeros,
+                    Telefone = telefoneNumeros, // Salvar apenas números
                     SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha),
                     Tipo = "cliente"
                 };
@@ -137,13 +159,14 @@ namespace TartaroAPI.Controllers
                 string rToken = await CriarRefreshTokenAsync(cliente.Id);
                 
                 var response = new { token = jwt, refreshToken = rToken, user = MapUser(cliente) };
-                Console.WriteLine($"Cadastro bem-sucedido: {cliente.Email} - ID: {cliente.Id}");
+                Console.WriteLine($"Cadastro bem-sucedido: {cliente.Email} - ID: {cliente.Id} - Telefone: {cliente.Telefone}");
                 
                 return Ok(response);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Erro no cadastro: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 return StatusCode(500, "Erro interno do servidor.");
             }
         }
@@ -315,7 +338,16 @@ namespace TartaroAPI.Controllers
             return refresh.Token;
         }
 
-        private object MapUser(Cliente cliente) => new { id = cliente.Id, nome = cliente.Nome, email = cliente.Email, telefone = cliente.Telefone, role = cliente.Tipo };
+        // MapUser atualizado: retorna "tipo" (para frontend BR) e "role" (compatibilidade)
+        private object MapUser(Cliente cliente) => new 
+        { 
+            id = cliente.Id, 
+            nome = cliente.Nome, 
+            email = cliente.Email, 
+            telefone = cliente.Telefone, 
+            tipo = cliente.Tipo,               // campo que o front espera
+            role = cliente.Tipo?.ToUpper()     // compatibilidade (se algum cliente esperar 'role')
+        };
 
         private bool IsValidEmail(string email)
         {
