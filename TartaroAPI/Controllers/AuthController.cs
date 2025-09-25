@@ -19,16 +19,21 @@ namespace TartaroAPI.Controllers
         private readonly TartaroDbContext _context;
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
+        private readonly ILogger<AuthController> _logger;
         private static readonly TimeSpan TokenTtl = TimeSpan.FromHours(1);
 
-        public AuthController(TartaroDbContext context, IConfiguration configuration, IEmailService emailService)
+        public AuthController(
+            TartaroDbContext context, 
+            IConfiguration configuration, 
+            IEmailService emailService,
+            ILogger<AuthController> logger)
         {
             _context = context;
             _configuration = configuration;
             _emailService = emailService;
+            _logger = logger;
         }
 
-        // TESTE - Endpoint para verificar se a API está funcionando
         [HttpGet("test")]
         [AllowAnonymous]
         public IActionResult Test()
@@ -36,7 +41,8 @@ namespace TartaroAPI.Controllers
             return Ok(new { 
                 message = "API Tartaro Delivery funcionando!", 
                 timestamp = DateTime.UtcNow,
-                version = "1.0.0"
+                version = "2.0.0",
+                environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
             });
         }
 
@@ -46,40 +52,45 @@ namespace TartaroAPI.Controllers
         {
             try
             {
-                // Log para debug
-                Console.WriteLine($"Tentativa de login: {login.Email}");
+                _logger.LogInformation("Tentativa de login para email: {Email}", login.Email);
 
-                if (string.IsNullOrWhiteSpace(login.Email) || string.IsNullOrWhiteSpace(login.Senha))
+                // Validações básicas
+                if (!ModelState.IsValid)
                 {
-                    return BadRequest("Email e senha são obrigatórios.");
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage);
+                    return BadRequest(new { errors });
                 }
 
-                var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.Email.ToLower().Trim() == login.Email.ToLower().Trim());
+                var cliente = await _context.Clientes
+                    .FirstOrDefaultAsync(c => c.Email.ToLower().Trim() == login.Email.ToLower().Trim() && c.Ativo);
                 
-                if (cliente is null)
+                if (cliente == null || !BCrypt.Net.BCrypt.Verify(login.Senha, cliente.SenhaHash))
                 {
-                    Console.WriteLine($"Cliente não encontrado: {login.Email}");
-                    return Unauthorized("E-mail ou senha incorretos.");
+                    _logger.LogWarning("Falha no login para email: {Email}", login.Email);
+                    return Unauthorized(new { message = "Email ou senha incorretos." });
                 }
 
-                if (!BCrypt.Net.BCrypt.Verify(login.Senha, cliente.SenhaHash))
-                {
-                    Console.WriteLine($"Senha incorreta para: {login.Email}");
-                    return Unauthorized("E-mail ou senha incorretos.");
-                }
+                // Limpar refresh tokens expirados
+                await LimparRefreshTokensExpirados(cliente.Id);
 
-                string jwt = GerarJwt(cliente);
-                string rToken = await CriarRefreshTokenAsync(cliente.Id);
+                var jwt = GerarJwt(cliente);
+                var refreshToken = await CriarRefreshTokenAsync(cliente.Id);
                 
-                var response = new { token = jwt, refreshToken = rToken, user = MapUser(cliente) };
-                Console.WriteLine($"Login bem-sucedido: {cliente.Email}");
+                _logger.LogInformation("Login bem-sucedido para cliente: {ClienteId}", cliente.Id);
                 
-                return Ok(response);
+                return Ok(new { 
+                    token = jwt, 
+                    refreshToken = refreshToken, 
+                    user = MapUser(cliente),
+                    expiresAt = DateTime.UtcNow.Add(TokenTtl)
+                });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erro no login: {ex.Message}");
-                return StatusCode(500, "Erro interno do servidor.");
+                _logger.LogError(ex, "Erro interno no login para email: {Email}", login.Email);
+                return StatusCode(500, new { message = "Erro interno do servidor." });
             }
         }
 
@@ -89,85 +100,55 @@ namespace TartaroAPI.Controllers
         {
             try
             {
-                Console.WriteLine($"Tentativa de cadastro: {dto.Email}");
+                _logger.LogInformation("Tentativa de cadastro para email: {Email}", dto.Email);
 
-                // Validações
-                if (string.IsNullOrWhiteSpace(dto.Nome) || dto.Nome.Trim().Length < 2)
+                // Validações de modelo
+                if (!ModelState.IsValid)
                 {
-                    return BadRequest("Nome deve ter pelo menos 2 caracteres.");
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage);
+                    return BadRequest(new { errors });
                 }
 
-                if (string.IsNullOrWhiteSpace(dto.Email) || !IsValidEmail(dto.Email))
+                // Validações de negócio
+                var validationResult = await ValidarDadosCadastro(dto);
+                if (!validationResult.IsValid)
                 {
-                    return BadRequest("Email inválido.");
+                    return BadRequest(new { message = validationResult.ErrorMessage });
                 }
 
-                if (string.IsNullOrWhiteSpace(dto.Senha) || dto.Senha.Length < 6)
-                {
-                    return BadRequest("Senha deve ter pelo menos 6 caracteres.");
-                }
-
-                // 🔧 CORREÇÃO: Validação do telefone corrigida
-                var telefoneNumeros = string.IsNullOrEmpty(dto.Telefone) ? "" : 
-                    System.Text.RegularExpressions.Regex.Replace(dto.Telefone, @"\D", "");
-                
-                Console.WriteLine($"Telefone recebido: '{dto.Telefone}' -> Números: '{telefoneNumeros}'");
-                
-                if (telefoneNumeros.Length < 10 || telefoneNumeros.Length > 11)
-                {
-                    return BadRequest("Telefone inválido. Inclua o DDD e verifique se tem 10 ou 11 dígitos.");
-                }
-
-                // Validação adicional para DDD brasileiro
-                if (telefoneNumeros.Length >= 2)
-                {
-                    var ddd = int.Parse(telefoneNumeros.Substring(0, 2));
-                    if (ddd < 11 || ddd > 99)
-                    {
-                        return BadRequest("DDD inválido. Use um DDD brasileiro válido (11-99).");
-                    }
-                }
-
-                var email = dto.Email.ToLower().Trim();
-                
-                if (await _context.Clientes.AnyAsync(c => c.Email.ToLower() == email))
-                {
-                    Console.WriteLine($"Email já existe: {email}");
-                    return BadRequest("E-mail já cadastrado.");
-                }
-
-                // Verificar se telefone já existe (opcional)
-                if (await _context.Clientes.AnyAsync(c => c.Telefone == telefoneNumeros))
-                {
-                    Console.WriteLine($"Telefone já existe: {telefoneNumeros}");
-                    return BadRequest("Telefone já cadastrado.");
-                }
-
+                // Criar cliente
                 var cliente = new Cliente
                 {
                     Nome = dto.Nome.Trim(),
-                    Email = email,
-                    Telefone = telefoneNumeros, // Salvar apenas números
+                    Email = dto.Email.ToLower().Trim(),
+                    Telefone = LimparTelefone(dto.Telefone),
+                    Endereco = dto.Endereco?.Trim(),
                     SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha),
-                    Tipo = "cliente"
+                    Tipo = "cliente",
+                    DataCriacao = DateTime.UtcNow
                 };
 
                 _context.Clientes.Add(cliente);
                 await _context.SaveChangesAsync();
 
-                string jwt = GerarJwt(cliente);
-                string rToken = await CriarRefreshTokenAsync(cliente.Id);
+                var jwt = GerarJwt(cliente);
+                var refreshToken = await CriarRefreshTokenAsync(cliente.Id);
                 
-                var response = new { token = jwt, refreshToken = rToken, user = MapUser(cliente) };
-                Console.WriteLine($"Cadastro bem-sucedido: {cliente.Email} - ID: {cliente.Id} - Telefone: {cliente.Telefone}");
+                _logger.LogInformation("Cadastro bem-sucedido para cliente: {ClienteId}", cliente.Id);
                 
-                return Ok(response);
+                return Ok(new { 
+                    token = jwt, 
+                    refreshToken = refreshToken, 
+                    user = MapUser(cliente),
+                    message = "Cadastro realizado com sucesso!"
+                });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erro no cadastro: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
-                return StatusCode(500, "Erro interno do servidor.");
+                _logger.LogError(ex, "Erro interno no cadastro para email: {Email}", dto.Email);
+                return StatusCode(500, new { message = "Erro interno do servidor." });
             }
         }
 
@@ -177,31 +158,38 @@ namespace TartaroAPI.Controllers
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(dto.Token))
+                {
+                    return BadRequest(new { message = "Refresh token é obrigatório." });
+                }
+
                 var refreshToken = await _context.RefreshTokens
                     .Include(r => r.Cliente)
                     .FirstOrDefaultAsync(r => r.Token == dto.Token && r.Expiracao > DateTime.UtcNow);
 
-                if (refreshToken == null)
+                if (refreshToken?.Cliente?.Ativo != true)
                 {
-                    return Unauthorized("Refresh token inválido ou expirado.");
+                    return Unauthorized(new { message = "Refresh token inválido ou expirado." });
                 }
 
-                // Gerar novo JWT
-                string newJwt = GerarJwt(refreshToken.Cliente);
-                
-                // Opcional: Gerar novo refresh token
-                string newRefreshToken = await CriarRefreshTokenAsync(refreshToken.ClienteId);
+                // Gerar novos tokens
+                var newJwt = GerarJwt(refreshToken.Cliente);
+                var newRefreshToken = await CriarRefreshTokenAsync(refreshToken.ClienteId);
                 
                 // Remover o refresh token usado
                 _context.RefreshTokens.Remove(refreshToken);
                 await _context.SaveChangesAsync();
 
-                return Ok(new { token = newJwt, refreshToken = newRefreshToken });
+                return Ok(new { 
+                    token = newJwt, 
+                    refreshToken = newRefreshToken,
+                    expiresAt = DateTime.UtcNow.Add(TokenTtl)
+                });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erro no refresh token: {ex.Message}");
-                return StatusCode(500, "Erro interno do servidor.");
+                _logger.LogError(ex, "Erro ao renovar token: {Token}", dto.Token);
+                return StatusCode(500, new { message = "Erro interno do servidor." });
             }
         }
 
@@ -213,7 +201,9 @@ namespace TartaroAPI.Controllers
             {
                 if (!string.IsNullOrEmpty(dto.Token))
                 {
-                    var refreshToken = await _context.RefreshTokens.FirstOrDefaultAsync(r => r.Token == dto.Token);
+                    var refreshToken = await _context.RefreshTokens
+                        .FirstOrDefaultAsync(r => r.Token == dto.Token);
+                    
                     if (refreshToken != null)
                     {
                         _context.RefreshTokens.Remove(refreshToken);
@@ -225,8 +215,8 @@ namespace TartaroAPI.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erro no logout: {ex.Message}");
-                return Ok(new { message = "Logout realizado." }); // Mesmo com erro, considera logout
+                _logger.LogError(ex, "Erro no logout");
+                return Ok(new { message = "Logout realizado." });
             }
         }
 
@@ -236,117 +226,148 @@ namespace TartaroAPI.Controllers
         {
             try
             {
-                var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.Email.ToLower() == dto.Email.ToLower());
-                
-                if (cliente == null)
+                if (!ModelState.IsValid)
                 {
-                    // Por segurança, sempre retorna sucesso mesmo se email não existir
-                    return Ok(new { message = "Se o email existir, você receberá instruções para redefinir sua senha." });
+                    return BadRequest(new { message = "Email inválido." });
                 }
 
-                // Gerar token de recuperação
-                var resetToken = Guid.NewGuid().ToString();
-                cliente.TokenRecuperacao = resetToken;
-                cliente.TokenExpiraEm = DateTime.UtcNow.AddHours(1);
+                var cliente = await _context.Clientes
+                    .FirstOrDefaultAsync(c => c.Email.ToLower() == dto.Email.ToLower() && c.Ativo);
+                
+                if (cliente != null)
+                {
+                    var resetToken = Guid.NewGuid().ToString();
+                    cliente.TokenRecuperacao = resetToken;
+                    cliente.TokenExpiraEm = DateTime.UtcNow.AddHours(1);
 
-                await _context.SaveChangesAsync();
+                    await _context.SaveChangesAsync();
+                    await _emailService.EnviarEmailRecuperacaoAsync(cliente.Email, resetToken);
+                }
 
-                // Enviar email (implementar conforme seu IEmailService)
-                // await _emailService.SendPasswordResetEmail(cliente.Email, resetToken);
-
+                // Sempre retorna sucesso por segurança
                 return Ok(new { message = "Se o email existir, você receberá instruções para redefinir sua senha." });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erro no forgot password: {ex.Message}");
-                return StatusCode(500, "Erro interno do servidor.");
+                _logger.LogError(ex, "Erro no forgot password para email: {Email}", dto.Email);
+                return StatusCode(500, new { message = "Erro interno do servidor." });
             }
         }
 
-        [Authorize(Roles = "ADM")]
-        [HttpPost("register-adm")]
-        public async Task<IActionResult> RegisterADM([FromBody] RegisterDTO dto)
+        // Métodos auxiliares privados
+        private async Task<ValidationResult> ValidarDadosCadastro(RegisterDTO dto)
         {
-            var email = dto.Email.ToLower().Trim();
-            if (await _context.Clientes.AnyAsync(c => c.Email.ToLower() == email))
-                return BadRequest("E-mail já cadastrado.");
-
-            var admin = new Cliente
+            // Verificar email único
+            if (await _context.Clientes.AnyAsync(c => c.Email.ToLower() == dto.Email.ToLower().Trim()))
             {
-                Nome = dto.Nome,
-                Email = email,
-                Telefone = dto.Telefone,
-                SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha),
-                Tipo = "ADM"
-            };
-            _context.Clientes.Add(admin);
-            await _context.SaveChangesAsync();
-            return Ok(new { message = "Administrador criado com sucesso.", user = MapUser(admin) });
-        }
-        
-        [AllowAnonymous]
-        [HttpPost("setup-admins")]
-        public async Task<IActionResult> SetupAdmins([FromQuery] string secretKey)
-        {
-            var setupKey = _configuration["SetupSecretKey"];
-            if (string.IsNullOrEmpty(setupKey) || secretKey != setupKey)
-            {
-                return Unauthorized("Chave secreta para setup inválida.");
+                return ValidationResult.Fail("Email já está em uso.");
             }
 
-            var results = new List<string>();
-
-            if (!await _context.Clientes.AnyAsync(c => c.Email == "myprofilejobs07@outlook.com"))
+            // Validar telefone
+            var telefoneNumeros = LimparTelefone(dto.Telefone);
+            if (string.IsNullOrEmpty(telefoneNumeros) || !ValidarTelefoneBrasileiro(telefoneNumeros))
             {
-                _context.Clientes.Add(new Cliente { Nome = "Caio Gustavo", Email = "myprofilejobs07@outlook.com", SenhaHash = BCrypt.Net.BCrypt.HashPassword("cocodopou"), Tipo = "ADM", Telefone = "" });
-                results.Add("Usuário 'Caio Gustavo' criado com sucesso.");
-            } else { results.Add("Usuário 'Caio Gustavo' já existe."); }
+                return ValidationResult.Fail("Telefone inválido. Use o formato brasileiro com DDD.");
+            }
 
-            if (!await _context.Clientes.AnyAsync(c => c.Email == "gabriel@tartaro.com"))
+            // Verificar telefone único
+            if (await _context.Clientes.AnyAsync(c => c.Telefone == telefoneNumeros))
             {
-                _context.Clientes.Add(new Cliente { Nome = "Gabriel", Email = "gabriel@tartaro.com", SenhaHash = BCrypt.Net.BCrypt.HashPassword("tartarohamburgueriadelivery2025"), Tipo = "ADM", Telefone = "" });
-                results.Add("Usuário 'Gabriel' criado com sucesso.");
-            } else { results.Add("Usuário 'Gabriel' já existe."); }
-            
-            await _context.SaveChangesAsync();
-            return Ok(results);
+                return ValidationResult.Fail("Telefone já está em uso.");
+            }
+
+            return ValidationResult.Success();
         }
 
-        // Métodos auxiliares
+        private static string LimparTelefone(string telefone)
+        {
+            return string.IsNullOrEmpty(telefone) ? "" : 
+                System.Text.RegularExpressions.Regex.Replace(telefone, @"\D", "");
+        }
+
+        private static bool ValidarTelefoneBrasileiro(string telefone)
+        {
+            if (telefone.Length < 10 || telefone.Length > 11)
+                return false;
+
+            var ddd = int.Parse(telefone.Substring(0, 2));
+            if (ddd < 11 || ddd > 99)
+                return false;
+
+            // Se tem 11 dígitos, deve ser celular (9 na terceira posição)
+            if (telefone.Length == 11 && telefone[2] != '9')
+                return false;
+
+            return true;
+        }
+
+        private async Task LimparRefreshTokensExpirados(int clienteId)
+        {
+            var tokensExpirados = await _context.RefreshTokens
+                .Where(r => r.ClienteId == clienteId && r.Expiracao <= DateTime.UtcNow)
+                .ToListAsync();
+
+            if (tokensExpirados.Any())
+            {
+                _context.RefreshTokens.RemoveRange(tokensExpirados);
+                await _context.SaveChangesAsync();
+            }
+        }
+
         private string GerarJwt(Cliente cliente)
         {
             var keyString = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key não configurada.");
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var expiresAt = DateTime.UtcNow.Add(TokenTtl);
+            
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, cliente.Id.ToString()),
                 new Claim(ClaimTypes.Name, cliente.Nome),
                 new Claim(ClaimTypes.Email, cliente.Email),
                 new Claim(ClaimTypes.Role, cliente.Tipo.ToUpper()),
+                new Claim("telefone", cliente.Telefone ?? ""),
+                new Claim("iat", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
             };
-            var token = new JwtSecurityToken(_configuration["Jwt:Issuer"], _configuration["Jwt:Audience"], claims, expires: expiresAt, signingCredentials: creds);
+            
+            var token = new JwtSecurityToken(
+                _configuration["Jwt:Issuer"], 
+                _configuration["Jwt:Audience"], 
+                claims, 
+                expires: expiresAt, 
+                signingCredentials: creds
+            );
+            
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
         private async Task<string> CriarRefreshTokenAsync(int clienteId)
         {
-            var refresh = new RefreshToken { Token = Guid.NewGuid().ToString(), Expiracao = DateTime.UtcNow.AddDays(7), ClienteId = clienteId };
+            var refresh = new RefreshToken 
+            { 
+                Token = Guid.NewGuid().ToString() + Guid.NewGuid().ToString(), // Token mais longo
+                Expiracao = DateTime.UtcNow.AddDays(30), // 30 dias
+                ClienteId = clienteId 
+            };
+            
             _context.RefreshTokens.Add(refresh);
             await _context.SaveChangesAsync();
+            
             return refresh.Token;
         }
 
-        // MapUser atualizado: retorna "tipo" (para frontend BR) e "role" (compatibilidade)
         private object MapUser(Cliente cliente) => new 
         { 
             id = cliente.Id, 
             nome = cliente.Nome, 
             email = cliente.Email, 
-            telefone = cliente.Telefone, 
-            tipo = cliente.Tipo,               // campo que o front espera
-            role = cliente.Tipo?.ToUpper()     // compatibilidade (se algum cliente esperar 'role')
+            telefone = cliente.Telefone,
+            endereco = cliente.Endereco,
+            tipo = cliente.Tipo,
+            role = cliente.Tipo?.ToUpper(),
+            dataCriacao = cliente.DataCriacao,
+            ativo = cliente.Ativo
         };
 
         private bool IsValidEmail(string email)
@@ -360,6 +381,16 @@ namespace TartaroAPI.Controllers
             {
                 return false;
             }
+        }
+
+        // Classe auxiliar para validação
+        private class ValidationResult
+        {
+            public bool IsValid { get; set; }
+            public string ErrorMessage { get; set; } = string.Empty;
+
+            public static ValidationResult Success() => new() { IsValid = true };
+            public static ValidationResult Fail(string message) => new() { IsValid = false, ErrorMessage = message };
         }
     }
 }

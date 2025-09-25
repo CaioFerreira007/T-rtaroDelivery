@@ -16,7 +16,7 @@ namespace TartaroAPI.Data
         public DbSet<Pagamento> Pagamentos { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
-
+public DbSet<LogEntry> LogEntries { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -26,7 +26,15 @@ namespace TartaroAPI.Data
             modelBuilder.Entity<Pedido>().Property(p => p.Subtotal).HasColumnType("decimal(10,2)");
             modelBuilder.Entity<Pedido>().Property(p => p.TaxaEntrega).HasColumnType("decimal(10,2)");
             modelBuilder.Entity<Pedido>().Property(p => p.TotalFinal).HasColumnType("decimal(10,2)");
-
+modelBuilder.Entity<LogEntry>(entity =>
+{
+    entity.Property(e => e.Action).HasMaxLength(100);
+    entity.Property(e => e.Details).HasMaxLength(1000);
+    entity.Property(e => e.IpAddress).HasMaxLength(45);
+    entity.HasIndex(e => e.Timestamp);
+    entity.HasIndex(e => e.LogType);
+    entity.HasIndex(e => e.UserId);
+});
             modelBuilder.Entity<Cliente>(entity =>
             {
                 entity.Property(e => e.Tipo).IsRequired().HasMaxLength(20).HasDefaultValue("cliente");
