@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axiosConfig from "../Services/axiosConfig";
+import axiosConfig from "../services/axiosConfig";
 import {
   Form,
   Button,

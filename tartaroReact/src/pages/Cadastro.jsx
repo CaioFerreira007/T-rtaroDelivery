@@ -1,49 +1,42 @@
 import React, { useState } from "react";
 import { Container, Form, Button, Alert } from "react-bootstrap";
 import { useNavigate, Link } from "react-router-dom";
-import { register } from "../services/authService";
+import { useAuth } from "../context/AuthContext";
+
 function Cadastro() {
   const navigate = useNavigate();
+  const { register } = useAuth();
   
-  // Estados do formulário
   const [formData, setFormData] = useState({
     nome: "",
     email: "",
     telefone: "",
+    endereco: "",
     senha: "",
     confirmarSenha: ""
   });
 
-  // Estados de controle
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
   const [loading, setLoading] = useState(false);
-  
-  // Estados de validação
   const [validationErrors, setValidationErrors] = useState({});
 
-  // Função para atualizar dados do formulário
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
-    // Formatação específica para telefone
     if (name === "telefone") {
-      // Remove tudo que não é número
       const numbers = value.replace(/\D/g, "");
-      
-      // Formata como (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
       let formatted = numbers;
+      
       if (numbers.length >= 2) {
         formatted = `(${numbers.slice(0, 2)}) `;
         if (numbers.length > 2) {
           if (numbers.length <= 10) {
-            // Telefone fixo: (XX) XXXX-XXXX
             formatted += numbers.slice(2, 6);
             if (numbers.length > 6) {
               formatted += `-${numbers.slice(6, 10)}`;
             }
           } else {
-            // Celular: (XX) XXXXX-XXXX
             formatted += numbers.slice(2, 7);
             if (numbers.length > 7) {
               formatted += `-${numbers.slice(7, 11)}`;
@@ -57,18 +50,16 @@ function Cadastro() {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
 
-    // Limpa erros quando usuário digita
     if (validationErrors[name]) {
       setValidationErrors(prev => ({ ...prev, [name]: "" }));
     }
     if (erro) setErro("");
   };
 
-  // Validação em tempo real
   const validateField = (name, value) => {
     switch (name) {
       case "nome":
-        return value.length < 2 ? "Nome deve ter pelo menos 2 caracteres" : "";
+        return value.trim().length < 2 ? "Nome deve ter pelo menos 2 caracteres" : "";
       case "email":
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return !emailRegex.test(value) ? "Email inválido" : "";
@@ -76,9 +67,14 @@ function Cadastro() {
         const phoneNumbers = value.replace(/\D/g, "");
         if (phoneNumbers.length < 10) return "Telefone deve ter pelo menos 10 dígitos";
         if (phoneNumbers.length > 11) return "Telefone deve ter no máximo 11 dígitos";
+        const ddd = parseInt(phoneNumbers.slice(0, 2));
+        if (ddd < 11 || ddd > 99) return "DDD inválido";
+        if (phoneNumbers.length === 11 && phoneNumbers[2] !== '9') {
+          return "Celular deve começar com 9 após o DDD";
+        }
         return "";
       case "endereco":
-        return value.length < 5 ? "Endereço deve ter pelo menos 5 caracteres" : "";
+        return value.trim().length < 5 ? "Endereço deve ter pelo menos 5 caracteres" : "";
       case "senha":
         return value.length < 6 ? "Senha deve ter pelo menos 6 caracteres" : "";
       case "confirmarSenha":
@@ -88,52 +84,17 @@ function Cadastro() {
     }
   };
 
-  // Validação completa do formulário
   const validateForm = () => {
     const errors = {};
-    
     Object.keys(formData).forEach(key => {
-      const error = validateField(key, formData[key]);
-      if (error) errors[key] = error;
-    });
-
-    // Validação adicional de telefone brasileiro
-    const phoneNumbers = formData.telefone.replace(/\D/g, "");
-    if (phoneNumbers.length >= 10) {
-      const ddd = phoneNumbers.slice(0, 2);
-      const validDDDs = [
-        "11", "12", "13", "14", "15", "16", "17", "18", "19", // SP
-        "21", "22", "24", // RJ
-        "27", "28", // ES
-        "31", "32", "33", "34", "35", "37", "38", // MG
-        "41", "42", "43", "44", "45", "46", // PR
-        "47", "48", "49", // SC
-        "51", "53", "54", "55", // RS
-        "61", // DF
-        "62", "64", // GO
-        "63", // TO
-        "65", "66", // MT
-        "67", // MS
-        "68", // AC
-        "69", // RO
-        "71", "73", "74", "75", "77", // BA
-        "79", // SE
-        "81", "87", // PE
-        "82", // AL
-        "83", // PB
-        "84", // RN
-        "85", "88", // CE
-        "86", "89", // PI
-        "91", "93", "94", // PA
-        "92", "97", // AM
-        "95", // RR
-        "96", // AP
-        "98", "99"  // MA
-      ];
-      
-      if (!validDDDs.includes(ddd)) {
-        errors.telefone = "DDD inválido";
+      if (key !== 'confirmarSenha') {
+        const error = validateField(key, formData[key]);
+        if (error) errors[key] = error;
       }
+    });
+    
+    if (formData.senha !== formData.confirmarSenha) {
+      errors.confirmarSenha = "Senhas não coincidem";
     }
 
     setValidationErrors(errors);
@@ -146,9 +107,7 @@ function Cadastro() {
     setSucesso("");
     
     console.log("=== INICIANDO CADASTRO ===");
-    console.log("Dados do formulário:", formData);
 
-    // Validação local primeiro
     if (!validateForm()) {
       setErro("Por favor, corrija os erros no formulário.");
       return;
@@ -157,87 +116,68 @@ function Cadastro() {
     setLoading(true);
 
     try {
-      // Preparar dados para envio
       const userData = {
         nome: formData.nome.trim(),
         email: formData.email.trim().toLowerCase(),
-        telefone: formData.telefone.replace(/\D/g, ""), // Apenas números
+        telefone: formData.telefone.replace(/\D/g, ""),
         endereco: formData.endereco.trim(),
         senha: formData.senha
       };
 
-      console.log("Dados preparados para envio:", userData);
+      console.log("Dados preparados para envio:", { ...userData, senha: "***" });
 
-      // Chamar o serviço de registro
-      const response = await register(userData);
+      await register(userData);
       
-      console.log("Resposta do cadastro:", response);
-
-      // Sucesso
       setSucesso("Cadastro realizado com sucesso! Redirecionando...");
       
-      // Salvar dados do usuário no localStorage (opcional)
-      if (response.user) {
-        localStorage.setItem("user", JSON.stringify(response.user));
-      }
-      if (response.token) {
-        localStorage.setItem("token", response.token);
-      }
-
-      // Redirecionar após 2 segundos
       setTimeout(() => {
         navigate("/home");
-      }, 2000);
+      }, 1500);
 
     } catch (error) {
       console.error("Erro no cadastro:", error);
       
-      // Tratamento específico de erros
-      if (error.message) {
-        setErro(error.message);
-      } else if (error.response?.data?.message) {
-        setErro(error.response.data.message);
+      let mensagemErro = "Erro ao realizar cadastro.";
+      
+      if (error.response?.status === 409) {
+        mensagemErro = "Email ou telefone já cadastrado.";
       } else if (error.response?.status === 400) {
-        setErro("Dados inválidos. Verifique as informações e tente novamente.");
-      } else if (error.response?.status === 409) {
-        setErro("Email já está em uso. Tente fazer login ou use outro email.");
-      } else {
-        setErro("Erro interno do servidor. Tente novamente mais tarde.");
+        mensagemErro = error.response?.data?.message || "Dados inválidos.";
+      } else if (error.message) {
+        mensagemErro = error.message;
+      } else if (error.response?.status >= 500) {
+        mensagemErro = "Erro interno do servidor. Tente novamente.";
       }
+      
+      setErro(mensagemErro);
     } finally {
       setLoading(false);
     }
   };
 
-  // Verificar se senhas coincidem
   const senhasCoincident = formData.senha && formData.confirmarSenha && 
                           formData.senha === formData.confirmarSenha;
 
   return (
     <Container className="cadastro-container">
       <div className="form-wrapper">
-        <h2 className="text-center mb-4">
-          🍕 Criar Conta - Tártaro Delivery
-        </h2>
+        <h2 className="text-center mb-4">Criar Conta - Tártaro Delivery</h2>
         
-        {/* Alert de Erro */}
         {erro && (
           <Alert variant="danger" dismissible onClose={() => setErro("")}>
             <strong>Erro:</strong> {erro}
           </Alert>
         )}
         
-        {/* Alert de Sucesso */}
         {sucesso && (
-          <Alert variant="success" dismissible onClose={() => setSucesso("")}>
+          <Alert variant="success">
             <strong>Sucesso:</strong> {sucesso}
           </Alert>
         )}
 
         <Form onSubmit={handleSubmit}>
-          {/* Nome Completo */}
           <Form.Group className="mb-3">
-            <Form.Label>Nome Completo</Form.Label>
+            <Form.Label>Nome Completo *</Form.Label>
             <Form.Control
               type="text"
               name="nome"
@@ -246,15 +186,15 @@ function Cadastro() {
               placeholder="Digite seu nome completo"
               required
               isInvalid={!!validationErrors.nome}
+              disabled={loading}
             />
             <Form.Control.Feedback type="invalid">
               {validationErrors.nome}
             </Form.Control.Feedback>
           </Form.Group>
 
-          {/* Email */}
           <Form.Group className="mb-3">
-            <Form.Label>E-mail</Form.Label>
+            <Form.Label>E-mail *</Form.Label>
             <Form.Control
               type="email"
               name="email"
@@ -263,15 +203,15 @@ function Cadastro() {
               placeholder="exemplo@email.com"
               required
               isInvalid={!!validationErrors.email}
+              disabled={loading}
             />
             <Form.Control.Feedback type="invalid">
               {validationErrors.email}
             </Form.Control.Feedback>
           </Form.Group>
 
-          {/* Telefone */}
           <Form.Group className="mb-3">
-            <Form.Label>Telefone</Form.Label>
+            <Form.Label>Telefone *</Form.Label>
             <Form.Control
               type="tel"
               name="telefone"
@@ -281,20 +221,35 @@ function Cadastro() {
               required
               maxLength={15}
               isInvalid={!!validationErrors.telefone}
+              disabled={loading}
             />
             <Form.Text className="text-muted">
-              Formato: (XX) XXXXX-XXXX para celular 
+              Formato: (XX) XXXXX-XXXX para celular
             </Form.Text>
             <Form.Control.Feedback type="invalid">
               {validationErrors.telefone}
             </Form.Control.Feedback>
           </Form.Group>
 
-        
-
-          {/* Senha */}
           <Form.Group className="mb-3">
-            <Form.Label>Senha</Form.Label>
+            <Form.Label>Endereço *</Form.Label>
+            <Form.Control
+              type="text"
+              name="endereco"
+              value={formData.endereco}
+              onChange={handleInputChange}
+              placeholder="Rua, número, bairro, cidade"
+              required
+              isInvalid={!!validationErrors.endereco}
+              disabled={loading}
+            />
+            <Form.Control.Feedback type="invalid">
+              {validationErrors.endereco}
+            </Form.Control.Feedback>
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Senha *</Form.Label>
             <Form.Control
               type="password"
               name="senha"
@@ -303,15 +258,15 @@ function Cadastro() {
               placeholder="Mínimo 6 caracteres"
               required
               isInvalid={!!validationErrors.senha}
+              disabled={loading}
             />
             <Form.Control.Feedback type="invalid">
               {validationErrors.senha}
             </Form.Control.Feedback>
           </Form.Group>
 
-          {/* Confirmar Senha */}
           <Form.Group className="mb-4">
-            <Form.Label>Confirmar Senha</Form.Label>
+            <Form.Label>Confirmar Senha *</Form.Label>
             <Form.Control
               type="password"
               name="confirmarSenha"
@@ -321,6 +276,7 @@ function Cadastro() {
               required
               isInvalid={!!validationErrors.confirmarSenha}
               isValid={senhasCoincident}
+              disabled={loading}
             />
             <Form.Control.Feedback type="invalid">
               {validationErrors.confirmarSenha}
@@ -330,7 +286,6 @@ function Cadastro() {
             </Form.Control.Feedback>
           </Form.Group>
 
-          {/* Botão de Cadastro */}
           <Button 
             variant="success" 
             type="submit" 
@@ -344,11 +299,10 @@ function Cadastro() {
                 Criando conta...
               </>
             ) : (
-              "🍕 Criar Conta"
+              "Criar Conta"
             )}
           </Button>
 
-          {/* Link para Login */}
           <div className="text-center">
             <p className="mb-0">
               Já tem uma conta?{" "}

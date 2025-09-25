@@ -53,25 +53,64 @@ namespace TartaroAPI.Controllers
         {
             try
             {
-                _logger.LogInformation("Tentativa de login para email: {Email}", login.Email);
+                _logger.LogInformation("=== TENTATIVA DE LOGIN ===");
+                _logger.LogInformation("Email recebido: {Email}", login.Email);
 
                 if (!ModelState.IsValid)
                 {
                     var errors = ModelState.Values
                         .SelectMany(v => v.Errors)
                         .Select(e => e.ErrorMessage);
+                    _logger.LogWarning("ModelState inválido: {Errors}", string.Join(", ", errors));
                     return BadRequest(new { errors });
                 }
 
-                // CORREÇÃO: Normalizar o input ANTES da consulta ao banco.
-                // Isso evita usar .ToLower() e .Trim() na coluna do banco, que não é traduzido para SQL.
                 var emailNormalizado = login.Email.ToLower().Trim();
+                _logger.LogInformation("Email normalizado: {EmailNorm}", emailNormalizado);
+                
                 var cliente = await _context.Clientes
-                    .FirstOrDefaultAsync(c => c.Email == emailNormalizado && c.Ativo);
+                    .FirstOrDefaultAsync(c => c.Email == emailNormalizado);
 
-                if (cliente == null || !BCrypt.Net.BCrypt.Verify(login.Senha, cliente.SenhaHash))
+                _logger.LogInformation("Cliente encontrado? {Encontrado}", cliente != null);
+                
+                if (cliente == null)
                 {
-                    _logger.LogWarning("Falha no login para email: {Email}", login.Email);
+                    _logger.LogWarning("Cliente não encontrado para email: {Email}", login.Email);
+                    return Unauthorized(new { message = "Email ou senha incorretos." });
+                }
+
+                _logger.LogInformation("Cliente ID: {ClienteId}, Ativo: {Ativo}", cliente.Id, cliente.Ativo);
+                _logger.LogInformation("SenhaHash presente? {HashPresente}, Tamanho: {Tamanho}", 
+                    !string.IsNullOrEmpty(cliente.SenhaHash), 
+                    cliente.SenhaHash?.Length ?? 0);
+
+                if (!cliente.Ativo)
+                {
+                    _logger.LogWarning("Cliente desativado: {ClienteId}", cliente.Id);
+                    return Unauthorized(new { message = "Conta desativada." });
+                }
+
+                if (string.IsNullOrEmpty(cliente.SenhaHash))
+                {
+                    _logger.LogError("SenhaHash está vazia para cliente: {ClienteId}", cliente.Id);
+                    return StatusCode(500, new { message = "Erro de configuração da conta." });
+                }
+
+                bool senhaValida;
+                try
+                {
+                    senhaValida = BCrypt.Net.BCrypt.Verify(login.Senha, cliente.SenhaHash);
+                    _logger.LogInformation("Senha válida? {SenhaValida}", senhaValida);
+                }
+                catch (Exception bcryptEx)
+                {
+                    _logger.LogError(bcryptEx, "Erro ao verificar senha com BCrypt para cliente: {ClienteId}", cliente.Id);
+                    return StatusCode(500, new { message = "Erro ao validar credenciais.", details = bcryptEx.Message });
+                }
+
+                if (!senhaValida)
+                {
+                    _logger.LogWarning("Senha inválida para cliente: {ClienteId}", cliente.Id);
                     return Unauthorized(new { message = "Email ou senha incorretos." });
                 }
 
@@ -92,8 +131,13 @@ namespace TartaroAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro interno no login para email: {Email}", login.Email);
-                return StatusCode(500, new { message = "Erro interno do servidor." });
+                _logger.LogError(ex, "Erro interno no login. Tipo: {TipoErro}, Mensagem: {Mensagem}, StackTrace: {StackTrace}", 
+                    ex.GetType().Name, ex.Message, ex.StackTrace);
+                return StatusCode(500, new { 
+                    message = "Erro interno do servidor.",
+                    error = ex.Message,
+                    type = ex.GetType().Name
+                });
             }
         }
 
@@ -103,36 +147,73 @@ namespace TartaroAPI.Controllers
         {
             try
             {
-                _logger.LogInformation("Tentativa de cadastro para email: {Email}", dto.Email);
+                _logger.LogInformation("=== TENTATIVA DE CADASTRO ===");
+                _logger.LogInformation("Nome: {Nome}", dto.Nome);
+                _logger.LogInformation("Email: {Email}", dto.Email);
+                _logger.LogInformation("Telefone: {Telefone}", dto.Telefone);
+                _logger.LogInformation("Endereco: {Endereco}", dto.Endereco);
 
                 if (!ModelState.IsValid)
                 {
                     var errors = ModelState.Values
                         .SelectMany(v => v.Errors)
                         .Select(e => e.ErrorMessage);
+                    _logger.LogWarning("ModelState inválido: {Errors}", string.Join(", ", errors));
                     return BadRequest(new { errors });
                 }
                 
-                var validationResult = await ValidarDadosCadastro(dto);
-                if (!validationResult.IsValid)
+                var emailNormalizado = dto.Email.ToLower().Trim();
+                var telefoneNumeros = LimparTelefone(dto.Telefone);
+                
+                _logger.LogInformation("Email normalizado: {EmailNorm}", emailNormalizado);
+                _logger.LogInformation("Telefone limpo: {TelefoneNorm}", telefoneNumeros);
+                
+                // Verificar duplicados
+                var emailExiste = await _context.Clientes.AnyAsync(c => c.Email == emailNormalizado);
+                var telefoneExiste = await _context.Clientes.AnyAsync(c => c.Telefone == telefoneNumeros);
+                
+                _logger.LogInformation("Email já existe? {EmailExiste}", emailExiste);
+                _logger.LogInformation("Telefone já existe? {TelefoneExiste}", telefoneExiste);
+
+                if (emailExiste)
                 {
-                    // Usamos Conflict (409) para dados duplicados, que é mais específico que BadRequest (400)
-                    return Conflict(new { message = validationResult.ErrorMessage });
+                    _logger.LogWarning("Email já cadastrado: {Email}", emailNormalizado);
+                    return Conflict(new { message = "Email já está em uso." });
                 }
+
+                if (string.IsNullOrEmpty(telefoneNumeros) || !ValidarTelefoneBrasileiro(telefoneNumeros))
+                {
+                    _logger.LogWarning("Telefone inválido: {Telefone}", telefoneNumeros);
+                    return BadRequest(new { message = "Telefone inválido. Use o formato brasileiro com DDD." });
+                }
+                
+                if (telefoneExiste)
+                {
+                    _logger.LogWarning("Telefone já cadastrado: {Telefone}", telefoneNumeros);
+                    return Conflict(new { message = "Telefone já está em uso." });
+                }
+
+                _logger.LogInformation("Validações passaram. Criando cliente...");
+
+                var senhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha);
+                _logger.LogInformation("Senha hasheada com sucesso. Tamanho do hash: {Tamanho}", senhaHash.Length);
 
                 var cliente = new Cliente
                 {
                     Nome = dto.Nome.Trim(),
-                    Email = dto.Email.ToLower().Trim(), // Normaliza para salvar
-                    Telefone = LimparTelefone(dto.Telefone),
+                    Email = emailNormalizado,
+                    Telefone = telefoneNumeros,
                     Endereco = dto.Endereco?.Trim(),
-                    SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha),
+                    SenhaHash = senhaHash,
                     Tipo = "cliente",
-                    DataCriacao = DateTime.UtcNow
+                    DataCriacao = DateTime.UtcNow,
+                    Ativo = true
                 };
 
                 _context.Clientes.Add(cliente);
                 await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Cliente criado com ID: {ClienteId}", cliente.Id);
 
                 var jwt = GerarJwt(cliente);
                 var refreshToken = await CriarRefreshTokenAsync(cliente.Id);
@@ -147,17 +228,24 @@ namespace TartaroAPI.Controllers
                     message = "Cadastro realizado com sucesso!"
                 });
             }
-            // MELHORIA: Tratar exceção de chave única do banco de dados (evita "race condition").
-            // Isso acontece se dois usuários tentarem se cadastrar com o mesmo email ao mesmo tempo.
             catch (DbUpdateException dbEx)
             {
-                _logger.LogWarning(dbEx, "Violação de constraint única ao cadastrar email: {Email}", dto.Email);
-                return Conflict(new { message = "Email ou telefone já cadastrado." }); // HTTP 409 Conflict
+                _logger.LogError(dbEx, "Violação de constraint única ao cadastrar. InnerException: {InnerException}", 
+                    dbEx.InnerException?.Message);
+                return Conflict(new { 
+                    message = "Email ou telefone já cadastrado.",
+                    details = dbEx.InnerException?.Message
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro interno no cadastro para email: {Email}", dto.Email);
-                return StatusCode(500, new { message = "Erro interno do servidor." });
+                _logger.LogError(ex, "Erro interno no cadastro. Tipo: {TipoErro}, Mensagem: {Mensagem}, StackTrace: {StackTrace}", 
+                    ex.GetType().Name, ex.Message, ex.StackTrace);
+                return StatusCode(500, new { 
+                    message = "Erro interno do servidor.",
+                    error = ex.Message,
+                    type = ex.GetType().Name
+                });
             }
         }
 
@@ -202,7 +290,7 @@ namespace TartaroAPI.Controllers
         }
 
         [HttpPost("logout")]
-        [Authorize] // Requer que o usuário esteja autenticado
+        [Authorize]
         public async Task<IActionResult> Logout([FromBody] RefreshTokenDTO dto)
         {
             try
@@ -214,7 +302,6 @@ namespace TartaroAPI.Controllers
                     
                     if (refreshToken != null)
                     {
-                        // Opcional: Validar se o refresh token pertence ao usuário logado
                         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                         if (refreshToken.ClienteId.ToString() == userId)
                         {
@@ -229,7 +316,6 @@ namespace TartaroAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Erro no logout");
-                // Mesmo em caso de erro, o cliente deve ser deslogado.
                 return Ok(new { message = "Logout realizado." });
             }
         }
@@ -268,29 +354,6 @@ namespace TartaroAPI.Controllers
         }
 
         // --- Métodos Auxiliares ---
-        private async Task<ValidationResult> ValidarDadosCadastro(RegisterDTO dto)
-        {
-            // CORREÇÃO: Normalizar o input ANTES da consulta ao banco.
-            var emailNormalizado = dto.Email.ToLower().Trim();
-            if (await _context.Clientes.AnyAsync(c => c.Email == emailNormalizado))
-            {
-                return ValidationResult.Fail("Email já está em uso.");
-            }
-
-            var telefoneNumeros = LimparTelefone(dto.Telefone);
-            if (string.IsNullOrEmpty(telefoneNumeros) || !ValidarTelefoneBrasileiro(telefoneNumeros))
-            {
-                return ValidationResult.Fail("Telefone inválido. Use o formato brasileiro com DDD.");
-            }
-            
-            if (await _context.Clientes.AnyAsync(c => c.Telefone == telefoneNumeros))
-            {
-                return ValidationResult.Fail("Telefone já está em uso.");
-            }
-
-            return ValidationResult.Success();
-        }
-
         private static string LimparTelefone(string telefone)
         {
             return string.IsNullOrEmpty(telefone) ? "" :
@@ -357,7 +420,7 @@ namespace TartaroAPI.Controllers
         {
             var refresh = new RefreshToken
             {
-                Token = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N"), // Token mais seguro
+                Token = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N"),
                 Expiracao = DateTime.UtcNow.AddDays(30),
                 ClienteId = clienteId
             };
@@ -380,14 +443,5 @@ namespace TartaroAPI.Controllers
             dataCriacao = cliente.DataCriacao,
             ativo = cliente.Ativo
         };
-        
-        private class ValidationResult
-        {
-            public bool IsValid { get; set; }
-            public string ErrorMessage { get; set; } = string.Empty;
-
-            public static ValidationResult Success() => new() { IsValid = true };
-            public static ValidationResult Fail(string message) => new() { IsValid = false, ErrorMessage = message };
-        }
     }
 }

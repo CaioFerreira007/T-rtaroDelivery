@@ -1,7 +1,7 @@
 import React, { useContext, useState } from "react";
 import { Button } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import axiosConfig from "../Services/axiosConfig";
+import axiosConfig from "../services/axiosConfig";
 import "../styles/BarraCarrinho.css";
 import { AuthContext } from "../context/AuthContext";
 import ModalEntrega from "./Modal";

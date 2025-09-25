@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Container, Card, Alert, Spinner, Badge, Row, Button,Col } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { buscarMeusPedidos } from "../Services/PedidoService";
+import { buscarMeusPedidos } from "../services/PedidoService";
 
 export default function MeusPedidos() {
   const [pedidos, setPedidos] = useState([]);

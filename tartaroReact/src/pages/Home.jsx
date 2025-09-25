@@ -3,7 +3,7 @@ import { Container, Row, Col, Button, Alert, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-import { getProdutos } from "../Services/produtoService";
+import { getProdutos } from "../services/produtoService";
 import HamburguerCard from "../components/HamburguerCard";
 import BarraCarrinho from "../components/BarraCarrinho";
 

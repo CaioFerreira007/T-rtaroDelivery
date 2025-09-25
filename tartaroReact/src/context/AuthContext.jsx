@@ -1,116 +1,133 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { login as loginService, logout as logoutService, isAuthenticated } from '../services/authService';
+import { 
+  login as loginService, 
+  register as registerService, 
+  logout as logoutService, 
+  isAuthenticated, 
+  getCurrentUser 
+} from '../services/authService';
 
-// Criar o Context
 const AuthContext = createContext();
 
-// Provider Component
 export const AuthProvider = ({ children }) => {
   const [usuarioLogado, setUsuarioLogado] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Verificar autenticação ao carregar a aplicação
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const isAuth = await isAuthenticated();
+        setIsLoading(true);
         
-        if (isAuth) {
-          // Recuperar dados do usuário do localStorage
-          const userData = localStorage.getItem('user');
-          if (userData) {
-            const user = JSON.parse(userData);
+        if (isAuthenticated()) {
+          const user = getCurrentUser();
+          if (user) {
             setUsuarioLogado(user);
-            setIsLoggedIn(true);
+          } else {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('authData');
           }
         }
       } catch (error) {
         console.error('Erro ao verificar autenticação:', error);
-        // Limpar dados inválidos
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('authData');
       } finally {
         setIsLoading(false);
+        setIsInitialized(true);
       }
     };
 
     checkAuth();
   }, []);
 
-  // Função de login
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'user' || e.key === 'token') {
+        if (!e.newValue && e.oldValue) {
+          setUsuarioLogado(null);
+        } else if (e.newValue) {
+          try {
+            const user = e.key === 'user' ? JSON.parse(e.newValue) : getCurrentUser();
+            setUsuarioLogado(user);
+          } catch (error) {
+            console.error('Erro ao sincronizar dados entre abas:', error);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   const login = async (email, senha) => {
     try {
       setIsLoading(true);
-      const response = await loginService(email, senha);
-      
-      if (response.user) {
-        setUsuarioLogado(response.user);
-        setIsLoggedIn(true);
-        
-        // Salvar no localStorage
-        localStorage.setItem('user', JSON.stringify(response.user));
-        if (response.token) {
-          localStorage.setItem('token', response.token);
-        }
-      }
-      
-      return response;
+      const usuario = await loginService(email, senha);
+      setUsuarioLogado(usuario);
+      return usuario;
     } catch (error) {
+      console.error('Erro no login:', error);
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Função de logout
+  const register = async (dadosCadastro) => {
+    try {
+      setIsLoading(true);
+      const response = await registerService(dadosCadastro);
+      if (response.user) {
+        setUsuarioLogado(response.user);
+      }
+      return response;
+    } catch (error) {
+      console.error('Erro no registro:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
+      setIsLoading(true);
       await logoutService();
     } catch (error) {
       console.error('Erro no logout:', error);
     } finally {
-      // Sempre limpar o estado local, mesmo se houver erro no servidor
       setUsuarioLogado(null);
-      setIsLoggedIn(false);
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      setIsLoading(false);
     }
   };
 
-  // Função para atualizar dados do usuário
   const updateUser = (userData) => {
     setUsuarioLogado(userData);
     if (userData) {
       localStorage.setItem('user', JSON.stringify(userData));
-      setIsLoggedIn(true);
-    } else {
-      localStorage.removeItem('user');
-      setIsLoggedIn(false);
     }
   };
 
-  // Valor do contexto
   const contextValue = {
-    // Estados
     usuarioLogado,
-    isLoading,
-    isLoggedIn,
-    
-    // Funções principais
-    login,
-    logout,
-    
-    // Funções de compatibilidade (para diferentes padrões de nomenclatura)
-    setUsuarioLogado: updateUser,
-    setUser: updateUser,
     user: usuarioLogado,
-    
-    // Funções auxiliares
+    isLoading,
+    loading: isLoading,
+    isInitialized,
+    isLoggedIn: Boolean(usuarioLogado && isAuthenticated()),
+    login,
+    register,
+    logout,
     updateUser,
-    
-    // Verificações
-    isAuthenticated: () => isLoggedIn && usuarioLogado
+    setUsuarioLogado: updateUser,
+    atualizarUsuario: updateUser,
+    isAuthenticated: () => Boolean(usuarioLogado && isAuthenticated())
   };
 
   return (
@@ -120,19 +137,13 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Hook personalizado para usar o AuthContext
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  
   if (!context) {
     throw new Error('useAuth deve ser usado dentro de um AuthProvider');
   }
-  
   return context;
 };
 
-// Exportar o Context também para uso com useContext
 export { AuthContext };
-
-// Exportar como default o Provider
 export default AuthProvider;

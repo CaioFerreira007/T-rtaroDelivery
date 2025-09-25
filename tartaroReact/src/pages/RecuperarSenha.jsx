@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Container, Form, Button, Alert, Spinner } from "react-bootstrap";
 import { Link } from "react-router-dom";
-import axiosConfig from "../Services/axiosConfig";
+import axiosConfig from "../services/axiosConfig";
 
 export default function RecuperarSenha() {
   const [email, setEmail] = useState("");

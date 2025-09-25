@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import axiosConfig from "../Services/axiosConfig";
+import axiosConfig from "../services/axiosConfig";
 import "../styles/Dashboard.css";
 
 const Dashboard = () => {

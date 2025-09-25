@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Container, Form, Button, Alert, Card, Spinner } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
-import axiosConfig from "../Services/axiosConfig";
+import axiosConfig from "../services/axiosConfig";
 
 export default function AlterarSenha() {
   const { token } = useParams();

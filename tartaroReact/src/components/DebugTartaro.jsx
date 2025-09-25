@@ -1,8 +1,8 @@
 // DebugTartaro.jsx - Componente para debug do seu sistema
 import React, { useState } from "react";
 import { Container, Button, Alert, Card, Form, Row, Col } from "react-bootstrap";
-import axiosConfig from "../Services/axiosConfig";
-import { login, register } from "../Services/authService";
+import axiosConfig from "../services/axiosConfig";
+import { login, register } from "../services/authService";
 
 function DebugTartaro() {
   const [resultado, setResultado] = useState("");

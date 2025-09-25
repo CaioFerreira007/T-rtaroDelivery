@@ -1,6 +1,6 @@
 import { useState, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import axiosConfig from "../Services/axiosConfig";
+import axiosConfig from "../services/axiosConfig";
 import { Container, Form, Button, Alert, Spinner } from "react-bootstrap";
 
 function CadastroProdutoADM() {

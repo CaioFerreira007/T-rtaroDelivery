@@ -1,37 +1,37 @@
-import React, { useState } from "react";
-import { Container, Form, Button, Alert } from "react-bootstrap";
+import React, { useState, useEffect } from "react";
+import { Container, Form, Button, Alert, Spinner } from "react-bootstrap";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 function Login() {
   const navigate = useNavigate();
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, isLoggedIn, isInitialized } = useAuth();
   
-  // Estados do formulário
   const [formData, setFormData] = useState({
     email: "",
     senha: ""
   });
   
-  // Estados de controle
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
 
-  // Função para atualizar dados do formulário
+  useEffect(() => {
+    if (isInitialized && isLoggedIn) {
+      navigate("/home", { replace: true });
+    }
+  }, [isLoggedIn, isInitialized, navigate]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    
     setFormData(prev => ({ ...prev, [name]: value }));
 
-    // Limpar erros quando usuário digita
     if (validationErrors[name]) {
       setValidationErrors(prev => ({ ...prev, [name]: "" }));
     }
     if (erro) setErro("");
   };
 
-  // Validação em tempo real
   const validateField = (name, value) => {
     switch (name) {
       case "email":
@@ -44,15 +44,12 @@ function Login() {
     }
   };
 
-  // Validação completa do formulário
   const validateForm = () => {
     const errors = {};
-    
     Object.keys(formData).forEach(key => {
       const error = validateField(key, formData[key]);
       if (error) errors[key] = error;
     });
-
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -62,15 +59,12 @@ function Login() {
     setErro("");
     
     console.log("=== INICIANDO LOGIN ===");
-    console.log("Dados do formulário:", { email: formData.email, senha: "***" });
 
-    // Validação local primeiro
     if (!validateForm()) {
       setErro("Por favor, corrija os erros no formulário.");
       return;
     }
 
-    // Verificações básicas
     if (!formData.email.trim() || !formData.senha) {
       setErro("Email e senha são obrigatórios.");
       return;
@@ -80,46 +74,45 @@ function Login() {
 
     try {
       console.log("Chamando serviço de login...");
-      
-      const response = await login(formData.email.trim(), formData.senha);
-      
-      console.log("Login bem-sucedido:", response);
-
-      // Sucesso - redirecionar para home
-      navigate("/home");
-
+      await login(formData.email.trim(), formData.senha);
+      console.log("Login bem-sucedido");
     } catch (error) {
       console.error("Erro no login:", error);
       
-      // Tratamento específico de erros
-      if (error.message) {
-        setErro(error.message);
-      } else if (error.response?.data?.message) {
-        setErro(error.response.data.message);
-      } else if (error.response?.status === 401) {
-        setErro("Email ou senha incorretos. Verifique suas credenciais.");
+      let mensagemErro = "Erro ao fazer login.";
+      
+      if (error.response?.status === 401) {
+        mensagemErro = "Email ou senha incorretos.";
       } else if (error.response?.status === 400) {
-        setErro("Dados inválidos. Verifique as informações e tente novamente.");
-      } else if (error.response?.status === 404) {
-        setErro("Usuário não encontrado. Verifique o email ou crie uma conta.");
+        mensagemErro = "Dados inválidos.";
+      } else if (error.message) {
+        mensagemErro = error.message;
       } else if (error.response?.status >= 500) {
-        setErro("Erro interno do servidor. Tente novamente mais tarde.");
-      } else {
-        setErro("Erro ao fazer login. Verifique sua conexão e tente novamente.");
+        mensagemErro = "Erro interno do servidor. Tente novamente.";
       }
+      
+      setErro(mensagemErro);
     } finally {
       setLoading(false);
     }
   };
 
+  if (!isInitialized) {
+    return (
+      <Container className="cadastro-container">
+        <div className="form-wrapper text-center">
+          <Spinner animation="border" variant="success" />
+          <p className="mt-3">Carregando...</p>
+        </div>
+      </Container>
+    );
+  }
+
   return (
     <Container className="cadastro-container">
       <div className="form-wrapper">
-        <h2 className="text-center mb-4">
-          🍕 Entrar - Tártaro Delivery
-        </h2>
+        <h2 className="text-center mb-4">Entrar - Tártaro Delivery</h2>
         
-        {/* Alert de Erro */}
         {erro && (
           <Alert variant="danger" dismissible onClose={() => setErro("")}>
             <strong>Erro:</strong> {erro}
@@ -127,9 +120,8 @@ function Login() {
         )}
 
         <Form onSubmit={handleSubmit}>
-          {/* Email */}
           <Form.Group className="mb-3">
-            <Form.Label>E-mail</Form.Label>
+            <Form.Label>E-mail *</Form.Label>
             <Form.Control
               type="email"
               name="email"
@@ -145,9 +137,8 @@ function Login() {
             </Form.Control.Feedback>
           </Form.Group>
 
-          {/* Senha */}
           <Form.Group className="mb-4">
-            <Form.Label>Senha</Form.Label>
+            <Form.Label>Senha *</Form.Label>
             <Form.Control
               type="password"
               name="senha"
@@ -163,7 +154,6 @@ function Login() {
             </Form.Control.Feedback>
           </Form.Group>
 
-          {/* Botão de Login */}
           <Button 
             variant="success" 
             type="submit" 
@@ -177,11 +167,10 @@ function Login() {
                 Entrando...
               </>
             ) : (
-              "🍕 Entrar"
+              "Entrar"
             )}
           </Button>
 
-          {/* Links de Navegação */}
           <div className="text-center">
             <p className="mb-2">
               <Link to="/esqueci-senha" className="text-decoration-none">
