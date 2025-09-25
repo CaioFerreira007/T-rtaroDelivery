@@ -1,4 +1,3 @@
-// Sistema de validação profissional para formulários
 export class ValidationSystem {
   constructor() {
     this.rules = new Map();

@@ -23,8 +23,8 @@ namespace TartaroAPI.Controllers
         private static readonly TimeSpan TokenTtl = TimeSpan.FromHours(1);
 
         public AuthController(
-            TartaroDbContext context, 
-            IConfiguration configuration, 
+            TartaroDbContext context,
+            IConfiguration configuration,
             IEmailService emailService,
             ILogger<AuthController> logger)
         {
@@ -38,8 +38,9 @@ namespace TartaroAPI.Controllers
         [AllowAnonymous]
         public IActionResult Test()
         {
-            return Ok(new { 
-                message = "API Tartaro Delivery funcionando!", 
+            return Ok(new
+            {
+                message = "API Tartaro Delivery funcionando!",
                 timestamp = DateTime.UtcNow,
                 version = "2.0.0",
                 environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
@@ -54,7 +55,6 @@ namespace TartaroAPI.Controllers
             {
                 _logger.LogInformation("Tentativa de login para email: {Email}", login.Email);
 
-                // Validações básicas
                 if (!ModelState.IsValid)
                 {
                     var errors = ModelState.Values
@@ -63,26 +63,29 @@ namespace TartaroAPI.Controllers
                     return BadRequest(new { errors });
                 }
 
+                // CORREÇÃO: Normalizar o input ANTES da consulta ao banco.
+                // Isso evita usar .ToLower() e .Trim() na coluna do banco, que não é traduzido para SQL.
+                var emailNormalizado = login.Email.ToLower().Trim();
                 var cliente = await _context.Clientes
-                    .FirstOrDefaultAsync(c => c.Email.ToLower().Trim() == login.Email.ToLower().Trim() && c.Ativo);
-                
+                    .FirstOrDefaultAsync(c => c.Email == emailNormalizado && c.Ativo);
+
                 if (cliente == null || !BCrypt.Net.BCrypt.Verify(login.Senha, cliente.SenhaHash))
                 {
                     _logger.LogWarning("Falha no login para email: {Email}", login.Email);
                     return Unauthorized(new { message = "Email ou senha incorretos." });
                 }
 
-                // Limpar refresh tokens expirados
                 await LimparRefreshTokensExpirados(cliente.Id);
 
                 var jwt = GerarJwt(cliente);
                 var refreshToken = await CriarRefreshTokenAsync(cliente.Id);
-                
+
                 _logger.LogInformation("Login bem-sucedido para cliente: {ClienteId}", cliente.Id);
-                
-                return Ok(new { 
-                    token = jwt, 
-                    refreshToken = refreshToken, 
+
+                return Ok(new
+                {
+                    token = jwt,
+                    refreshToken = refreshToken,
                     user = MapUser(cliente),
                     expiresAt = DateTime.UtcNow.Add(TokenTtl)
                 });
@@ -102,7 +105,6 @@ namespace TartaroAPI.Controllers
             {
                 _logger.LogInformation("Tentativa de cadastro para email: {Email}", dto.Email);
 
-                // Validações de modelo
                 if (!ModelState.IsValid)
                 {
                     var errors = ModelState.Values
@@ -110,19 +112,18 @@ namespace TartaroAPI.Controllers
                         .Select(e => e.ErrorMessage);
                     return BadRequest(new { errors });
                 }
-
-                // Validações de negócio
+                
                 var validationResult = await ValidarDadosCadastro(dto);
                 if (!validationResult.IsValid)
                 {
-                    return BadRequest(new { message = validationResult.ErrorMessage });
+                    // Usamos Conflict (409) para dados duplicados, que é mais específico que BadRequest (400)
+                    return Conflict(new { message = validationResult.ErrorMessage });
                 }
 
-                // Criar cliente
                 var cliente = new Cliente
                 {
                     Nome = dto.Nome.Trim(),
-                    Email = dto.Email.ToLower().Trim(),
+                    Email = dto.Email.ToLower().Trim(), // Normaliza para salvar
                     Telefone = LimparTelefone(dto.Telefone),
                     Endereco = dto.Endereco?.Trim(),
                     SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha),
@@ -135,15 +136,23 @@ namespace TartaroAPI.Controllers
 
                 var jwt = GerarJwt(cliente);
                 var refreshToken = await CriarRefreshTokenAsync(cliente.Id);
-                
+
                 _logger.LogInformation("Cadastro bem-sucedido para cliente: {ClienteId}", cliente.Id);
-                
-                return Ok(new { 
-                    token = jwt, 
-                    refreshToken = refreshToken, 
+
+                return Ok(new
+                {
+                    token = jwt,
+                    refreshToken = refreshToken,
                     user = MapUser(cliente),
                     message = "Cadastro realizado com sucesso!"
                 });
+            }
+            // MELHORIA: Tratar exceção de chave única do banco de dados (evita "race condition").
+            // Isso acontece se dois usuários tentarem se cadastrar com o mesmo email ao mesmo tempo.
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogWarning(dbEx, "Violação de constraint única ao cadastrar email: {Email}", dto.Email);
+                return Conflict(new { message = "Email ou telefone já cadastrado." }); // HTTP 409 Conflict
             }
             catch (Exception ex)
             {
@@ -171,17 +180,16 @@ namespace TartaroAPI.Controllers
                 {
                     return Unauthorized(new { message = "Refresh token inválido ou expirado." });
                 }
-
-                // Gerar novos tokens
+                
                 var newJwt = GerarJwt(refreshToken.Cliente);
                 var newRefreshToken = await CriarRefreshTokenAsync(refreshToken.ClienteId);
                 
-                // Remover o refresh token usado
                 _context.RefreshTokens.Remove(refreshToken);
                 await _context.SaveChangesAsync();
 
-                return Ok(new { 
-                    token = newJwt, 
+                return Ok(new
+                {
+                    token = newJwt,
                     refreshToken = newRefreshToken,
                     expiresAt = DateTime.UtcNow.Add(TokenTtl)
                 });
@@ -194,7 +202,7 @@ namespace TartaroAPI.Controllers
         }
 
         [HttpPost("logout")]
-        [Authorize]
+        [Authorize] // Requer que o usuário esteja autenticado
         public async Task<IActionResult> Logout([FromBody] RefreshTokenDTO dto)
         {
             try
@@ -206,8 +214,13 @@ namespace TartaroAPI.Controllers
                     
                     if (refreshToken != null)
                     {
-                        _context.RefreshTokens.Remove(refreshToken);
-                        await _context.SaveChangesAsync();
+                        // Opcional: Validar se o refresh token pertence ao usuário logado
+                        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                        if (refreshToken.ClienteId.ToString() == userId)
+                        {
+                           _context.RefreshTokens.Remove(refreshToken);
+                           await _context.SaveChangesAsync();
+                        }
                     }
                 }
 
@@ -216,6 +229,7 @@ namespace TartaroAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Erro no logout");
+                // Mesmo em caso de erro, o cliente deve ser deslogado.
                 return Ok(new { message = "Logout realizado." });
             }
         }
@@ -243,8 +257,7 @@ namespace TartaroAPI.Controllers
                     await _context.SaveChangesAsync();
                     await _emailService.EnviarEmailRecuperacaoAsync(cliente.Email, resetToken);
                 }
-
-                // Sempre retorna sucesso por segurança
+                
                 return Ok(new { message = "Se o email existir, você receberá instruções para redefinir sua senha." });
             }
             catch (Exception ex)
@@ -254,23 +267,22 @@ namespace TartaroAPI.Controllers
             }
         }
 
-        // Métodos auxiliares privados
+        // --- Métodos Auxiliares ---
         private async Task<ValidationResult> ValidarDadosCadastro(RegisterDTO dto)
         {
-            // Verificar email único
-            if (await _context.Clientes.AnyAsync(c => c.Email.ToLower() == dto.Email.ToLower().Trim()))
+            // CORREÇÃO: Normalizar o input ANTES da consulta ao banco.
+            var emailNormalizado = dto.Email.ToLower().Trim();
+            if (await _context.Clientes.AnyAsync(c => c.Email == emailNormalizado))
             {
                 return ValidationResult.Fail("Email já está em uso.");
             }
 
-            // Validar telefone
             var telefoneNumeros = LimparTelefone(dto.Telefone);
             if (string.IsNullOrEmpty(telefoneNumeros) || !ValidarTelefoneBrasileiro(telefoneNumeros))
             {
                 return ValidationResult.Fail("Telefone inválido. Use o formato brasileiro com DDD.");
             }
-
-            // Verificar telefone único
+            
             if (await _context.Clientes.AnyAsync(c => c.Telefone == telefoneNumeros))
             {
                 return ValidationResult.Fail("Telefone já está em uso.");
@@ -281,7 +293,7 @@ namespace TartaroAPI.Controllers
 
         private static string LimparTelefone(string telefone)
         {
-            return string.IsNullOrEmpty(telefone) ? "" : 
+            return string.IsNullOrEmpty(telefone) ? "" :
                 System.Text.RegularExpressions.Regex.Replace(telefone, @"\D", "");
         }
 
@@ -293,8 +305,7 @@ namespace TartaroAPI.Controllers
             var ddd = int.Parse(telefone.Substring(0, 2));
             if (ddd < 11 || ddd > 99)
                 return false;
-
-            // Se tem 11 dígitos, deve ser celular (9 na terceira posição)
+            
             if (telefone.Length == 11 && telefone[2] != '9')
                 return false;
 
@@ -328,14 +339,14 @@ namespace TartaroAPI.Controllers
                 new Claim(ClaimTypes.Email, cliente.Email),
                 new Claim(ClaimTypes.Role, cliente.Tipo.ToUpper()),
                 new Claim("telefone", cliente.Telefone ?? ""),
-                new Claim("iat", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
             };
             
             var token = new JwtSecurityToken(
-                _configuration["Jwt:Issuer"], 
-                _configuration["Jwt:Audience"], 
-                claims, 
-                expires: expiresAt, 
+                _configuration["Jwt:Issuer"],
+                _configuration["Jwt:Audience"],
+                claims,
+                expires: expiresAt,
                 signingCredentials: creds
             );
             
@@ -344,11 +355,11 @@ namespace TartaroAPI.Controllers
 
         private async Task<string> CriarRefreshTokenAsync(int clienteId)
         {
-            var refresh = new RefreshToken 
-            { 
-                Token = Guid.NewGuid().ToString() + Guid.NewGuid().ToString(), // Token mais longo
-                Expiracao = DateTime.UtcNow.AddDays(30), // 30 dias
-                ClienteId = clienteId 
+            var refresh = new RefreshToken
+            {
+                Token = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N"), // Token mais seguro
+                Expiracao = DateTime.UtcNow.AddDays(30),
+                ClienteId = clienteId
             };
             
             _context.RefreshTokens.Add(refresh);
@@ -357,11 +368,11 @@ namespace TartaroAPI.Controllers
             return refresh.Token;
         }
 
-        private object MapUser(Cliente cliente) => new 
-        { 
-            id = cliente.Id, 
-            nome = cliente.Nome, 
-            email = cliente.Email, 
+        private object MapUser(Cliente cliente) => new
+        {
+            id = cliente.Id,
+            nome = cliente.Nome,
+            email = cliente.Email,
             telefone = cliente.Telefone,
             endereco = cliente.Endereco,
             tipo = cliente.Tipo,
@@ -369,21 +380,7 @@ namespace TartaroAPI.Controllers
             dataCriacao = cliente.DataCriacao,
             ativo = cliente.Ativo
         };
-
-        private bool IsValidEmail(string email)
-        {
-            try
-            {
-                var addr = new System.Net.Mail.MailAddress(email);
-                return addr.Address == email;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        // Classe auxiliar para validação
+        
         private class ValidationResult
         {
             public bool IsValid { get; set; }

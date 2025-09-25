@@ -1,4 +1,3 @@
-import React from "react";
 import { Navbar, Nav, Container, NavDropdown, Spinner } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext"; // Caminho correto para o contexto
