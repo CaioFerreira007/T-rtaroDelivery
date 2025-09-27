@@ -12,8 +12,8 @@ using TartaroAPI.Data;
 namespace TartaroAPI.Migrations
 {
     [DbContext(typeof(TartaroDbContext))]
-    [Migration("20250923003754_CorrecoesFinais")]
-    partial class CorrecoesFinais
+    [Migration("20250926232343_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -82,22 +82,45 @@ namespace TartaroAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("Ativo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true)
+                        .HasColumnName("Ativo");
+
+                    b.Property<DateTime>("DataCriacao")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DataCriacao")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)")
+                        .HasColumnName("Email");
+
+                    b.Property<string>("Endereco")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)")
+                        .HasColumnName("Endereco");
 
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("Nome");
 
                     b.Property<string>("SenhaHash")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("SenhaHash");
 
                     b.Property<string>("Telefone")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)")
+                        .HasColumnName("Telefone");
 
                     b.Property<string>("Tipo")
                         .IsRequired()
@@ -107,17 +130,86 @@ namespace TartaroAPI.Migrations
                         .HasDefaultValue("cliente");
 
                     b.Property<DateTime?>("TokenExpiraEm")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime2")
+                        .HasColumnName("TokenExpiraEm");
 
                     b.Property<string>("TokenRecuperacao")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("TokenRecuperacao");
+
+                    b.Property<DateTime?>("UltimaAtualizacao")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("UltimaAtualizacao");
 
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
                         .IsUnique();
 
+                    b.HasIndex("Telefone")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Clientes_Telefone")
+                        .HasFilter("[Telefone] IS NOT NULL AND [Telefone] != ''");
+
                     b.ToTable("Clientes");
+                });
+
+            modelBuilder.Entity("TartaroAPI.Models.LogEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LogType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Metadata")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StackTrace")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserAgent")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LogType");
+
+                    b.HasIndex("Timestamp");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("LogEntries");
                 });
 
             modelBuilder.Entity("TartaroAPI.Models.Pagamento", b =>
@@ -376,7 +468,7 @@ namespace TartaroAPI.Migrations
             modelBuilder.Entity("TartaroAPI.Models.RefreshToken", b =>
                 {
                     b.HasOne("TartaroAPI.Models.Cliente", "Cliente")
-                        .WithMany()
+                        .WithMany("RefreshTokens")
                         .HasForeignKey("ClienteId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -387,6 +479,8 @@ namespace TartaroAPI.Migrations
             modelBuilder.Entity("TartaroAPI.Models.Cliente", b =>
                 {
                     b.Navigation("Pedidos");
+
+                    b.Navigation("RefreshTokens");
                 });
 
             modelBuilder.Entity("TartaroAPI.Models.Pedido", b =>

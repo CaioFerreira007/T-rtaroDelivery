@@ -4,7 +4,8 @@ import {
   register as registerService, 
   logout as logoutService, 
   isAuthenticated, 
-  getCurrentUser 
+  getCurrentUser,
+  updateCurrentUser 
 } from '../services/authService';
 
 const AuthContext = createContext();
@@ -111,11 +112,15 @@ export const AuthProvider = ({ children }) => {
     setUsuarioLogado(userData);
     if (userData) {
       localStorage.setItem('user', JSON.stringify(userData));
+      // Atualizar também no authService
+      updateCurrentUser(userData);
     }
   };
 
   const contextValue = {
+    // Manter compatibilidade com ambas as formas
     usuarioLogado,
+    usuariologado: usuarioLogado, // Compatibilidade
     user: usuarioLogado,
     isLoading,
     loading: isLoading,

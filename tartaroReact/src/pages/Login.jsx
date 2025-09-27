@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Container, Form, Button, Alert, Spinner } from "react-bootstrap";
-import { useNavigate, Link } from "react-router-dom";
+import { Container, Form, Button, Alert, Spinner, Card } from "react-bootstrap";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import "../styles/Login.css";
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, isLoading, isLoggedIn, isInitialized } = useAuth();
   
   const [formData, setFormData] = useState({
@@ -16,16 +18,20 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
 
+  // Redirecionar após login bem-sucedido
   useEffect(() => {
     if (isInitialized && isLoggedIn) {
-      navigate("/home", { replace: true });
+      // Se veio de uma página protegida, voltar para lá
+      const from = location.state?.from?.pathname || "/home";
+      navigate(from, { replace: true });
     }
-  }, [isLoggedIn, isInitialized, navigate]);
+  }, [isLoggedIn, isInitialized, navigate, location]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
 
+    // Limpar erros ao digitar
     if (validationErrors[name]) {
       setValidationErrors(prev => ({ ...prev, [name]: "" }));
     }
@@ -35,9 +41,11 @@ function Login() {
   const validateField = (name, value) => {
     switch (name) {
       case "email":
+        if (!value.trim()) return "Email é obrigatório";
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return !emailRegex.test(value) ? "Email inválido" : "";
       case "senha":
+        if (!value) return "Senha é obrigatória";
         return value.length < 6 ? "Senha deve ter pelo menos 6 caracteres" : "";
       default:
         return "";
@@ -59,14 +67,10 @@ function Login() {
     setErro("");
     
     console.log("=== INICIANDO LOGIN ===");
+    console.log("Email:", formData.email);
 
     if (!validateForm()) {
       setErro("Por favor, corrija os erros no formulário.");
-      return;
-    }
-
-    if (!formData.email.trim() || !formData.senha) {
-      setErro("Email e senha são obrigatórios.");
       return;
     }
 
@@ -74,21 +78,35 @@ function Login() {
 
     try {
       console.log("Chamando serviço de login...");
-      await login(formData.email.trim(), formData.senha);
-      console.log("Login bem-sucedido");
+      const usuario = await login(formData.email.trim().toLowerCase(), formData.senha);
+      console.log("Login bem-sucedido:", usuario);
+      
+      // O redirecionamento é feito pelo useEffect
     } catch (error) {
-      console.error("Erro no login:", error);
+      console.error("Erro detalhado no login:", error);
       
-      let mensagemErro = "Erro ao fazer login.";
+      let mensagemErro = "Erro ao fazer login. Tente novamente.";
       
-      if (error.response?.status === 401) {
-        mensagemErro = "Email ou senha incorretos.";
-      } else if (error.response?.status === 400) {
-        mensagemErro = "Dados inválidos.";
+      if (error.response) {
+        const status = error.response.status;
+        const data = error.response.data;
+        
+        console.log("Status do erro:", status);
+        console.log("Dados do erro:", data);
+        
+        if (status === 401) {
+          mensagemErro = "Email ou senha incorretos.";
+        } else if (status === 400) {
+          mensagemErro = data?.message || "Dados inválidos.";
+        } else if (status >= 500) {
+          mensagemErro = "Erro no servidor. Tente novamente mais tarde.";
+        } else if (data?.message) {
+          mensagemErro = data.message;
+        }
+      } else if (error.request) {
+        mensagemErro = "Erro de conexão. Verifique sua internet.";
       } else if (error.message) {
         mensagemErro = error.message;
-      } else if (error.response?.status >= 500) {
-        mensagemErro = "Erro interno do servidor. Tente novamente.";
       }
       
       setErro(mensagemErro);
@@ -99,93 +117,104 @@ function Login() {
 
   if (!isInitialized) {
     return (
-      <Container className="cadastro-container">
-        <div className="form-wrapper text-center">
-          <Spinner animation="border" variant="success" />
-          <p className="mt-3">Carregando...</p>
-        </div>
+      <Container className="mt-5 text-center">
+        <Spinner animation="border" variant="success" />
+        <p className="mt-3">Carregando...</p>
       </Container>
     );
   }
 
   return (
-    <Container className="cadastro-container">
-      <div className="form-wrapper">
-        <h2 className="text-center mb-4">Entrar - Tártaro Delivery</h2>
-        
-        {erro && (
-          <Alert variant="danger" dismissible onClose={() => setErro("")}>
-            <strong>Erro:</strong> {erro}
-          </Alert>
-        )}
+    <Container className="login-container mt-5">
+      <Card className="shadow-sm">
+        <Card.Body className="p-4">
+          <h2 className="text-center mb-4">🔑 Entrar - Tártaro Delivery</h2>
+          
+          {erro && (
+            <Alert variant="danger" dismissible onClose={() => setErro("")}>
+              {erro}
+            </Alert>
+          )}
 
-        <Form onSubmit={handleSubmit}>
-          <Form.Group className="mb-3">
-            <Form.Label>E-mail *</Form.Label>
-            <Form.Control
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              placeholder="exemplo@email.com"
-              required
-              isInvalid={!!validationErrors.email}
+          <Form onSubmit={handleSubmit} noValidate>
+            <Form.Group className="mb-3">
+              <Form.Label>E-mail</Form.Label>
+              <Form.Control
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="seu@email.com"
+                required
+                isInvalid={!!validationErrors.email}
+                disabled={loading || isLoading}
+                autoComplete="email"
+                autoFocus
+              />
+              <Form.Control.Feedback type="invalid">
+                {validationErrors.email}
+              </Form.Control.Feedback>
+            </Form.Group>
+
+            <Form.Group className="mb-4">
+              <Form.Label>Senha</Form.Label>
+              <Form.Control
+                type="password"
+                name="senha"
+                value={formData.senha}
+                onChange={handleInputChange}
+                placeholder="Digite sua senha"
+                required
+                isInvalid={!!validationErrors.senha}
+                disabled={loading || isLoading}
+                autoComplete="current-password"
+              />
+              <Form.Control.Feedback type="invalid">
+                {validationErrors.senha}
+              </Form.Control.Feedback>
+            </Form.Group>
+
+            <Button 
+              variant="success" 
+              type="submit" 
+              size="lg" 
+              className="w-100 mb-3"
               disabled={loading || isLoading}
-            />
-            <Form.Control.Feedback type="invalid">
-              {validationErrors.email}
-            </Form.Control.Feedback>
-          </Form.Group>
+            >
+              {loading || isLoading ? (
+                <>
+                  <Spinner
+                    as="span"
+                    animation="border"
+                    size="sm"
+                    role="status"
+                    aria-hidden="true"
+                    className="me-2"
+                  />
+                  Entrando...
+                </>
+              ) : (
+                "Entrar"
+              )}
+            </Button>
 
-          <Form.Group className="mb-4">
-            <Form.Label>Senha *</Form.Label>
-            <Form.Control
-              type="password"
-              name="senha"
-              value={formData.senha}
-              onChange={handleInputChange}
-              placeholder="Digite sua senha"
-              required
-              isInvalid={!!validationErrors.senha}
-              disabled={loading || isLoading}
-            />
-            <Form.Control.Feedback type="invalid">
-              {validationErrors.senha}
-            </Form.Control.Feedback>
-          </Form.Group>
-
-          <Button 
-            variant="success" 
-            type="submit" 
-            size="lg" 
-            className="w-100 mb-3"
-            disabled={loading || isLoading}
-          >
-            {loading || isLoading ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                Entrando...
-              </>
-            ) : (
-              "Entrar"
-            )}
-          </Button>
-
-          <div className="text-center">
-            <p className="mb-2">
-              <Link to="/esqueci-senha" className="text-decoration-none">
-                Esqueci minha senha
-              </Link>
-            </p>
-            <p className="mb-0">
-              Não tem uma conta?{" "}
-              <Link to="/cadastro" className="text-decoration-none fw-bold">
-                Cadastre-se aqui
-              </Link>
-            </p>
-          </div>
-        </Form>
-      </div>
+            <div className="text-center">
+              <p className="mb-2">
+                <Link to="/esqueci-senha" className="text-decoration-none">
+                  Esqueci minha senha
+                </Link>
+              </p>
+              <hr />
+              <p className="mb-0">
+                Não tem uma conta?{" "}
+                <Link to="/cadastro" className="text-decoration-none fw-bold text-success">
+                  Cadastre-se aqui
+                </Link>
+              </p>
+            </div>
+          </Form>
+        </Card.Body>
+      </Card>
     </Container>
   );
 }
