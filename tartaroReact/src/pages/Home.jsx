@@ -29,7 +29,6 @@ function Home() {
       const carrinhoSalvo = localStorage.getItem(carrinhoKey);
       const carrinho = carrinhoSalvo ? JSON.parse(carrinhoSalvo) : [];
       
-      // Validar estrutura do carrinho
       return Array.isArray(carrinho) ? carrinho.filter(item => 
         item && item.id && item.nome && typeof item.preco === 'number' && item.quantidade > 0
       ) : [];
@@ -61,23 +60,62 @@ function Home() {
     }
   }, []);
 
-  // Carregar produtos
+  // Carregar produtos com debug e validação aprimorados
   useEffect(() => {
     const carregarProdutos = async () => {
       try {
         setLoading(true);
         setError("");
+        
+        console.log("🔄 Iniciando carregamento de produtos...");
         const listaProdutos = await getProdutos();
         
-        if (Array.isArray(listaProdutos)) {
-          setProdutos(listaProdutos);
+        console.log("📦 Resposta de getProdutos:", listaProdutos);
+        console.log("📦 Tipo da resposta:", typeof listaProdutos);
+        console.log("📦 É array?", Array.isArray(listaProdutos));
+        console.log("📦 Quantidade de itens:", listaProdutos?.length);
+        
+        if (Array.isArray(listaProdutos) && listaProdutos.length > 0) {
+          // Filtrar apenas produtos válidos
+          const produtosValidos = listaProdutos.filter(p => {
+            const valido = p.id && 
+              p.nome && 
+              p.nome.trim() !== '' && 
+              p.preco > 0 &&
+              p.categoria &&
+              p.categoria.trim() !== '';
+            
+            if (!valido) {
+              console.warn("⚠️ Produto inválido ignorado:", p);
+            }
+            return valido;
+          });
+          
+          console.log("✅ Produtos válidos:", produtosValidos.length);
+          
+          if (produtosValidos.length > 0) {
+            setProdutos(produtosValidos);
+          } else {
+            setProdutos([]);
+            setError("Produtos estão com dados incompletos.");
+          }
+        } else if (Array.isArray(listaProdutos) && listaProdutos.length === 0) {
+          console.warn("⚠️ API retornou array vazio");
+          setProdutos([]);
+          setError("Nenhum produto cadastrado no momento.");
         } else {
-          console.warn("API retornou dados inválidos para produtos:", listaProdutos);
+          console.error("❌ API retornou formato inválido:", listaProdutos);
           setProdutos([]);
           setError("Formato de dados inválido recebido do servidor.");
         }
       } catch (err) {
-        console.error("Erro ao carregar produtos:", err);
+        console.error("❌ Erro ao carregar produtos:", err);
+        console.error("❌ Detalhes do erro:", {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status
+        });
+        
         setProdutos([]);
         
         let mensagemErro = "Erro ao carregar produtos.";
@@ -85,10 +123,13 @@ function Home() {
           mensagemErro = "Erro de conexão. Verifique sua internet.";
         } else if (err.response.status >= 500) {
           mensagemErro = "Erro no servidor. Tente novamente mais tarde.";
+        } else if (err.response.status === 404) {
+          mensagemErro = "Endpoint de produtos não encontrado.";
         }
         setError(mensagemErro);
       } finally {
         setLoading(false);
+        console.log("🏁 Carregamento finalizado");
       }
     };
 
@@ -110,7 +151,6 @@ function Home() {
     if (usuarioLogado?.id) {
       salvarCarrinhoUsuario(usuarioLogado.id, carrinho);
       
-      // Fechar carrinho se estiver vazio
       if (carrinho.length === 0) {
         setMostrarCarrinho(false);
       }
@@ -121,7 +161,6 @@ function Home() {
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === "user") {
-        // Recarregar carrinho se usuário mudou
         if (usuarioLogado?.id) {
           const carrinhoAtualizado = obterCarrinhoUsuario(usuarioLogado.id);
           setCarrinho(carrinhoAtualizado);
@@ -140,7 +179,6 @@ function Home() {
       return;
     }
 
-    // Validar produto
     if (!produto || !produto.id || !produto.nome || typeof produto.preco !== 'number') {
       console.error("Produto inválido:", produto);
       return;
@@ -186,19 +224,16 @@ function Home() {
     try {
       setFinalizandoPedido(true);
       
-      // Aqui você pode integrar com um serviço de pedidos real
       console.log("Finalizando pedido para usuário:", usuarioLogado.id);
       console.log("Itens do pedido:", carrinho);
       
-      // Simular delay da API
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Limpar carrinho após sucesso
       limparCarrinhoUsuario(usuarioLogado.id);
       setCarrinho([]);
       setMostrarCarrinho(false);
 
-      alert("Pedido realizado com sucesso! 🎉");
+      alert("Pedido realizado com sucesso!");
       
     } catch (error) {
       console.error("Erro ao finalizar pedido:", error);
@@ -236,7 +271,7 @@ function Home() {
 
   return (
     <Container className="menu-container mt-5 mb-5 fade-in">
-      <h1 className="text-center mb-4">🍔 Cardápio Tártaro Delivery</h1>
+      <h1 className="text-center mb-4">Cardápio Tártaro Delivery</h1>
 
       {!isLoggedIn && (
         <Alert variant="info" className="text-center">
@@ -277,11 +312,23 @@ function Home() {
             <Spinner animation="border" variant="success" />
             <p className="text-muted mt-3">Carregando produtos...</p>
           </Col>
-        ) : produtosFiltrados.length === 0 && !error ? (
+        ) : produtosFiltrados.length === 0 ? (
           <Col xs={12} className="text-center">
             <Alert variant="warning">
               <h4>Nenhum produto encontrado</h4>
-              <p>Não há produtos disponíveis nesta categoria no momento.</p>
+              <p>
+                {error 
+                  ? "Ocorreu um erro ao carregar os produtos." 
+                  : filtro === "Todos"
+                    ? "Não há produtos cadastrados no momento."
+                    : `Não há produtos na categoria "${filtro}".`
+                }
+              </p>
+              {error && (
+                <Button variant="outline-warning" onClick={() => window.location.reload()}>
+                  Recarregar Página
+                </Button>
+              )}
             </Alert>
           </Col>
         ) : (
@@ -317,7 +364,7 @@ function Home() {
           onClick={() => setMostrarCarrinho(true)}
           disabled={finalizandoPedido}
         >
-          🛒 Ver Carrinho ({totalItensCarrinho})
+          Ver Carrinho ({totalItensCarrinho})
         </Button>
       )}
 

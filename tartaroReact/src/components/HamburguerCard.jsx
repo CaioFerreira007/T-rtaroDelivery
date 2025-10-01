@@ -8,16 +8,13 @@ import "../styles/HamburguerCard.css";
 function HamburguerCard({ id, nome, descricao, preco, imagens, onAdd }) {
   const { usuariologado } = useContext(AuthContext);
   const navigate = useNavigate();
-  const urlBase = "http://localhost:5120/imagens/";
 
-  // Verifica se o usuário é ADM
   const role = usuariologado?.tipo || "";
   const isAdmin = role.toUpperCase().trim() === "ADM";
 
+  // Filtrar e validar imagens - USAR DIRETAMENTE as URLs do banco
   const listaImagens = Array.isArray(imagens)
-    ? imagens
-        .filter((url) => typeof url === "string" && url.trim() !== "")
-        .map((url) => (url.startsWith("http") ? url : `${urlBase}${url}`))
+    ? imagens.filter((url) => typeof url === "string" && url.trim() !== "")
     : [];
 
   const precoFormatado = isNaN(Number(preco))
@@ -28,9 +25,12 @@ function HamburguerCard({ id, nome, descricao, preco, imagens, onAdd }) {
     if (id) {
       navigate(`/admin/produtos/editar/${id}`);
     } else {
-      alert("⚠️ Produto sem ID. Não é possível editar.");
+      alert("Produto sem ID. Não é possível editar.");
     }
   };
+
+  // Imagem de fallback inline (SVG com ícone de hambúrguer)
+  const imagemFallback = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect fill='%23f0f0f0' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='60' fill='%23999'%3E🍔%3C/text%3E%3C/svg%3E";
 
   return (
     <Card className="hamburguer-card">
@@ -45,16 +45,25 @@ function HamburguerCard({ id, nome, descricao, preco, imagens, onAdd }) {
                   className="produto-img"
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = "/imagens/fallback.jpg";
-                    e.target.style.border = "2px solid red";
+                    e.target.src = imagemFallback;
+                    console.warn(`Imagem não carregada: ${img}`);
                   }}
+                  loading="lazy"
                 />
               </Carousel.Item>
             ))}
           </Carousel>
         ) : (
           <div className="imagem-fallback">
-            <span>Imagem não disponível</span>
+            <img 
+              src={imagemFallback} 
+              alt={nome}
+              className="produto-img"
+              style={{ objectFit: 'contain', padding: '20px' }}
+            />
+            <span style={{ position: 'absolute', bottom: '10px', fontSize: '12px', color: '#999' }}>
+              Sem imagem
+            </span>
           </div>
         )}
       </div>

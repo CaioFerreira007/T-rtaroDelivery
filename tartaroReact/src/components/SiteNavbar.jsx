@@ -53,9 +53,7 @@ function SiteNavbar() {
                 <Nav.Link as={Link} to="/admin/cadastro-produto" className="nav-link-custom admin-link">
                   ➕ Cadastrar Produto
                 </Nav.Link>
-                <Nav.Link as={Link} to="/dashboard" className="nav-link-custom admin-link">
-                  📊 Dashboard
-                </Nav.Link>
+               
               </>
             )}
 

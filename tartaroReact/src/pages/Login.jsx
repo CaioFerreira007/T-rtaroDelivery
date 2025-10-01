@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Container, Form, Button, Alert, Spinner, Card } from "react-bootstrap";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -7,7 +7,7 @@ import "../styles/Login.css";
 function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isLoading, isLoggedIn, isInitialized } = useAuth();
+  const { login, isLoading } = useAuth();
   
   const [formData, setFormData] = useState({
     email: "",
@@ -18,20 +18,10 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
 
-  // Redirecionar após login bem-sucedido
-  useEffect(() => {
-    if (isInitialized && isLoggedIn) {
-      // Se veio de uma página protegida, voltar para lá
-      const from = location.state?.from?.pathname || "/home";
-      navigate(from, { replace: true });
-    }
-  }, [isLoggedIn, isInitialized, navigate, location]);
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
 
-    // Limpar erros ao digitar
     if (validationErrors[name]) {
       setValidationErrors(prev => ({ ...prev, [name]: "" }));
     }
@@ -81,7 +71,10 @@ function Login() {
       const usuario = await login(formData.email.trim().toLowerCase(), formData.senha);
       console.log("Login bem-sucedido:", usuario);
       
-      // O redirecionamento é feito pelo useEffect
+      // Redirecionar após login bem-sucedido
+      const from = location.state?.from?.pathname || "/home";
+      navigate(from, { replace: true });
+      
     } catch (error) {
       console.error("Erro detalhado no login:", error);
       
@@ -115,20 +108,11 @@ function Login() {
     }
   };
 
-  if (!isInitialized) {
-    return (
-      <Container className="mt-5 text-center">
-        <Spinner animation="border" variant="success" />
-        <p className="mt-3">Carregando...</p>
-      </Container>
-    );
-  }
-
   return (
     <Container className="login-container mt-5">
       <Card className="shadow-sm">
         <Card.Body className="p-4">
-          <h2 className="text-center mb-4">🔑 Entrar - Tártaro Delivery</h2>
+          <h2 className="text-center mb-4">Entrar - Tártaro Delivery</h2>
           
           {erro && (
             <Alert variant="danger" dismissible onClose={() => setErro("")}>

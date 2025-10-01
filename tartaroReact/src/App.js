@@ -8,7 +8,6 @@ import EditarPerfil from "./pages/EditarPerfil";
 import Checkout from "./pages/Checkout";
 import RecuperarSenha from "./pages/RecuperarSenha";
 import MeusPedidos from "./pages/MeusPedidos";
-import Dashboard from "./components/Dashboard";
 
 // Componentes
 import { AuthProvider } from "./context/AuthContext";
@@ -43,7 +42,6 @@ function App() {
           <Route path="/checkout" element={<RotaPrivada><Checkout /></RotaPrivada>} />
           
           {/* Rotas de Admin (também protegidas) */}
-          <Route path="/dashboard" element={<RotaPrivada><Dashboard /></RotaPrivada>} />
           <Route path="/admin/cadastro-produto" element={<RotaPrivada><CadastroProdutoADM /></RotaPrivada>} />
           <Route path="/admin/produtos/editar/:id" element={<RotaPrivada><EditarProduto /></RotaPrivada>} />
         </Routes>
