@@ -27,6 +27,13 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
 
+  <!-- Garantir que wwwroot/imagens seja criada e mantida -->
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
+    <Folder Include="wwwroot\imagens\" />
+  </ItemGroup>
+
+  <!-- Build do React e cópia para wwwroot -->
   <Target Name="PublishRunWebpack" AfterTargets="ComputeFilesToPublish">
     <Message Text="Running npm install in ..\TartaroReact..." Importance="high" />
     <Exec WorkingDirectory="..\TartaroReact" Command="npm install" />
@@ -41,6 +48,12 @@
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       </ResolvedFileToPublish>
     </ItemGroup>
+  </Target>
+
+  <!-- Preservar pasta de imagens durante o publish -->
+  <Target Name="PreserveImagesFolder" AfterTargets="PublishRunWebpack">
+    <MakeDir Directories="$(PublishDir)wwwroot\imagens" Condition="!Exists('$(PublishDir)wwwroot\imagens')" />
+    <Message Text="Pasta wwwroot\imagens preservada no publish" Importance="high" />
   </Target>
 
 </Project>

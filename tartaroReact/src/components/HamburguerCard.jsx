@@ -12,7 +12,7 @@ function HamburguerCard({ id, nome, descricao, preco, imagens, onAdd }) {
   const role = usuariologado?.tipo || "";
   const isAdmin = role.toUpperCase().trim() === "ADM";
 
-  // Filtrar e validar imagens - USAR DIRETAMENTE as URLs do banco
+  // NÃO CONCATENAR NADA - usar URLs direto do banco
   const listaImagens = Array.isArray(imagens)
     ? imagens.filter((url) => typeof url === "string" && url.trim() !== "")
     : [];
@@ -29,7 +29,6 @@ function HamburguerCard({ id, nome, descricao, preco, imagens, onAdd }) {
     }
   };
 
-  // Imagem de fallback inline (SVG com ícone de hambúrguer)
   const imagemFallback = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect fill='%23f0f0f0' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='60' fill='%23999'%3E🍔%3C/text%3E%3C/svg%3E";
 
   return (

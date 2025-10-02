@@ -22,9 +22,9 @@ function BarraCarrinho({
     formaPagamento: "",
   });
   const [observacoesItens, setObservacoesItens] = useState({});
+  const [expandedItem, setExpandedItem] = useState(null);
 
   const NUMERO_WHATSAPP = "5521980280098";
-
   const total = carrinho.reduce(
     (soma, item) => soma + item.preco * item.quantidade,
     0
@@ -32,14 +32,10 @@ function BarraCarrinho({
 
   if (carrinho.length === 0) return null;
 
-  // ✅ VERSÃO 2 - USANDO A API OFICIAL (MAIS ROBUSTA)
   const gerarUrlWhatsApp = (mensagem) => {
     const mensagemCodificada = encodeURIComponent(mensagem);
-    // Esta URL funciona de forma inteligente tanto no mobile quanto no desktop.
-    // É o método mais recomendado pelo próprio WhatsApp.
     return `https://api.whatsapp.com/send?phone=${NUMERO_WHATSAPP}&text=${mensagemCodificada}`;
   };
-
 
   const handleFinalizarPedido = () => {
     if (usuariologado && usuariologado.id) {
@@ -80,52 +76,62 @@ function BarraCarrinho({
 
       const produtosList = carrinho
         .map((item) => {
-          const nome = item.nome.padEnd(20, ".");
-          const preco = `R$ ${item.preco.toFixed(2)}`;
           const observacaoItem = observacoesItens[item.id];
-          let linha = `(${item.quantidade}x) ${nome} ${preco}`;
+          let linha = `${item.quantidade}x ${item.nome} - R$ ${(item.preco * item.quantidade).toFixed(2)}`;
           if (observacaoItem && observacaoItem.trim()) {
-            linha += `\n    📝 Obs: ${observacaoItem.trim()}`;
+            linha += `\n   Obs: ${observacaoItem.trim()}`;
           }
           return linha;
         })
         .join("\n\n");
 
       const mensagem = [
-        "*TÁRTARO DELIVERY - NOVO PEDIDO*", "================================",
-        `*PEDIDO:* #${codigo} (ID: ${id})`, `*DATA/HORA:* ${new Date().toLocaleString("pt-BR")}`, "",
-        `*CLIENTE:* ${usuariologado.nome}`, `*TELEFONE:* ${usuariologado.telefone}`, "",
-        `*ENDEREÇO:* ${dadosEntrega.endereco}`,
-        dadosEntrega.pontoReferencia ? `*REFERÊNCIA:* ${dadosEntrega.pontoReferencia}`: null,
-        "--------------------------------", "*ITENS DO PEDIDO:*", "", produtosList, "", "--------------------------------",
-        dadosEntrega.observacoes ? `*OBSERVAÇÕES GERAIS:*\n${dadosEntrega.observacoes}`: null,
-        "================================", `*Subtotal:* R$ ${subtotal.toFixed(2)}`,
-        "*Taxa de Entrega:* a confirmar", "", `*FORMA DE PAGAMENTO:* ${dadosEntrega.formaPagamento}`,
+        "*NOVO PEDIDO - TÁRTARO DELIVERY*",
+        "",
+        `Pedido: #${codigo}`,
+        `Data: ${new Date().toLocaleString("pt-BR")}`,
+        "",
+        `Cliente: ${usuariologado.nome}`,
+        `Telefone: ${usuariologado.telefone}`,
+        "",
+        `Endereço: ${dadosEntrega.endereco}`,
+        dadosEntrega.pontoReferencia ? `Referência: ${dadosEntrega.pontoReferencia}` : null,
+        "",
+        "*ITENS:*",
+        produtosList,
+        "",
+        dadosEntrega.observacoes ? `Observações: ${dadosEntrega.observacoes}` : null,
+        "",
+        `Subtotal: R$ ${subtotal.toFixed(2)}`,
+        `Forma de pagamento: ${dadosEntrega.formaPagamento}`,
       ]
-      .filter(Boolean).join("\n");
+        .filter(Boolean)
+        .join("\n");
 
       const urlWhatsApp = gerarUrlWhatsApp(mensagem);
 
-      // ✅ MÉTODO DE ABERTURA MAIS DIRETO
-      try {
-        window.open(urlWhatsApp, '_blank');
-      } catch (error) {
-        console.error("Erro ao tentar abrir o link do WhatsApp:", error);
-        alert("Não foi possível abrir o WhatsApp. Por favor, tente novamente.");
-      }
+      // SOLUÇÃO PARA iOS: usar window.location ao invés de window.open
+      window.location.href = urlWhatsApp;
 
-      limparCarrinho();
-      setShowModal(false);
-      setDadosEntrega({ endereco: "", pontoReferencia: "", observacoes: "", formaPagamento: "" });
-      setObservacoesItens({});
+      // Limpar dados após delay para garantir que o WhatsApp abra
+      setTimeout(() => {
+        limparCarrinho();
+        setShowModal(false);
+        setDadosEntrega({
+          endereco: "",
+          pontoReferencia: "",
+          observacoes: "",
+          formaPagamento: "",
+        });
+        setObservacoesItens({});
+      }, 500);
 
     } catch (error) {
-      console.error("Erro ao enviar pedido para a API:", error);
-      alert("Não foi possível registrar o pedido no sistema. Tente novamente.");
+      console.error("Erro ao enviar pedido:", error);
+      alert("Não foi possível registrar o pedido. Tente novamente.");
     }
   };
-  
-  // O resto do seu componente continua aqui...
+
   const handleInputChange = (campo, valor) => {
     setDadosEntrega((prev) => ({ ...prev, [campo]: valor }));
   };
@@ -136,31 +142,72 @@ function BarraCarrinho({
 
   return (
     <>
-      <div className="barra-carrinho bg-white border-top shadow p-3">
-        {/* ... seu JSX do carrinho ... */}
-        {carrinho.map((item) => (
-          <div key={item.id} className="mb-3 p-2 border rounded">
-            {/* ... conteúdo do item ... */}
+      <div className="carrinho-overlay" onClick={onClose}></div>
+      
+      <div className="carrinho-sidebar">
+        <div className="carrinho-header">
+          <h3>Meu Carrinho</h3>
+          <button className="btn-fechar" onClick={onClose}>×</button>
+        </div>
+
+        <div className="carrinho-itens">
+          {carrinho.map((item) => (
+            <div key={item.id} className="item-carrinho">
+              <div className="item-principal">
+                <div className="item-info-row">
+                  <h4>{item.nome}</h4>
+                  <span className="item-total">
+                    R$ {(item.preco * item.quantidade).toFixed(2)}
+                  </span>
+                </div>
+                <p className="item-preco-un">R$ {item.preco.toFixed(2)} un.</p>
+                
+                <div className="item-acoes">
+                  <div className="qty-control">
+                    <button onClick={() => atualizarQuantidade(item.id, "-")}>−</button>
+                    <span>{item.quantidade}</span>
+                    <button onClick={() => atualizarQuantidade(item.id, "+")}>+</button>
+                  </div>
+                  
+                  <button 
+                    className={`btn-obs ${expandedItem === item.id ? 'active' : ''}`}
+                    onClick={() => setExpandedItem(expandedItem === item.id ? null : item.id)}
+                  >
+                    {observacoesItens[item.id] ? '✓ ' : ''}Observações
+                  </button>
+                </div>
+              </div>
+
+              {expandedItem === item.id && (
+                <div className="obs-expandida">
+                  <textarea
+                    placeholder="Ex: sem cebola, ponto da carne..."
+                    value={observacoesItens[item.id] || ""}
+                    onChange={(e) => handleObservacaoItemChange(item.id, e.target.value)}
+                    maxLength={150}
+                    rows={3}
+                  />
+                  <small>{(observacoesItens[item.id] || "").length}/150</small>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="carrinho-footer">
+          <div className="total-row">
+            <span>Subtotal</span>
+            <strong>R$ {total.toFixed(2)}</strong>
           </div>
-        ))}
-        <div className="d-flex justify-content-between align-items-center">
-          <div>
-            <strong>Total: R$ {total.toFixed(2)}</strong>
-            <br />
-            <small className="text-muted">+ Taxa de entrega</small>
-          </div>
-          <div className="d-flex gap-2">
-            <Button variant="outline-danger" onClick={limparCarrinho}>
-              Cancelar
-            </Button>
-            <Button
-              variant="success"
-              onClick={handleFinalizarPedido}
-              className="d-flex align-items-center gap-1"
-            >
-              <span>📱</span>
-              Finalizar via WhatsApp
-            </Button>
+          <small className="taxa-info">+ Taxa de entrega</small>
+          
+          <div className="footer-btns">
+            <button className="btn-cancelar" onClick={limparCarrinho}>
+              Limpar
+            </button>
+            <button className="btn-finalizar" onClick={handleFinalizarPedido}>
+              Finalizar Pedido
+            </button>
           </div>
         </div>
       </div>

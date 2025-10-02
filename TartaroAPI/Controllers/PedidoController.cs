@@ -1,11 +1,10 @@
-
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using TartaroAPI.Data;
 using TartaroAPI.DTO;
-using TartaroAPI.DTOs; // Adicionar o using para o novo DTO
+using TartaroAPI.DTOs;
 using TartaroAPI.Models;
 using TartaroAPI.Services;
 
@@ -95,14 +94,31 @@ namespace TartaroAPI.Controllers
             return Ok(pedido);
         }
 
+        // ✅ CORRIGIDO: /meus agora resolve ClienteId com segurança
         [HttpGet("meus")]
         public async Task<IActionResult> MeusPedidos()
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var emailClaim = User.FindFirstValue(ClaimTypes.Email);
+
+            // tentar encontrar o cliente por ID OU Email
+            Cliente? cliente = null;
+
+            if (int.TryParse(userIdClaim, out int parsedId))
+            {
+                cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.Id == parsedId);
+            }
+
+            if (cliente == null && !string.IsNullOrEmpty(emailClaim))
+            {
+                cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.Email == emailClaim);
+            }
+
+            if (cliente == null)
+                return Unauthorized("Cliente não encontrado para este token.");
 
             var pedidosDto = await _context.Pedidos
-                .Where(p => p.ClienteId == int.Parse(userId))
+                .Where(p => p.ClienteId == cliente.Id)
                 .AsNoTracking()
                 .OrderByDescending(p => p.DataPedido)
                 .Select(p => new PedidoResumoDTO

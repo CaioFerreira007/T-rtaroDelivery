@@ -1,4 +1,3 @@
-import React from "react";
 import { Modal, Form, Button } from "react-bootstrap";
 
 function ModalEntrega({

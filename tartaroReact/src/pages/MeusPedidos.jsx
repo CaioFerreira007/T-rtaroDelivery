@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Container, Card, Alert, Spinner, Badge, Row, Button,Col } from "react-bootstrap";
+import { Container, Card, Alert, Spinner, Badge, Row, Button, Col } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { buscarMeusPedidos } from "../services/PedidoService";
@@ -12,7 +12,6 @@ export default function MeusPedidos() {
   const { isLoggedIn, isInitialized } = useAuth();
 
   useEffect(() => {
-    // Redirecionar se não estiver logado
     if (isInitialized && !isLoggedIn) {
       navigate("/login", { replace: true });
       return;
@@ -24,6 +23,7 @@ export default function MeusPedidos() {
           setLoading(true);
           setErro("");
           const pedidosData = await buscarMeusPedidos();
+          console.log("📦 Pedidos recebidos:", pedidosData);
           setPedidos(Array.isArray(pedidosData) ? pedidosData : []);
         } catch (err) {
           console.error("Erro ao carregar pedidos:", err);
@@ -107,7 +107,7 @@ export default function MeusPedidos() {
                     <strong>Data:</strong><br />
                     <small>{formatarData(pedido.dataPedido)}</small>
                   </Card.Text>
-                  
+
                   {pedido.pagamento && (
                     <Card.Text>
                       <strong>Total:</strong> R$ {pedido.pagamento.valorTotal.toFixed(2)}<br />

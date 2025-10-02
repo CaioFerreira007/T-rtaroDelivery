@@ -71,7 +71,6 @@ function Login() {
       const usuario = await login(formData.email.trim().toLowerCase(), formData.senha);
       console.log("Login bem-sucedido:", usuario);
       
-      // Redirecionar após login bem-sucedido
       const from = location.state?.from?.pathname || "/home";
       navigate(from, { replace: true });
       
@@ -115,8 +114,18 @@ function Login() {
           <h2 className="text-center mb-4">Entrar - Tártaro Delivery</h2>
           
           {erro && (
-            <Alert variant="danger" dismissible onClose={() => setErro("")}>
-              {erro}
+            <Alert variant="danger">
+              <div className="d-flex justify-content-between align-items-center">
+                <span>{erro}</span>
+                <Button 
+                  size="sm" 
+                  variant="outline-danger" 
+                  onClick={() => setErro("")}
+                  style={{ marginLeft: '10px' }}
+                >
+                  Fechar
+                </Button>
+              </div>
             </Alert>
           )}
 
