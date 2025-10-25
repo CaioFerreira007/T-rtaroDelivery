@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TartaroAPI.Data;
 
@@ -11,9 +12,11 @@ using TartaroAPI.Data;
 namespace TartaroAPI.Migrations
 {
     [DbContext(typeof(TartaroDbContext))]
-    partial class TartaroDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251021235735_AdicionarConfiguracaoLoja")]
+    partial class AdicionarConfiguracaoLoja
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

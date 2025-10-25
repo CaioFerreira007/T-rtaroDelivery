@@ -17,6 +17,7 @@ namespace TartaroAPI.Data
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
         public DbSet<LogEntry> LogEntries { get; set; }
+        public DbSet<ConfiguracaoLoja> ConfiguracoesLoja { get; set; } // 🆕 ADICIONADO
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -50,13 +51,13 @@ namespace TartaroAPI.Data
                 // CORREÇÃO: Mapeamento explícito das colunas problemáticas
                 entity.Property(e => e.Ativo)
                     .IsRequired()
-                    .HasColumnName("Ativo")  // Força o nome correto da coluna
+                    .HasColumnName("Ativo")
                     .HasDefaultValue(true);
                 
                 entity.Property(e => e.Endereco)
                     .HasMaxLength(300)
-                    .HasColumnName("Endereco")  // Força o nome correto da coluna
-                    .IsRequired(false);  // Nullable
+                    .HasColumnName("Endereco")
+                    .IsRequired(false);
                 
                 // Outras configurações importantes
                 entity.Property(e => e.Nome)
@@ -100,6 +101,65 @@ namespace TartaroAPI.Data
                     .HasDatabaseName("IX_Clientes_Telefone")
                     .HasFilter("[Telefone] IS NOT NULL AND [Telefone] != ''");
             });
+
+            // 🆕 CONFIGURAÇÃO DA TABELA CONFIGURACAOLOJA
+            modelBuilder.Entity<ConfiguracaoLoja>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                
+                entity.Property(e => e.LojaAberta)
+                    .IsRequired()
+                    .HasDefaultValue(true);
+                
+                entity.Property(e => e.MensagemFechamento)
+                    .HasMaxLength(500)
+                    .IsRequired(false);
+                
+                entity.Property(e => e.UltimaAtualizacao)
+                    .IsRequired()
+                    .HasDefaultValueSql("GETUTCDATE()");
+            });
+
+            // 🆕 SEED INICIAL DA CONFIGURAÇÃO DA LOJA
+            modelBuilder.Entity<ConfiguracaoLoja>().HasData(
+                new ConfiguracaoLoja
+                {
+                    Id = 1,
+                    LojaAberta = true,
+                    MensagemFechamento = "Estamos fechados no momento. Voltamos em breve!",
+                    
+                    // Segunda e Terça: FECHADO
+                    SegundaFechado = true,
+                    TercaFechado = true,
+                    
+                    // Quarta: 19:00 - 22:00
+                    QuartaAbertura = new TimeSpan(19, 0, 0),
+                    QuartaFechamento = new TimeSpan(22, 0, 0),
+                    QuartaFechado = false,
+                    
+                    // Quinta: 19:00 - 22:00
+                    QuintaAbertura = new TimeSpan(19, 0, 0),
+                    QuintaFechamento = new TimeSpan(22, 0, 0),
+                    QuintaFechado = false,
+                    
+                    // Sexta: 19:00 - 23:00
+                    SextaAbertura = new TimeSpan(19, 0, 0),
+                    SextaFechamento = new TimeSpan(23, 0, 0),
+                    SextaFechado = false,
+                    
+                    // Sábado: 19:00 - 23:00
+                    SabadoAbertura = new TimeSpan(19, 0, 0),
+                    SabadoFechamento = new TimeSpan(23, 0, 0),
+                    SabadoFechado = false,
+                    
+                    // Domingo: 19:00 - 22:00
+                    DomingoAbertura = new TimeSpan(19, 0, 0),
+                    DomingoFechamento = new TimeSpan(22, 0, 0),
+                    DomingoFechado = false,
+                    
+                    UltimaAtualizacao = DateTime.UtcNow
+                }
+            );
             
             // Outras configurações mantidas
             modelBuilder.Entity<Pedido>(e =>

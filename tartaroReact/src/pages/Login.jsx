@@ -8,35 +8,39 @@ function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isLoading } = useAuth();
-  
+
   const [formData, setFormData] = useState({
     email: "",
-    senha: ""
+    senha: "",
   });
-  
+
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
 
+    // Limpar erro específico do campo ao digitar
     if (validationErrors[name]) {
-      setValidationErrors(prev => ({ ...prev, [name]: "" }));
+      setValidationErrors((prev) => ({ ...prev, [name]: "" }));
     }
+    // Limpar erro geral
     if (erro) setErro("");
   };
 
   const validateField = (name, value) => {
     switch (name) {
       case "email":
-        if (!value.trim()) return "Email é obrigatório";
+        if (!value.trim()) return "📧 Email é obrigatório";
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return !emailRegex.test(value) ? "Email inválido" : "";
+        return !emailRegex.test(value) ? "📧 Formato de email inválido" : "";
       case "senha":
-        if (!value) return "Senha é obrigatória";
-        return value.length < 6 ? "Senha deve ter pelo menos 6 caracteres" : "";
+        if (!value) return "🔒 Senha é obrigatória";
+        return value.length < 6
+          ? "🔒 Senha deve ter pelo menos 6 caracteres"
+          : "";
       default:
         return "";
     }
@@ -44,7 +48,7 @@ function Login() {
 
   const validateForm = () => {
     const errors = {};
-    Object.keys(formData).forEach(key => {
+    Object.keys(formData).forEach((key) => {
       const error = validateField(key, formData[key]);
       if (error) errors[key] = error;
     });
@@ -55,52 +59,137 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErro("");
-    
-    console.log("=== INICIANDO LOGIN ===");
-    console.log("Email:", formData.email);
 
+    console.log("=== INICIANDO LOGIN ===");
+    console.log("📧 Email:", formData.email);
+
+    // Validação do formulário
     if (!validateForm()) {
-      setErro("Por favor, corrija os erros no formulário.");
+      setErro("⚠️ Por favor, corrija os erros destacados no formulário.");
       return;
     }
 
     setLoading(true);
 
     try {
-      console.log("Chamando serviço de login...");
-      const usuario = await login(formData.email.trim().toLowerCase(), formData.senha);
-      console.log("Login bem-sucedido:", usuario);
-      
+      console.log("🔄 Autenticando usuário...");
+
+      const usuario = await login(
+        formData.email.trim().toLowerCase(),
+        formData.senha
+      );
+
+      console.log("✅ Login realizado com sucesso:", usuario?.nome);
+
+      // Aguardar um pouco antes de navegar para melhor UX
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Redirecionar para a página anterior ou home
       const from = location.state?.from?.pathname || "/home";
+      console.log("🔄 Redirecionando para:", from);
       navigate(from, { replace: true });
-      
     } catch (error) {
-      console.error("Erro detalhado no login:", error);
-      
-      let mensagemErro = "Erro ao fazer login. Tente novamente.";
-      
+      console.error("❌ Erro no login:", error);
+
+      let mensagemErro = {
+        titulo: "Erro ao fazer login",
+        descricao: "Ocorreu um erro inesperado. Tente novamente.",
+        tipo: "danger",
+      };
+
+      // Tratamento específico por tipo de erro
       if (error.response) {
         const status = error.response.status;
         const data = error.response.data;
-        
-        console.log("Status do erro:", status);
-        console.log("Dados do erro:", data);
-        
-        if (status === 401) {
-          mensagemErro = "Email ou senha incorretos.";
-        } else if (status === 400) {
-          mensagemErro = data?.message || "Dados inválidos.";
-        } else if (status >= 500) {
-          mensagemErro = "Erro no servidor. Tente novamente mais tarde.";
-        } else if (data?.message) {
-          mensagemErro = data.message;
+
+        console.log("📊 Status HTTP:", status);
+        console.log("📋 Resposta do servidor:", data);
+
+        switch (status) {
+          case 400:
+            mensagemErro = {
+              titulo: "Dados Inválidos",
+              descricao:
+                data?.message ||
+                "Verifique se os campos estão preenchidos corretamente.",
+              tipo: "warning",
+            };
+            break;
+
+          case 401:
+            mensagemErro = {
+              titulo: "Credenciais Incorretas",
+              descricao:
+                "Email ou senha incorretos. Verifique seus dados e tente novamente.",
+              tipo: "danger",
+            };
+            break;
+
+          case 403:
+            mensagemErro = {
+              titulo: "Acesso Negado",
+              descricao:
+                "Sua conta pode estar inativa. Entre em contato com o suporte.",
+              tipo: "warning",
+            };
+            break;
+
+          case 404:
+            mensagemErro = {
+              titulo: "Usuário Não Encontrado",
+              descricao:
+                "Não encontramos uma conta com este email. Deseja se cadastrar?",
+              tipo: "info",
+            };
+            break;
+
+          case 429:
+            mensagemErro = {
+              titulo: "Muitas Tentativas",
+              descricao:
+                "Você fez muitas tentativas. Aguarde alguns minutos e tente novamente.",
+              tipo: "warning",
+            };
+            break;
+
+          case 500:
+          case 502:
+          case 503:
+            mensagemErro = {
+              titulo: "Erro no Servidor",
+              descricao:
+                "Nossos servidores estão temporariamente indisponíveis. Tente novamente em alguns minutos.",
+              tipo: "danger",
+            };
+            break;
+
+          default:
+            if (data?.message) {
+              mensagemErro = {
+                titulo: "Erro",
+                descricao: data.message,
+                tipo: "danger",
+              };
+            }
         }
       } else if (error.request) {
-        mensagemErro = "Erro de conexão. Verifique sua internet.";
+        // Erro de rede/conexão
+        console.error(" Erro de conexão:", error.request);
+        mensagemErro = {
+          titulo: "Erro de Conexão",
+          descricao:
+            "Não foi possível conectar ao servidor. Verifique sua conexão com a internet e tente novamente.",
+          tipo: "warning",
+        };
       } else if (error.message) {
-        mensagemErro = error.message;
+        // Erro genérico
+        mensagemErro = {
+          titulo: "Erro",
+          descricao: error.message,
+          tipo: "danger",
+        };
       }
-      
+
       setErro(mensagemErro);
     } finally {
       setLoading(false);
@@ -109,29 +198,33 @@ function Login() {
 
   return (
     <Container className="login-container mt-5">
-      <Card className="shadow-sm">
-        <Card.Body className="p-4">
-          <h2 className="text-center mb-4">Entrar - Tártaro Delivery</h2>
-          
+      <Card
+        className="shadow-lg border-0"
+        style={{ maxWidth: "450px", margin: "0 auto" }}
+      >
+        <Card.Body className="p-4 p-md-5">
+          <div className="text-center mb-4">
+            <h2 className="fw-bold mb-2">🍔 Tártaro Delivery</h2>
+            <p className="text-muted">Faça login para continuar</p>
+          </div>
+
           {erro && (
-            <Alert variant="danger">
-              <div className="d-flex justify-content-between align-items-center">
-                <span>{erro}</span>
-                <Button 
-                  size="sm" 
-                  variant="outline-danger" 
-                  onClick={() => setErro("")}
-                  style={{ marginLeft: '10px' }}
-                >
-                  Fechar
-                </Button>
-              </div>
+            <Alert
+              variant={erro.tipo || "danger"}
+              dismissible
+              onClose={() => setErro("")}
+              className="mb-4"
+            >
+              <Alert.Heading className="h6 mb-2">
+                {erro.titulo || "Erro"}
+              </Alert.Heading>
+              <p className="mb-0 small">{erro.descricao || erro}</p>
             </Alert>
           )}
 
           <Form onSubmit={handleSubmit} noValidate>
             <Form.Group className="mb-3">
-              <Form.Label>E-mail</Form.Label>
+              <Form.Label className="fw-semibold">E-mail</Form.Label>
               <Form.Control
                 type="email"
                 name="email"
@@ -143,6 +236,8 @@ function Login() {
                 disabled={loading || isLoading}
                 autoComplete="email"
                 autoFocus
+                size="lg"
+                className="border-2"
               />
               <Form.Control.Feedback type="invalid">
                 {validationErrors.email}
@@ -150,7 +245,7 @@ function Login() {
             </Form.Group>
 
             <Form.Group className="mb-4">
-              <Form.Label>Senha</Form.Label>
+              <Form.Label className="fw-semibold">Senha</Form.Label>
               <Form.Control
                 type="password"
                 name="senha"
@@ -161,18 +256,25 @@ function Login() {
                 isInvalid={!!validationErrors.senha}
                 disabled={loading || isLoading}
                 autoComplete="current-password"
+                size="lg"
+                className="border-2"
               />
               <Form.Control.Feedback type="invalid">
                 {validationErrors.senha}
               </Form.Control.Feedback>
             </Form.Group>
 
-            <Button 
-              variant="success" 
-              type="submit" 
-              size="lg" 
-              className="w-100 mb-3"
+            <Button
+              variant="success"
+              type="submit"
+              size="lg"
+              className="w-100 mb-3 fw-semibold"
               disabled={loading || isLoading}
+              style={{
+                padding: "12px",
+                fontSize: "1.1rem",
+                boxShadow: "0 4px 12px rgba(25, 135, 84, 0.3)",
+              }}
             >
               {loading || isLoading ? (
                 <>
@@ -187,23 +289,34 @@ function Login() {
                   Entrando...
                 </>
               ) : (
-                "Entrar"
+                "🔓 Entrar"
               )}
             </Button>
 
             <div className="text-center">
-              <p className="mb-2">
-                <Link to="/esqueci-senha" className="text-decoration-none">
-                  Esqueci minha senha
+              <p className="mb-3">
+                <Link
+                  to="/esqueci-senha"
+                  className="text-decoration-none text-muted small"
+                  style={{ fontSize: "0.9rem" }}
+                >
+                  🔑 Esqueci minha senha
                 </Link>
               </p>
-              <hr />
-              <p className="mb-0">
-                Não tem uma conta?{" "}
-                <Link to="/cadastro" className="text-decoration-none fw-bold text-success">
-                  Cadastre-se aqui
-                </Link>
-              </p>
+
+              <hr className="my-3" />
+
+              <div className="bg-light p-3 rounded">
+                <p className="mb-0 small">
+                  Não tem uma conta?{" "}
+                  <Link
+                    to="/cadastro"
+                    className="text-decoration-none fw-bold text-success"
+                  >
+                    Cadastre-se grátis
+                  </Link>
+                </p>
+              </div>
             </div>
           </Form>
         </Card.Body>

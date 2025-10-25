@@ -441,4 +441,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
->>>>>>> 3fe5f334f4520fe0b5102627e8d96bb7e598a459
+
+# Visual Studio Spell Checker files
+TartaroAPI/google-credentials.json

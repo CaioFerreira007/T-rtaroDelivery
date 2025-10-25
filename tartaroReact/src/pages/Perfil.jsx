@@ -43,8 +43,14 @@ function Perfil() {
             </div>
             <div className="col-12 mb-3">
               <strong>Telefone:</strong>
-              <p className="mb-1">{usuarioLogado.telefone || "Não informado"}</p>
+              <p className="mb-1">
+                {usuarioLogado.telefone || "Não informado"}
+              </p>
             </div>
+          </div>
+          <div className="col-12 mb-3">
+            <strong>Endereço:</strong>
+            <p className="mb-1">{usuarioLogado.endereco || "Não informado"}</p>
           </div>
           <hr />
           <Button as={Link} to="/editar-perfil" variant="success">

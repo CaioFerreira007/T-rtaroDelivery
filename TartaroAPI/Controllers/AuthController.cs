@@ -356,80 +356,99 @@ namespace TartaroAPI.Controllers
             }
         }
 
-        [HttpPost("criar-admins-inicial")]
+        [HttpPost("alterar-senha")]
         [AllowAnonymous]
-        public async Task<IActionResult> CriarAdminsInicial([FromBody] SecretKeyDTO dto)
+        public async Task<IActionResult> AlterarSenha([FromBody] AlterarSenhaDTO dto)
         {
             try
             {
-                _logger.LogInformation("=== TENTATIVA DE CRIAR ADMINS INICIAIS ===");
+                _logger.LogInformation("=== TENTATIVA DE ALTERAR SENHA ===");
+                _logger.LogInformation("Token recebido: {Token}", dto.Token);
+                _logger.LogInformation("Email recebido: {Email}", dto.Email);
 
-                // Verificar chave secreta para segurança
-                var secretKey = _configuration["SetupSecretKey"];
-                if (string.IsNullOrEmpty(secretKey))
+                if (!ModelState.IsValid)
                 {
-                    _logger.LogError("SetupSecretKey não configurada no appsettings.json");
-                    return StatusCode(500, new { message = "Configuração inválida no servidor." });
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage);
+                    _logger.LogWarning("ModelState inválido: {Errors}", string.Join(", ", errors));
+                    return BadRequest(new { message = "Dados inválidos.", errors });
                 }
 
-                if (dto.SecretKey != secretKey)
+                var emailNormalizado = dto.Email.ToLower().Trim();
+                
+                var cliente = await _context.Clientes
+                    .FirstOrDefaultAsync(c => 
+                        c.Email == emailNormalizado && 
+                        c.TokenRecuperacao == dto.Token &&
+                        c.TokenExpiraEm > DateTime.UtcNow &&
+                        c.Ativo);
+
+                if (cliente == null)
                 {
-                    _logger.LogWarning("Tentativa de criar admins com chave secreta inválida");
-                    return Unauthorized(new { message = "Chave secreta inválida." });
+                    _logger.LogWarning("Token inválido ou expirado para email: {Email}", dto.Email);
+                    return BadRequest(new { message = "Token inválido ou expirado." });
                 }
 
-                // Verificar se já existem admins
-                var adminExists = await _context.Clientes.AnyAsync(c => c.Tipo == "ADM");
-                if (adminExists)
-                {
-                    _logger.LogWarning("Tentativa de criar admins, mas já existem no banco");
-                    return BadRequest(new { message = "Administradores já foram criados anteriormente." });
-                }
+                // Atualizar senha
+                cliente.SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.NovaSenha);
+                cliente.TokenRecuperacao = null;
+                cliente.TokenExpiraEm = null;
 
-                // Criar os admins
-                var admins = new List<Cliente>
-                {
-                    new Cliente
-                    {
-                        Nome = "Gabriel",
-                        Email = "gabriel@tartaro.com",
-                        Telefone = "00000000000",
-                        SenhaHash = BCrypt.Net.BCrypt.HashPassword("tartarohamburgueriadelivery2025"),
-                        Tipo = "ADM",
-                        DataCriacao = DateTime.UtcNow,
-                        Ativo = true
-                    },
-                    new Cliente
-                    {
-                        Nome = "Caio Ferreira",
-                        Email = "myprofilejobs07@outlook.com",
-                        Telefone = "11111111111",
-                        SenhaHash = BCrypt.Net.BCrypt.HashPassword("cocodopou"),
-                        Tipo = "ADM",
-                        DataCriacao = DateTime.UtcNow,
-                        Ativo = true
-                    }
-                };
-
-                _context.Clientes.AddRange(admins);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Administradores criados com sucesso!");
-                _logger.LogInformation("Admin 1: {Email}", admins[0].Email);
-                _logger.LogInformation("Admin 2: {Email}", admins[1].Email);
+                _logger.LogInformation("✅ Senha alterada com sucesso para: {Email}", dto.Email);
 
-                return Ok(new
+                return Ok(new { message = "Senha alterada com sucesso!" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao alterar senha para email: {Email}", dto.Email);
+                return StatusCode(500, new { message = "Erro interno do servidor." });
+            }
+        }
+
+        [HttpGet("validar-token-reset/{token}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ValidarTokenReset(string token)
+        {
+            try
+            {
+                _logger.LogInformation("=== VALIDANDO TOKEN DE RESET ===");
+                _logger.LogInformation("Token: {Token}", token);
+
+                if (string.IsNullOrWhiteSpace(token))
                 {
-                    message = "Administradores criados com sucesso!",
-                    admins = admins.Select(a => new { a.Nome, a.Email }).ToList()
+                    return BadRequest(new { message = "Token não fornecido." });
+                }
+
+                var cliente = await _context.Clientes
+                    .FirstOrDefaultAsync(c => 
+                        c.TokenRecuperacao == token &&
+                        c.TokenExpiraEm > DateTime.UtcNow &&
+                        c.Ativo);
+
+                if (cliente == null)
+                {
+                    _logger.LogWarning("Token inválido ou expirado: {Token}", token);
+                    return BadRequest(new { message = "Token inválido ou expirado." });
+                }
+
+                _logger.LogInformation("✅ Token válido para email: {Email}", cliente.Email);
+
+                return Ok(new { 
+                    email = cliente.Email, 
+                    message = "Token válido." 
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao criar administradores iniciais");
-                return StatusCode(500, new { message = "Erro ao criar administradores.", error = ex.Message });
+                _logger.LogError(ex, "Erro ao validar token: {Token}", token);
+                return StatusCode(500, new { message = "Erro interno do servidor." });
             }
         }
+
+    
 
         // --- Métodos Auxiliares ---
         private static string LimparTelefone(string telefone)

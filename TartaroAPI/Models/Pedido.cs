@@ -16,11 +16,10 @@ namespace TartaroAPI.Models
 
         public Pagamento? Pagamento { get; set; }
 
-        // 🔹 Status padrão antigo era "Recebido". Para o fluxo WhatsApp, usaremos "AGUARDANDO_CONFIRMACAO".
+        // Status padrão antigo era "Recebido". Para o fluxo WhatsApp, usaremos "AGUARDANDO_CONFIRMACAO".
         public string Status { get; set; } = "Recebido";
 
-        // ====== NOVOS CAMPOS PARA WHATSAPP CHECKOUT ======
-        // Código curto amigável pra rastrear no WhatsApp (ex.: "AB12CD")
+      
         public string Codigo { get; set; } = string.Empty;
 
         // Dados básicos do cliente informados no checkout
@@ -29,9 +28,9 @@ namespace TartaroAPI.Models
         public string? Referencia { get; set; }
         public string? Observacoes { get; set; }
 
-        // Valores calculados no servidor
-        public decimal Subtotal { get; set; }          // sem entrega
-        public decimal? TaxaEntrega { get; set; }      // definido pelo atendente depois
-        public decimal? TotalFinal { get; set; }       // Subtotal + TaxaEntrega
+    
+        public decimal Subtotal { get; set; }          
+        public decimal? TaxaEntrega { get; set; }      
+        public decimal? TotalFinal { get; set; }      
     }
 }

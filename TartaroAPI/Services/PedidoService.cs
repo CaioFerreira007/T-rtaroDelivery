@@ -1,18 +1,20 @@
-
 using Microsoft.EntityFrameworkCore;
 using TartaroAPI.Data;
 using TartaroAPI.DTO;
 using TartaroAPI.Models;
+using TartaroAPI.Services;
 
 namespace TartaroAPI.Services
 {
     public class PedidoService : IPedidoService
     {
         private readonly TartaroDbContext _context;
+        private readonly IGoogleSheetsService _googleSheetsService;
 
-        public PedidoService(TartaroDbContext context)
+        public PedidoService(TartaroDbContext context, IGoogleSheetsService googleSheetsService)
         {
             _context = context;
+            _googleSheetsService = googleSheetsService;
         }
 
         public async Task<Pedido> CriarPedidoAsync(PedidoCreateDTO dto)
@@ -25,7 +27,6 @@ namespace TartaroAPI.Services
 
             if (produtos.Count != ids.Distinct().Count())
             {
-                // Lançamos uma exceção que o controller irá capturar
                 throw new Exception("Um ou mais produtos são inválidos ou indisponíveis.");
             }
 
@@ -71,7 +72,7 @@ namespace TartaroAPI.Services
 
                 pedido.Pagamento = new Pagamento
                 {
-                    ValorTotal = subtotal, // Considere adicionar taxas aqui no futuro
+                    ValorTotal = subtotal,
                     FormaPagamento = dto.FormaPagamento,
                     Pago = false
                 };

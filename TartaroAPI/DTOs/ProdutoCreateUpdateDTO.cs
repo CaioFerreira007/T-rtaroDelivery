@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace TartaroAPI.DTOs
 {
-
     public class ProdutoCreateUpdateDTO
     {
         [Required(ErrorMessage = "Nome do produto é obrigatório.")]
@@ -20,8 +19,6 @@ namespace TartaroAPI.DTOs
         public string Categoria { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Preço é obrigatório.")]
-        [Range(0.01, double.MaxValue, ErrorMessage = "Preço deve ser maior que zero.")]
-        public decimal Preco { get; set; }
-
+        public string Preco { get; set; } = string.Empty; 
     }
 }

@@ -8,10 +8,8 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- NOME DA POLÍTICA DE CORS ---
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
-// Adiciona a política de CORS segura
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: MyAllowSpecificOrigins,
@@ -59,14 +57,18 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddDbContext<TartaroDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("TartaroDb")));
 
-// Injeção de Dependências dos seus Serviços
+// Injeção de Dependências dos Serviços
+builder.Services.AddScoped<IGoogleSheetsService, GoogleSheetsService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPedidoService, PedidoService>();
 builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IFileStorageService, LocalStorageService>();
 
-// Configuração de Logging aprimorada
+// 🆕 REGISTRAR BACKGROUND SERVICE PARA SINCRONIZAÇÃO AUTOMÁTICA
+builder.Services.AddHostedService<BackgroundSyncService>();
+
+// Configuração de Logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
@@ -92,7 +94,26 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// 🆕 SINCRONIZAÇÃO INICIAL AO INICIAR O SERVIDOR
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("🔄 Executando sincronização inicial com Google Sheets...");
+
+        var googleSheetsService = scope.ServiceProvider.GetRequiredService<IGoogleSheetsService>();
+        await googleSheetsService.SincronizarTudoAsync();
+
+        logger.LogInformation("✅ Sincronização inicial concluída com sucesso!");
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "❌ Erro na sincronização inicial (continuando normalmente)");
+    }
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -100,20 +121,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-// CRÍTICO: UseStaticFiles deve vir antes do UseRouting
 app.UseStaticFiles();
-
 app.UseRouting();
-
-// Aplica a política de CORS
 app.UseCors(MyAllowSpecificOrigins);
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.MapFallbackToFile("index.html");
 
 app.Run();

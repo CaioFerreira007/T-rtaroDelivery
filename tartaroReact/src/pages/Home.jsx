@@ -6,13 +6,15 @@ import { useAuth } from "../context/AuthContext";
 import { getProdutos } from "../services/produtoService";
 import HamburguerCard from "../components/HamburguerCard";
 import BarraCarrinho from "../components/BarraCarrinho";
+import AlertaLojaFechada from "../components/AlertaLojaFechada"; // 🆕 IMPORTAR
+import axiosConfig from "../services/axiosConfig";
 
 import "../styles/Home.css";
 
 function Home() {
   const navigate = useNavigate();
   const { usuarioLogado, isLoggedIn, isInitialized } = useAuth();
-  
+
   const [produtos, setProdutos] = useState([]);
   const [carrinho, setCarrinho] = useState([]);
   const [mostrarCarrinho, setMostrarCarrinho] = useState(false);
@@ -21,24 +23,46 @@ function Home() {
   const [error, setError] = useState("");
   const [finalizandoPedido, setFinalizandoPedido] = useState(false);
 
-  // Função para obter carrinho específico do usuário
+  // 🆕 ESTADO DO STATUS DA LOJA
+  const [statusLoja, setStatusLoja] = useState(null);
+  const [loadingStatus, setLoadingStatus] = useState(true);
+
+  const [dadosEntrega, setDadosEntrega] = useState({
+    tipoPedido: "ENTREGA",
+    endereco: "",
+    pontoReferencia: "",
+    observacoes: "",
+    formaPagamento: "",
+    troco: "",
+  });
+
+  const handleInputChange = (field, value) => {
+    setDadosEntrega((prev) => ({ ...prev, [field]: value }));
+  };
+
   const obterCarrinhoUsuario = useCallback((userId) => {
     try {
       if (!userId) return [];
       const carrinhoKey = `carrinho_${userId}`;
       const carrinhoSalvo = localStorage.getItem(carrinhoKey);
       const carrinho = carrinhoSalvo ? JSON.parse(carrinhoSalvo) : [];
-      
-      return Array.isArray(carrinho) ? carrinho.filter(item => 
-        item && item.id && item.nome && typeof item.preco === 'number' && item.quantidade > 0
-      ) : [];
+
+      return Array.isArray(carrinho)
+        ? carrinho.filter(
+            (item) =>
+              item &&
+              item.id &&
+              item.nome &&
+              typeof item.preco === "number" &&
+              item.quantidade > 0
+          )
+        : [];
     } catch (error) {
       console.error("Erro ao ler carrinho do localStorage:", error);
       return [];
     }
   }, []);
 
-  // Função para salvar carrinho específico do usuário
   const salvarCarrinhoUsuario = useCallback((userId, carrinhoData) => {
     try {
       if (!userId) return;
@@ -49,7 +73,6 @@ function Home() {
     }
   }, []);
 
-  // Função para limpar carrinho do usuário
   const limparCarrinhoUsuario = useCallback((userId) => {
     try {
       if (!userId) return;
@@ -60,39 +83,60 @@ function Home() {
     }
   }, []);
 
-  // Carregar produtos com debug e validação aprimorados
+  // 🆕 CARREGAR STATUS DA LOJA
+  useEffect(() => {
+    const carregarStatusLoja = async () => {
+      try {
+        setLoadingStatus(true);
+        const response = await axiosConfig.get("/configuracaoLoja/status");
+        console.log("📊 Status da loja:", response.data);
+        setStatusLoja(response.data);
+      } catch (error) {
+        console.error("❌ Erro ao carregar status da loja:", error);
+      } finally {
+        setLoadingStatus(false);
+      }
+    };
+
+    carregarStatusLoja();
+
+    // Atualizar status a cada 1 minuto
+    const interval = setInterval(carregarStatusLoja, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const carregarProdutos = async () => {
       try {
         setLoading(true);
         setError("");
-        
+
         console.log("🔄 Iniciando carregamento de produtos...");
         const listaProdutos = await getProdutos();
-        
+
         console.log("📦 Resposta de getProdutos:", listaProdutos);
         console.log("📦 Tipo da resposta:", typeof listaProdutos);
         console.log("📦 É array?", Array.isArray(listaProdutos));
         console.log("📦 Quantidade de itens:", listaProdutos?.length);
-        
+
         if (Array.isArray(listaProdutos) && listaProdutos.length > 0) {
-          // Filtrar apenas produtos válidos
-          const produtosValidos = listaProdutos.filter(p => {
-            const valido = p.id && 
-              p.nome && 
-              p.nome.trim() !== '' && 
+          const produtosValidos = listaProdutos.filter((p) => {
+            const valido =
+              p.id &&
+              p.nome &&
+              p.nome.trim() !== "" &&
               p.preco > 0 &&
               p.categoria &&
-              p.categoria.trim() !== '';
-            
+              p.categoria.trim() !== "";
+
             if (!valido) {
               console.warn("⚠️ Produto inválido ignorado:", p);
             }
             return valido;
           });
-          
+
           console.log("✅ Produtos válidos:", produtosValidos.length);
-          
+
           if (produtosValidos.length > 0) {
             setProdutos(produtosValidos);
           } else {
@@ -113,11 +157,11 @@ function Home() {
         console.error("❌ Detalhes do erro:", {
           message: err.message,
           response: err.response?.data,
-          status: err.response?.status
+          status: err.response?.status,
         });
-        
+
         setProdutos([]);
-        
+
         let mensagemErro = "Erro ao carregar produtos.";
         if (!err.response) {
           mensagemErro = "Erro de conexão. Verifique sua internet.";
@@ -136,28 +180,32 @@ function Home() {
     carregarProdutos();
   }, []);
 
-  // Inicializar carrinho quando usuário estiver disponível
   useEffect(() => {
+    console.log("🔄 Estado de autenticação mudou:");
+    console.log("- isInitialized:", isInitialized);
+    console.log("- usuarioLogado:", usuarioLogado);
+    console.log("- isLoggedIn:", isLoggedIn);
+
     if (isInitialized && usuarioLogado?.id) {
       const carrinhoUsuario = obterCarrinhoUsuario(usuarioLogado.id);
+      console.log("🛒 Carrinho carregado:", carrinhoUsuario);
       setCarrinho(carrinhoUsuario);
     } else if (isInitialized && !usuarioLogado) {
+      console.log("👤 Usuário não logado, limpando carrinho");
       setCarrinho([]);
     }
-  }, [usuarioLogado, isInitialized, obterCarrinhoUsuario]);
+  }, [usuarioLogado, isInitialized, isLoggedIn, obterCarrinhoUsuario]);
 
-  // Salvar carrinho sempre que ele for atualizado
   useEffect(() => {
     if (usuarioLogado?.id) {
       salvarCarrinhoUsuario(usuarioLogado.id, carrinho);
-      
+
       if (carrinho.length === 0) {
         setMostrarCarrinho(false);
       }
     }
   }, [carrinho, usuarioLogado, salvarCarrinhoUsuario]);
 
-  // Monitorar mudanças de usuário entre abas
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === "user") {
@@ -172,39 +220,77 @@ function Home() {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [usuarioLogado, obterCarrinhoUsuario]);
 
-  const adicionarAoCarrinho = useCallback((produto) => {
-    if (!usuarioLogado) {
-      alert("Faça login para adicionar itens ao carrinho.");
-      navigate("/login");
-      return;
+  useEffect(() => {
+    if (mostrarCarrinho && usuarioLogado?.endereco) {
+      console.log(
+        "📍 Preenchendo endereço do usuário:",
+        usuarioLogado.endereco
+      );
+      setDadosEntrega((prev) => ({
+        ...prev,
+        endereco: usuarioLogado.endereco,
+      }));
+    } else if (mostrarCarrinho && !usuarioLogado?.endereco) {
+      console.log("⚠️ Usuário sem endereço cadastrado");
+      setDadosEntrega((prev) => ({
+        ...prev,
+        endereco: "",
+      }));
     }
+  }, [mostrarCarrinho, usuarioLogado]);
 
-    if (!produto || !produto.id || !produto.nome || typeof produto.preco !== 'number') {
-      console.error("Produto inválido:", produto);
-      return;
-    }
-
-    setCarrinho((prevCarrinho) => {
-      const itemExistente = prevCarrinho.find((item) => item.id === produto.id);
-      
-      if (itemExistente) {
-        return prevCarrinho.map((item) =>
-          item.id === produto.id
-            ? { ...item, quantidade: item.quantidade + 1 }
-            : item
-        );
+  const adicionarAoCarrinho = useCallback(
+    (produto) => {
+      if (!usuarioLogado) {
+        alert("Faça login para adicionar itens ao carrinho.");
+        navigate("/login");
+        return;
       }
-      
-      return [...prevCarrinho, { ...produto, quantidade: 1 }];
-    });
-  }, [usuarioLogado, navigate]);
+
+      // 🆕 VERIFICAR SE LOJA ESTÁ ABERTA
+      if (!statusLoja?.estaAberta) {
+        alert(
+          "❌ Loja fechada! Não é possível adicionar produtos ao carrinho no momento."
+        );
+        return;
+      }
+
+      if (
+        !produto ||
+        !produto.id ||
+        !produto.nome ||
+        typeof produto.preco !== "number"
+      ) {
+        console.error("Produto inválido:", produto);
+        return;
+      }
+
+      setCarrinho((prevCarrinho) => {
+        const itemExistente = prevCarrinho.find(
+          (item) => item.id === produto.id
+        );
+
+        if (itemExistente) {
+          return prevCarrinho.map((item) =>
+            item.id === produto.id
+              ? { ...item, quantidade: item.quantidade + 1 }
+              : item
+          );
+        }
+
+        return [...prevCarrinho, { ...produto, quantidade: 1 }];
+      });
+    },
+    [usuarioLogado, navigate, statusLoja] // 🆕 ADICIONAR statusLoja
+  );
 
   const atualizarQuantidade = useCallback((produtoId, operacao) => {
     setCarrinho((prevCarrinho) =>
       prevCarrinho
         .map((item) => {
           if (item.id === produtoId) {
-            const novaQtde = operacao === "+" ? item.quantidade + 1 : item.quantidade - 1;
+            const novaQtde =
+              operacao === "+" ? item.quantidade + 1 : item.quantidade - 1;
             return novaQtde > 0 ? { ...item, quantidade: novaQtde } : null;
           }
           return item;
@@ -221,29 +307,61 @@ function Home() {
   const finalizarPedido = useCallback(async () => {
     if (!usuarioLogado?.id || carrinho.length === 0) return;
 
+    // 🆕 VERIFICAR SE LOJA ESTÁ ABERTA ANTES DE FINALIZAR
+    if (!statusLoja?.estaAberta) {
+      alert("❌ Loja fechada! Não é possível finalizar pedidos no momento.");
+      return;
+    }
+
     try {
       setFinalizandoPedido(true);
-      
+
       console.log("Finalizando pedido para usuário:", usuarioLogado.id);
       console.log("Itens do pedido:", carrinho);
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log("Dados de entrega:", dadosEntrega);
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       limparCarrinhoUsuario(usuarioLogado.id);
       setCarrinho([]);
       setMostrarCarrinho(false);
 
       alert("Pedido realizado com sucesso!");
-      
     } catch (error) {
       console.error("Erro ao finalizar pedido:", error);
       alert("Erro ao finalizar pedido. Tente novamente.");
     } finally {
       setFinalizandoPedido(false);
     }
-  }, [usuarioLogado, carrinho, limparCarrinhoUsuario]);
+  }, [
+    usuarioLogado,
+    carrinho,
+    dadosEntrega,
+    limparCarrinhoUsuario,
+    statusLoja,
+  ]); // 🆕 ADICIONAR statusLoja
 
-  // Mostrar loading durante inicialização
+  // 🆕 FUNÇÃO PARA DELETAR PRODUTO
+  const deletarProduto = useCallback(async (produtoId) => {
+    try {
+      console.log("🗑️ Deletando produto ID:", produtoId);
+
+      const response = await axiosConfig.delete(`/produtos/${produtoId}`);
+
+      console.log("✅ Produto deletado:", response.data);
+
+      setProdutos((prev) => prev.filter((p) => p.id !== produtoId));
+
+      alert("✅ Produto excluído com sucesso!");
+    } catch (error) {
+      console.error("❌ Erro ao deletar produto:", error);
+      const mensagem =
+        error.response?.data?.message || "Erro ao excluir produto.";
+      alert(`❌ ${mensagem}`);
+      throw error;
+    }
+  }, []);
+
   if (!isInitialized) {
     return (
       <Container className="mt-5 text-center">
@@ -255,28 +373,40 @@ function Home() {
 
   const categorias = [
     "Todos",
-    "Artesanais", 
+    "Artesanais",
     "Tradicionais",
     "Bebidas",
     "Combos",
     "Batatas",
-    "Molhos Adicionais",
+    "Adicionais",
   ];
 
-  const produtosFiltrados = filtro === "Todos" 
-    ? produtos 
-    : produtos.filter((item) => item.categoria === filtro);
+  const produtosFiltrados =
+    filtro === "Todos"
+      ? produtos
+      : produtos.filter((item) => item.categoria === filtro);
 
-  const totalItensCarrinho = carrinho.reduce((acc, item) => acc + item.quantidade, 0);
+  const totalItensCarrinho = carrinho.reduce(
+    (acc, item) => acc + item.quantidade,
+    0
+  );
 
   return (
     <Container className="menu-container mt-5 mb-5 fade-in">
       <h1 className="text-center mb-4">Cardápio Tártaro Delivery</h1>
 
+      {/* 🆕 ALERTA DE LOJA FECHADA */}
+      {!loadingStatus && statusLoja && (
+        <AlertaLojaFechada status={statusLoja} />
+      )}
+
       {!isLoggedIn && (
         <Alert variant="info" className="text-center">
           <Alert.Heading>Bem-vindo!</Alert.Heading>
-          <p>Para uma experiência completa, faça login e adicione itens ao seu carrinho.</p>
+          <p>
+            Para uma experiência completa, faça login e adicione itens ao seu
+            carrinho.
+          </p>
           <Button variant="outline-primary" onClick={() => navigate("/login")}>
             Fazer Login
           </Button>
@@ -284,10 +414,18 @@ function Home() {
       )}
 
       {error && (
-        <Alert variant="danger" className="text-center" dismissible onClose={() => setError("")}>
+        <Alert
+          variant="danger"
+          className="text-center"
+          dismissible
+          onClose={() => setError("")}
+        >
           <Alert.Heading>Erro</Alert.Heading>
           <p>{error}</p>
-          <Button variant="outline-danger" onClick={() => window.location.reload()}>
+          <Button
+            variant="outline-danger"
+            onClick={() => window.location.reload()}
+          >
             Tentar Novamente
           </Button>
         </Alert>
@@ -317,15 +455,17 @@ function Home() {
             <Alert variant="warning">
               <h4>Nenhum produto encontrado</h4>
               <p>
-                {error 
-                  ? "Ocorreu um erro ao carregar os produtos." 
+                {error
+                  ? "Ocorreu um erro ao carregar os produtos."
                   : filtro === "Todos"
-                    ? "Não há produtos cadastrados no momento."
-                    : `Não há produtos na categoria "${filtro}".`
-                }
+                  ? "Não há produtos cadastrados no momento."
+                  : `Não há produtos na categoria "${filtro}".`}
               </p>
               {error && (
-                <Button variant="outline-warning" onClick={() => window.location.reload()}>
+                <Button
+                  variant="outline-warning"
+                  onClick={() => window.location.reload()}
+                >
                   Recarregar Página
                 </Button>
               )}
@@ -341,7 +481,8 @@ function Home() {
                 preco={item.preco}
                 imagens={item.imagemUrls}
                 onAdd={() => adicionarAoCarrinho(item)}
-                disabled={!isLoggedIn}
+                onDelete={deletarProduto}
+                disabled={!isLoggedIn || !statusLoja?.estaAberta} // 🆕 DESABILITAR SE LOJA FECHADA
               />
             </Col>
           ))
@@ -351,14 +492,14 @@ function Home() {
       {totalItensCarrinho > 0 && (
         <Button
           className="btn-ver-carrinho position-fixed"
-          style={{ 
-            bottom: '20px', 
-            right: '20px', 
+          style={{
+            bottom: "20px",
+            right: "20px",
             zIndex: 1000,
-            borderRadius: '50px',
-            padding: '15px 25px',
-            fontSize: '16px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+            borderRadius: "50px",
+            padding: "15px 25px",
+            fontSize: "16px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
           }}
           variant="success"
           onClick={() => setMostrarCarrinho(true)}
@@ -369,20 +510,20 @@ function Home() {
       )}
 
       {mostrarCarrinho && (
-        <div 
+        <div
           className="position-fixed top-0 start-0 w-100 h-100"
-          style={{ 
-            backgroundColor: 'rgba(0,0,0,0.5)', 
-            zIndex: 1050 
+          style={{
+            backgroundColor: "rgba(0,0,0,0.5)",
+            zIndex: 1050,
           }}
           onClick={() => setMostrarCarrinho(false)}
         >
-          <div 
+          <div
             className="position-absolute end-0 top-0 h-100 bg-white"
-            style={{ 
-              width: '100%', 
-              maxWidth: '400px',
-              overflowY: 'auto'
+            style={{
+              width: "100%",
+              maxWidth: "400px",
+              overflowY: "auto",
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -393,6 +534,8 @@ function Home() {
               onClose={() => setMostrarCarrinho(false)}
               onFinalizarPedido={finalizarPedido}
               loading={finalizandoPedido}
+              dadosEntrega={dadosEntrega}
+              handleInputChange={handleInputChange}
             />
           </div>
         </div>

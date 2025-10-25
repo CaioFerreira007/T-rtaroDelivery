@@ -1,18 +1,27 @@
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { Carousel, Card, Button } from "react-bootstrap";
-import { FaShoppingCart, FaEdit } from "react-icons/fa";
+import { Carousel, Card, Button, Spinner } from "react-bootstrap";
+import { FaShoppingCart, FaEdit, FaTrash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import "../styles/HamburguerCard.css";
 
-function HamburguerCard({ id, nome, descricao, preco, imagens, onAdd }) {
+function HamburguerCard({
+  id,
+  nome,
+  descricao,
+  preco,
+  imagens,
+  onAdd,
+  onDelete,
+  disabled = false, // 🆕 PROP PARA DESABILITAR
+}) {
   const { usuariologado } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [deletando, setDeletando] = useState(false);
 
   const role = usuariologado?.tipo || "";
   const isAdmin = role.toUpperCase().trim() === "ADM";
 
-  // NÃO CONCATENAR NADA - usar URLs direto do banco
   const listaImagens = Array.isArray(imagens)
     ? imagens.filter((url) => typeof url === "string" && url.trim() !== "")
     : [];
@@ -29,7 +38,25 @@ function HamburguerCard({ id, nome, descricao, preco, imagens, onAdd }) {
     }
   };
 
-  const imagemFallback = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect fill='%23f0f0f0' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='60' fill='%23999'%3E🍔%3C/text%3E%3C/svg%3E";
+  const handleExcluir = async () => {
+    if (
+      window.confirm(
+        `⚠️ Tem certeza que deseja excluir "${nome}"?\n\nEsta ação não pode ser desfeita!`
+      )
+    ) {
+      setDeletando(true);
+      try {
+        await onDelete(id);
+      } catch (error) {
+        console.error("Erro ao excluir:", error);
+      } finally {
+        setDeletando(false);
+      }
+    }
+  };
+
+  const imagemFallback =
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect fill='%23f0f0f0' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='60' fill='%23999'%3E🍔%3C/text%3E%3C/svg%3E";
 
   return (
     <Card className="hamburguer-card">
@@ -54,13 +81,20 @@ function HamburguerCard({ id, nome, descricao, preco, imagens, onAdd }) {
           </Carousel>
         ) : (
           <div className="imagem-fallback">
-            <img 
-              src={imagemFallback} 
+            <img
+              src={imagemFallback}
               alt={nome}
               className="produto-img"
-              style={{ objectFit: 'contain', padding: '20px' }}
+              style={{ objectFit: "contain", padding: "20px" }}
             />
-            <span style={{ position: 'absolute', bottom: '10px', fontSize: '12px', color: '#999' }}>
+            <span
+              style={{
+                position: "absolute",
+                bottom: "10px",
+                fontSize: "12px",
+                color: "#999",
+              }}
+            >
               Sem imagem
             </span>
           </div>
@@ -73,14 +107,40 @@ function HamburguerCard({ id, nome, descricao, preco, imagens, onAdd }) {
         <div className="rodape-card">
           <span className="preco-card">R$ {precoFormatado}</span>
           {isAdmin ? (
-            <Button variant="warning" onClick={handleEditar}>
-              <FaEdit className="me-2" />
-              Editar Produto
-            </Button>
+            <div className="d-flex gap-2 w-100">
+              <Button
+                variant="warning"
+                onClick={handleEditar}
+                className="flex-grow-1"
+                size="sm"
+              >
+                <FaEdit className="me-1" />
+                Editar
+              </Button>
+              <Button
+                variant="danger"
+                onClick={handleExcluir}
+                disabled={deletando}
+                size="sm"
+              >
+                {deletando ? (
+                  <Spinner animation="border" size="sm" />
+                ) : (
+                  <>
+                    <FaTrash className="me-1" />
+                    Excluir
+                  </>
+                )}
+              </Button>
+            </div>
           ) : (
-            <Button variant="success" onClick={onAdd}>
+            <Button
+              variant={disabled ? "secondary" : "success"}
+              onClick={onAdd}
+              disabled={disabled} // 🆕 USAR PROP DISABLED
+            >
               <FaShoppingCart className="me-2" />
-              Adicionar
+              {disabled ? "Indisponível" : "Adicionar"}
             </Button>
           )}
         </div>

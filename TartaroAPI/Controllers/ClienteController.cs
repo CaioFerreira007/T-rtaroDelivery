@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TartaroAPI.Data;
 using TartaroAPI.DTOs;
+using TartaroAPI.Services;
 
 namespace TartaroAPI.Controllers
 {
@@ -13,10 +14,17 @@ namespace TartaroAPI.Controllers
     public class ClienteController : ControllerBase
     {
         private readonly TartaroDbContext _context;
+        private readonly IGoogleSheetsService _googleSheetsService;
+        private readonly ILogger<ClienteController> _logger;
 
-        public ClienteController(TartaroDbContext context)
+        public ClienteController(
+            TartaroDbContext context, 
+            IGoogleSheetsService googleSheetsService,
+            ILogger<ClienteController> logger)
         {
             _context = context;
+            _googleSheetsService = googleSheetsService;
+            _logger = logger;
         }
 
         [HttpPut("perfil")]
@@ -37,13 +45,11 @@ namespace TartaroAPI.Controllers
                     return NotFound(new { message = "Cliente não encontrado." });
                 }
 
-                // Validações básicas
                 if (string.IsNullOrWhiteSpace(dto.Nome))
                 {
                     return BadRequest(new { message = "Nome é obrigatório." });
                 }
 
-                // Validação do telefone se fornecido
                 if (!string.IsNullOrEmpty(dto.Telefone))
                 {
                     var telefoneNumeros = System.Text.RegularExpressions.Regex.Replace(dto.Telefone, @"\D", "");
@@ -54,10 +60,21 @@ namespace TartaroAPI.Controllers
                     cliente.Telefone = telefoneNumeros;
                 }
 
-                // Atualiza os dados
                 cliente.Nome = dto.Nome.Trim();
+                cliente.UltimaAtualizacao = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
+
+                //  SINCRONIZAR CLIENTES NO GOOGLE SHEETS
+                try
+                {
+                    await _googleSheetsService.SincronizarClientesAsync();
+                    _logger.LogInformation(" Cliente {Id} atualizado e sincronizado no Google Sheets", cliente.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, " Erro ao sincronizar cliente no Google Sheets");
+                }
 
                 return Ok(new
                 {
@@ -74,7 +91,7 @@ namespace TartaroAPI.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erro ao atualizar perfil: {ex.Message}");
+                _logger.LogError(ex, " Erro ao atualizar perfil");
                 return StatusCode(500, new { message = "Erro interno do servidor.", error = ex.Message });
             }
         }
@@ -84,7 +101,6 @@ namespace TartaroAPI.Controllers
         {
             try
             {
-                // Pega o ID do usuário a partir do token JWT
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (string.IsNullOrEmpty(userId))
                 {
@@ -92,7 +108,7 @@ namespace TartaroAPI.Controllers
                 }
 
                 var cliente = await _context.Clientes
-                    .AsNoTracking() // Otimização de performance: apenas para leitura
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(c => c.Id == int.Parse(userId));
 
                 if (cliente == null)
@@ -100,19 +116,19 @@ namespace TartaroAPI.Controllers
                     return NotFound(new { message = "Cliente não encontrado." });
                 }
 
-                // Retorna um objeto anônimo seguro (sem o hash da senha)
                 return Ok(new
                 {
                     id = cliente.Id,
                     nome = cliente.Nome,
                     email = cliente.Email,
                     telefone = cliente.Telefone,
+                    endereco = cliente.Endereco,
                     role = cliente.Tipo
                 });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erro ao buscar perfil: {ex.Message}");
+                _logger.LogError(ex, " Erro ao buscar perfil");
                 return StatusCode(500, new { message = "Erro interno do servidor.", error = ex.Message });
             }
         }
@@ -127,7 +143,7 @@ namespace TartaroAPI.Controllers
                 
                 var clientes = await _context.Clientes
                     .AsNoTracking()
-                    .Where(c => c.Tipo == "cliente") // Só clientes, não ADMs
+                    .Where(c => c.Tipo == "cliente")
                     .OrderBy(c => c.Nome)
                     .Skip(skip)
                     .Take(size)
@@ -137,7 +153,8 @@ namespace TartaroAPI.Controllers
                         nome = c.Nome,
                         email = c.Email,
                         telefone = c.Telefone,
-                        tipo = c.Tipo
+                        tipo = c.Tipo,
+                        dataCriacao = c.DataCriacao
                     })
                     .ToListAsync();
 
@@ -157,7 +174,7 @@ namespace TartaroAPI.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erro ao listar clientes: {ex.Message}");
+                _logger.LogError(ex, " Erro ao listar clientes");
                 return StatusCode(500, new { message = "Erro interno do servidor.", error = ex.Message });
             }
         }
@@ -175,7 +192,6 @@ namespace TartaroAPI.Controllers
                     return NotFound(new { message = "Cliente não encontrado." });
                 }
 
-                // Não permite deletar ADMs
                 if (cliente.Tipo.ToUpper() == "ADM")
                 {
                     return BadRequest(new { message = "Não é possível deletar um administrador." });
@@ -184,11 +200,22 @@ namespace TartaroAPI.Controllers
                 _context.Clientes.Remove(cliente);
                 await _context.SaveChangesAsync();
 
+                //  SINCRONIZAR CLIENTES NO GOOGLE SHEETS
+                try
+                {
+                    await _googleSheetsService.SincronizarClientesAsync();
+                    _logger.LogInformation("Cliente {Id} deletado e sincronizado no Google Sheets", id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Erro ao sincronizar após deletar cliente");
+                }
+
                 return Ok(new { message = "Cliente deletado com sucesso." });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erro ao deletar cliente: {ex.Message}");
+                _logger.LogError(ex, " Erro ao deletar cliente");
                 return StatusCode(500, new { message = "Erro interno do servidor.", error = ex.Message });
             }
         }

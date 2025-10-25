@@ -5,14 +5,14 @@ let isRefreshing = false;
 let failedQueue = [];
 
 const processQueue = (error, token = null) => {
-  failedQueue.forEach(prom => {
+  failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
     } else {
       prom.resolve(token);
     }
   });
-  
+
   failedQueue = [];
 };
 
@@ -24,36 +24,36 @@ export const login = async (email, senha) => {
       throw new Error(validation.message);
     }
 
-    const { data } = await axiosConfig.post("/auth/login", { 
-      email: email.trim().toLowerCase(), 
-      senha 
+    const { data } = await axiosConfig.post("/auth/login", {
+      email: email.trim().toLowerCase(),
+      senha,
     });
 
     if (data.token && data.user) {
       const usuarioFormatado = formatUserData(data.user);
-      
+
       // Salvar dados com timestamp para auditoria
       const authData = {
         token: data.token,
         user: usuarioFormatado,
         refreshToken: data.refreshToken,
         loginTime: Date.now(),
-        expiresAt: data.expiresAt
+        expiresAt: data.expiresAt,
       };
-      
+
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(usuarioFormatado));
       localStorage.setItem("authData", JSON.stringify(authData));
-      
+
       if (data.refreshToken) {
         localStorage.setItem("refreshToken", data.refreshToken);
       }
-      
+
       return usuarioFormatado;
     }
     throw new Error("Resposta da API inválida após o login.");
   } catch (error) {
-    handleAuthError(error, 'login');
+    handleAuthError(error, "login");
     throw error;
   }
 };
@@ -78,28 +78,28 @@ export const register = async (dadosCadastro) => {
 
     if (data.token && data.user) {
       const usuarioFormatado = formatUserData(data.user);
-      
+
       const authData = {
         token: data.token,
         user: usuarioFormatado,
         refreshToken: data.refreshToken,
         loginTime: Date.now(),
-        expiresAt: data.expiresAt
+        expiresAt: data.expiresAt,
       };
-      
+
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(usuarioFormatado));
       localStorage.setItem("authData", JSON.stringify(authData));
-      
+
       if (data.refreshToken) {
         localStorage.setItem("refreshToken", data.refreshToken);
       }
-      
+
       return { user: usuarioFormatado, token: data.token };
     }
     throw new Error("Resposta da API inválida após o registro.");
   } catch (error) {
-    handleAuthError(error, 'register');
+    handleAuthError(error, "register");
     throw error;
   }
 };
@@ -107,13 +107,16 @@ export const register = async (dadosCadastro) => {
 export const logout = async () => {
   try {
     const refreshToken = localStorage.getItem("refreshToken");
-    
+
     // Tentar logout no servidor (não crítico se falhar)
     if (refreshToken) {
       try {
         await axiosConfig.post("/auth/logout", { token: refreshToken });
       } catch (error) {
-        console.warn("Erro no logout do servidor (continuando):", error.message);
+        console.warn(
+          "Erro no logout do servidor (continuando):",
+          error.message
+        );
       }
     }
   } catch (error) {
@@ -126,9 +129,9 @@ export const logout = async () => {
 
 export const refreshToken = async () => {
   const refreshTokenValue = localStorage.getItem("refreshToken");
-  
+
   if (!refreshTokenValue) {
-    throw new Error("Refresh token não encontrado");
+    throw new Error("Senha ou Email inválidos.");
   }
 
   if (isRefreshing) {
@@ -141,17 +144,17 @@ export const refreshToken = async () => {
   isRefreshing = true;
 
   try {
-    const { data } = await axiosConfig.post("/auth/refresh", { 
-      token: refreshTokenValue 
+    const { data } = await axiosConfig.post("/auth/refresh", {
+      token: refreshTokenValue,
     });
-    
+
     if (data.token) {
       localStorage.setItem("token", data.token);
-      
+
       if (data.refreshToken) {
         localStorage.setItem("refreshToken", data.refreshToken);
       }
-      
+
       // Atualizar authData
       const authDataStr = localStorage.getItem("authData");
       if (authDataStr) {
@@ -165,17 +168,17 @@ export const refreshToken = async () => {
       processQueue(null, data.token);
       return data.token;
     }
-    
+
     throw new Error("Erro ao renovar token");
   } catch (error) {
     processQueue(error, null);
     clearAuthData();
-    
-    const publicPaths = ['/login', '/cadastro', '/', '/esqueci-senha'];
+
+    const publicPaths = ["/login", "/cadastro", "/", "/esqueci-senha"];
     if (!publicPaths.includes(window.location.pathname)) {
       window.location.href = "/login";
     }
-    
+
     throw error;
   } finally {
     isRefreshing = false;
@@ -186,7 +189,7 @@ export const isAuthenticated = () => {
   try {
     const token = localStorage.getItem("token");
     const user = localStorage.getItem("user");
-    
+
     if (!token || !user) {
       return false;
     }
@@ -218,10 +221,10 @@ export const updateCurrentUser = (userData) => {
   try {
     const currentUser = getCurrentUser();
     if (!currentUser) throw new Error("Usuário não encontrado no localStorage");
-    
+
     const updatedUser = { ...currentUser, ...userData };
     localStorage.setItem("user", JSON.stringify(updatedUser));
-    
+
     // Atualizar também no authData
     const authDataStr = localStorage.getItem("authData");
     if (authDataStr) {
@@ -229,7 +232,7 @@ export const updateCurrentUser = (userData) => {
       authData.user = updatedUser;
       localStorage.setItem("authData", JSON.stringify(authData));
     }
-    
+
     return updatedUser;
   } catch (error) {
     console.error("Erro ao atualizar usuário:", error);
@@ -250,26 +253,41 @@ const validateLoginData = ({ email, senha }) => {
     return { isValid: false, message: "Email inválido." };
   }
   if (senha.length < 6) {
-    return { isValid: false, message: "Senha deve ter pelo menos 6 caracteres." };
+    return {
+      isValid: false,
+      message: "Senha deve ter pelo menos 6 caracteres.",
+    };
   }
   return { isValid: true };
 };
 
 const validateRegisterData = (dados) => {
   if (!dados.nome || dados.nome.trim().length < 2) {
-    return { isValid: false, message: "Nome deve ter pelo menos 2 caracteres." };
+    return {
+      isValid: false,
+      message: "Nome deve ter pelo menos 2 caracteres.",
+    };
   }
   if (!dados.email || !isValidEmail(dados.email)) {
     return { isValid: false, message: "Email inválido." };
   }
   if (!dados.senha || dados.senha.length < 6) {
-    return { isValid: false, message: "Senha deve ter pelo menos 6 caracteres." };
+    return {
+      isValid: false,
+      message: "Senha deve ter pelo menos 6 caracteres.",
+    };
   }
   if (!dados.telefone || !isValidPhone(dados.telefone)) {
-    return { isValid: false, message: "Telefone inválido. Use o formato brasileiro com DDD." };
+    return {
+      isValid: false,
+      message: "Telefone inválido. Use o formato brasileiro com DDD.",
+    };
   }
   if (!dados.endereco || dados.endereco.trim().length < 5) {
-    return { isValid: false, message: "Endereço deve ter pelo menos 5 caracteres." };
+    return {
+      isValid: false,
+      message: "Endereço deve ter pelo menos 5 caracteres.",
+    };
   }
   return { isValid: true };
 };
@@ -282,16 +300,16 @@ const isValidEmail = (email) => {
 export const isValidPhone = (telefone) => {
   const nums = telefone.replace(/\D/g, "");
   if (nums.length < 10 || nums.length > 11) return false;
-  
+
   const ddd = parseInt(nums.substring(0, 2));
   if (ddd < 11 || ddd > 99) return false;
-  
+
   // Se tem 11 dígitos, deve ser celular (terceiro dígito = 9)
-  if (nums.length === 11) return nums.charAt(2) === '9';
-  
+  if (nums.length === 11) return nums.charAt(2) === "9";
+
   // Se tem 10 dígitos, não deve ter 9 na terceira posição
-  if (nums.length === 10) return nums.charAt(2) !== '9';
-  
+  if (nums.length === 10) return nums.charAt(2) !== "9";
+
   return false;
 };
 
@@ -308,16 +326,16 @@ const formatUserData = (user) => {
     endereco: user.endereco || "",
     tipo: (user.role || user.tipo || "CLIENTE").toUpperCase().trim(),
     dataCriacao: user.dataCriacao,
-    ativo: user.ativo !== false
+    ativo: user.ativo !== false,
   };
 };
 
 const isTokenExpired = (token) => {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const payload = JSON.parse(atob(token.split(".")[1]));
     if (!payload.exp) return false;
-    
-    return payload.exp < (Date.now() / 1000);
+
+    return payload.exp < Date.now() / 1000;
   } catch (error) {
     console.error("Erro ao decodificar token:", error);
     return true;
@@ -327,12 +345,12 @@ const isTokenExpired = (token) => {
 export const isTokenExpiringSoon = () => {
   const token = getToken();
   if (!token) return false;
-  
+
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const payload = JSON.parse(atob(token.split(".")[1]));
     if (!payload.exp) return false;
-    
-    const timeUntilExpiry = payload.exp - (Date.now() / 1000);
+
+    const timeUntilExpiry = payload.exp - Date.now() / 1000;
     return timeUntilExpiry < 900; // 15 minutos
   } catch (error) {
     return false;
@@ -341,32 +359,32 @@ export const isTokenExpiringSoon = () => {
 
 const clearAuthData = () => {
   const keysToRemove = ["token", "user", "refreshToken", "authData"];
-  keysToRemove.forEach(key => localStorage.removeItem(key));
+  keysToRemove.forEach((key) => localStorage.removeItem(key));
 };
 
 const handleAuthError = (error, operation) => {
   if (error.response) {
     const status = error.response.status;
     const errorData = error.response.data;
-    
+
     console.error(`Erro ${status} na operação ${operation}:`, errorData);
-    
+
     let message = "Erro desconhecido.";
-    
-    if (typeof errorData === 'string') {
+
+    if (typeof errorData === "string") {
       message = errorData;
     } else if (errorData?.message) {
       message = errorData.message;
     } else if (errorData?.errors) {
-      message = Array.isArray(errorData.errors) 
-        ? errorData.errors.join(', ')
-        : Object.values(errorData.errors).flat().join(', ');
+      message = Array.isArray(errorData.errors)
+        ? errorData.errors.join(", ")
+        : Object.values(errorData.errors).flat().join(", ");
     }
-    
+
     // Sobrescrever mensagens específicas para melhor UX
     switch (status) {
       case 401:
-        if (operation === 'login') {
+        if (operation === "login") {
           message = "Email ou senha incorretos.";
         }
         break;
@@ -380,7 +398,7 @@ const handleAuthError = (error, operation) => {
         message = "Erro interno do servidor. Tente novamente mais tarde.";
         break;
     }
-    
+
     error.message = message;
   } else if (error.request) {
     error.message = "Erro de conexão. Verifique sua internet.";
@@ -392,7 +410,11 @@ export const testConnection = async () => {
     const response = await axiosConfig.get("/auth/test");
     return { success: true, data: response.data };
   } catch (error) {
-    return { success: false, error: error.message, details: error.response?.data };
+    return {
+      success: false,
+      error: error.message,
+      details: error.response?.data,
+    };
   }
 };
 
@@ -411,7 +433,7 @@ export const startSessionMonitoring = () => {
   setInterval(() => {
     if (isAuthenticated() && isTokenExpiringSoon()) {
       console.log("Token expirando em breve, tentando renovar...");
-      refreshToken().catch(error => {
+      refreshToken().catch((error) => {
         console.error("Falha ao renovar token automaticamente:", error);
       });
     }
@@ -420,8 +442,8 @@ export const startSessionMonitoring = () => {
 
 // Detecção de múltiplas abas
 export const setupMultiTabSync = () => {
-  window.addEventListener('storage', (e) => {
-    if (e.key === 'token' && !e.newValue && e.oldValue) {
+  window.addEventListener("storage", (e) => {
+    if (e.key === "token" && !e.newValue && e.oldValue) {
       // Token foi removido em outra aba (logout)
       clearAuthData();
       window.location.reload();
@@ -442,5 +464,5 @@ export default {
   testConnection,
   getAuthData,
   startSessionMonitoring,
-  setupMultiTabSync
+  setupMultiTabSync,
 };

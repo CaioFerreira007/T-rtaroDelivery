@@ -4,6 +4,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Cadastro from "./pages/Cadastro";
 import Perfil from "./pages/Perfil";
+import StatusLojaADM from "./pages/StatusLojaADM";
 import EditarPerfil from "./pages/EditarPerfil";
 import Checkout from "./pages/Checkout";
 import RecuperarSenha from "./pages/RecuperarSenha";
@@ -13,7 +14,7 @@ import MeusPedidos from "./pages/MeusPedidos";
 import { AuthProvider } from "./context/AuthContext";
 import AlterarSenha from "./components/AlterarSenha";
 import CadastroProdutoADM from "./components/CadastroProdutoADM";
-import DebugTartaro from './components/DebugTartaro';
+import DebugTartaro from "./components/DebugTartaro";
 import RotaPrivada from "./components/RotaPrivada";
 import EditarProduto from "./components/EditarProduto";
 import SiteNavbar from "./components/SiteNavbar";
@@ -36,14 +37,58 @@ function App() {
           <Route path="/debug" element={<DebugTartaro />} />
 
           {/* Rotas Privadas (login obrigatório) */}
-          <Route path="/perfil" element={<RotaPrivada><Perfil /></RotaPrivada>} />
-          <Route path="/editar-perfil" element={<RotaPrivada><EditarPerfil /></RotaPrivada>} />
-          <Route path="/meus-pedidos" element={<RotaPrivada><MeusPedidos /></RotaPrivada>} />
-          <Route path="/checkout" element={<RotaPrivada><Checkout /></RotaPrivada>} />
-          
+          <Route
+            path="/perfil"
+            element={
+              <RotaPrivada>
+                <Perfil />
+              </RotaPrivada>
+            }
+          />
+          <Route
+            path="/editar-perfil"
+            element={
+              <RotaPrivada>
+                <EditarPerfil />
+              </RotaPrivada>
+            }
+          />
+          <Route
+            path="/meus-pedidos"
+            element={
+              <RotaPrivada>
+                <MeusPedidos />
+              </RotaPrivada>
+            }
+          />
+          <Route
+            path="/checkout"
+            element={
+              <RotaPrivada>
+                <Checkout />
+              </RotaPrivada>
+            }
+          />
+
           {/* Rotas de Admin (também protegidas) */}
-          <Route path="/admin/cadastro-produto" element={<RotaPrivada><CadastroProdutoADM /></RotaPrivada>} />
-          <Route path="/admin/produtos/editar/:id" element={<RotaPrivada><EditarProduto /></RotaPrivada>} />
+          <Route
+            path="/admin/cadastro-produto"
+            element={
+              <RotaPrivada>
+                <CadastroProdutoADM />
+              </RotaPrivada>
+            }
+          />
+          <Route path="/admin/loja" element={<StatusLojaADM />} />
+
+          <Route
+            path="/admin/produtos/editar/:id"
+            element={
+              <RotaPrivada>
+                <EditarProduto />
+              </RotaPrivada>
+            }
+          />
         </Routes>
       </div>
     </AuthProvider>

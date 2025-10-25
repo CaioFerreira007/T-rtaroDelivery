@@ -23,19 +23,27 @@ function EditarProduto() {
     "Bebidas",
     "Combos",
     "Batatas",
-    "Molhos Adicionais",
+    "Adicionais",
   ];
 
   const [produto, setProduto] = useState(null);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
   const [novasImagens, setNovasImagens] = useState([]);
+  const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
+    console.log("📦 Carregando produto ID:", id);
     axiosConfig
       .get(`/produtos/${id}`)
-      .then((res) => setProduto(res.data))
-      .catch(() => setErro("Produto não encontrado ou acesso negado."));
+      .then((res) => {
+        console.log("✅ Produto carregado:", res.data);
+        setProduto(res.data);
+      })
+      .catch((err) => {
+        console.error("❌ Erro ao carregar produto:", err);
+        setErro("Produto não encontrado ou acesso negado.");
+      });
   }, [id]);
 
   const isAdmin = usuariologado?.tipo?.toUpperCase() === "ADM";
@@ -52,34 +60,95 @@ function EditarProduto() {
     setProduto((prev) => ({ ...prev, [name]: value }));
   };
 
+  // 🆕 Handler específico para preço
+  const handlePrecoChange = (e) => {
+    let valor = e.target.value;
+
+    // Remove caracteres inválidos, mantém apenas números e ponto
+    valor = valor.replace(/[^0-9.]/g, "");
+
+    // Garante apenas um ponto decimal
+    const partes = valor.split(".");
+    if (partes.length > 2) {
+      valor = partes[0] + "." + partes.slice(1).join("");
+    }
+
+    // Limita a 2 casas decimais
+    if (partes.length === 2 && partes[1].length > 2) {
+      valor = partes[0] + "." + partes[1].substring(0, 2);
+    }
+
+    setProduto((prev) => ({ ...prev, preco: valor }));
+  };
+
   const handleImagemChange = (e) => {
     setNovasImagens(Array.from(e.target.files));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setEnviando(true);
+    setErro("");
+    setSucesso("");
 
-    const formData = new FormData();
-    formData.append("nome", produto.nome);
-    formData.append("descricao", produto.descricao);
-    formData.append("preco", produto.preco);
-    formData.append("categoria", produto.categoria);
-    formData.append("tipo", produto.tipo || "Padrão");
+    try {
+      console.log("📤 Enviando atualização do produto...");
+      console.log("Produto atual:", produto);
+      console.log("Novas imagens:", novasImagens.length);
 
-    novasImagens.forEach((img) => {
-      formData.append("imagens", img);
-    });
+      // Validar preço
+      const precoNumero = parseFloat(produto.preco);
+      if (isNaN(precoNumero) || precoNumero <= 0) {
+        setErro("❌ Preço inválido. Use ponto (.) para centavos. Ex: 35.50");
+        setEnviando(false);
+        return;
+      }
 
-    axiosConfig
-      .put(`/produtos/${id}`, formData)
-      .then(() => {
-        setSucesso("Produto atualizado com sucesso! Redirecionando...");
-        setTimeout(() => navigate("/home"), 2000);
-      })
-      .catch((err) => {
-        const msg = err.response?.data?.message || "Erro ao atualizar produto.";
-        setErro(msg);
+      const formData = new FormData();
+      formData.append("nome", produto.nome.trim());
+      formData.append("descricao", produto.descricao.trim());
+
+      // ==================================================================
+      // AQUI ESTÁ A CORREÇÃO
+      // Garante que "35.5" seja enviado como "35.50"
+      formData.append("preco", precoNumero.toFixed(2));
+      // ==================================================================
+
+      formData.append("categoria", produto.categoria);
+      formData.append("tipo", produto.tipo || "Padrão");
+
+      // Adicionar imagens se houver
+      if (novasImagens.length > 0) {
+        console.log("📸 Adicionando", novasImagens.length, "imagens...");
+        novasImagens.forEach((img) => {
+          formData.append("imagens", img);
+        });
+      }
+
+      console.log("📦 Enviando FormData...");
+
+      const response = await axiosConfig.put(`/produtos/${id}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
+
+      console.log("✅ Produto atualizado:", response.data);
+
+      setSucesso("Produto atualizado com sucesso! Redirecionando...");
+      setTimeout(() => navigate("/home"), 2000);
+    } catch (err) {
+      console.error("❌ Erro ao atualizar produto:", err);
+      console.error("Resposta do erro:", err.response?.data);
+
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data ||
+        "Erro ao atualizar produto.";
+      setErro(typeof msg === "string" ? msg : JSON.stringify(msg));
+    } finally {
+      setEnviando(false);
+    }
   };
 
   if (!produto) {
@@ -92,11 +161,21 @@ function EditarProduto() {
   }
 
   return (
-    <Container className="editar-produto-container">
-      <h2>✏️ Editar Produto</h2>
+    <Container className="editar-produto-container mt-5 mb-5 fade-in">
+      <h2 className="text-center mb-4">✏️ Editar Produto</h2>
 
-      {erro && <Alert variant="danger">{erro}</Alert>}
-      {sucesso && <Alert variant="success">{sucesso}</Alert>}
+      {erro && (
+        <Alert variant="danger" dismissible onClose={() => setErro("")}>
+          <Alert.Heading>Erro</Alert.Heading>
+          <p>{erro}</p>
+        </Alert>
+      )}
+      {sucesso && (
+        <Alert variant="success">
+          <Alert.Heading>Sucesso!</Alert.Heading>
+          <p>{sucesso}</p>
+        </Alert>
+      )}
 
       <Form.Group className="mb-4">
         {produto.imagemUrls?.length > 0 ? (
@@ -108,17 +187,18 @@ function EditarProduto() {
                     className="d-block w-100 carousel-image-edit"
                     src={url}
                     alt={`Imagem ${index + 1}`}
+                    style={{ maxHeight: "400px", objectFit: "cover" }}
                   />
                 </Carousel.Item>
               ))}
             </Carousel>
           </div>
         ) : (
-          <p className="text-muted">Este produto não possui imagens.</p>
+          <Alert variant="info">Este produto não possui imagens.</Alert>
         )}
       </Form.Group>
 
-      <Form onSubmit={handleSubmit} encType="multipart/form-data">
+      <Form onSubmit={handleSubmit}>
         <Form.Group className="mb-3">
           <Form.Label>Nome</Form.Label>
           <Form.Control
@@ -127,6 +207,7 @@ function EditarProduto() {
             value={produto.nome || ""}
             onChange={handleChange}
             required
+            disabled={enviando}
           />
         </Form.Group>
 
@@ -139,20 +220,24 @@ function EditarProduto() {
             value={produto.descricao || ""}
             onChange={handleChange}
             required
+            disabled={enviando}
           />
         </Form.Group>
 
         <Form.Group className="mb-3">
-          <Form.Label>Preço</Form.Label>
+          <Form.Label>Preço (R$)</Form.Label>
           <Form.Control
-            type="number"
+            type="text"
             name="preco"
             value={produto.preco || ""}
-            onChange={handleChange}
-            step="0.01"
-            min="0.01"
+            onChange={handlePrecoChange}
+            placeholder="Ex: 35.50"
             required
+            disabled={enviando}
           />
+          <Form.Text className="text-muted">
+            Use ponto (.) para separar centavos. Exemplo: 35.50
+          </Form.Text>
         </Form.Group>
 
         <Form.Group className="mb-3">
@@ -162,6 +247,7 @@ function EditarProduto() {
             value={produto.categoria || ""}
             onChange={handleChange}
             required
+            disabled={enviando}
           >
             <option value="" disabled>
               Selecione uma categoria
@@ -181,15 +267,38 @@ function EditarProduto() {
             multiple
             accept=".jpg,.jpeg,.png,.webp"
             onChange={handleImagemChange}
+            disabled={enviando}
           />
           <Form.Text className="text-muted">
             Se você enviar novas imagens, as antigas serão substituídas.
           </Form.Text>
         </Form.Group>
 
-        <Button variant="primary" type="submit">
-          Salvar Alterações
-        </Button>
+        <div className="d-grid gap-2">
+          <Button variant="primary" type="submit" size="lg" disabled={enviando}>
+            {enviando ? (
+              <>
+                <Spinner
+                  as="span"
+                  animation="border"
+                  size="sm"
+                  className="me-2"
+                />
+                Salvando...
+              </>
+            ) : (
+              "💾 Salvar Alterações"
+            )}
+          </Button>
+
+          <Button
+            variant="secondary"
+            onClick={() => navigate("/home")}
+            disabled={enviando}
+          >
+            Cancelar
+          </Button>
+        </div>
       </Form>
     </Container>
   );

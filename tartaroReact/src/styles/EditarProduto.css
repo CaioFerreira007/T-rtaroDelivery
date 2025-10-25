@@ -14,7 +14,6 @@
   color: #333;
 }
 
-/* --- ESTILOS DO CARROSSEL --- */
 .carousel-container-edit {
   max-width: 450px;
   margin: 0 auto 25px auto;
@@ -30,7 +29,6 @@
   object-fit: cover;
 }
 
-/* --- ESTILOS DO FORMULÁRIO (Mantidos) --- */
 .form-label {
   font-weight: 500;
   color: #555;
