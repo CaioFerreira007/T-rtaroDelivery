@@ -33,13 +33,13 @@ function Login() {
   const validateField = (name, value) => {
     switch (name) {
       case "email":
-        if (!value.trim()) return "📧 Email é obrigatório";
+        if (!value.trim()) return " Email é obrigatório";
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return !emailRegex.test(value) ? "📧 Formato de email inválido" : "";
+        return !emailRegex.test(value) ? "📧Formato de email inválido" : "";
       case "senha":
-        if (!value) return "🔒 Senha é obrigatória";
+        if (!value) return " Senha é obrigatória";
         return value.length < 6
-          ? "🔒 Senha deve ter pelo menos 6 caracteres"
+          ? "Senha deve ter pelo menos 6 caracteres"
           : "";
       default:
         return "";
@@ -61,35 +61,35 @@ function Login() {
     setErro("");
 
     console.log("=== INICIANDO LOGIN ===");
-    console.log("📧 Email:", formData.email);
+    console.log(" Email:", formData.email);
 
     // Validação do formulário
     if (!validateForm()) {
-      setErro("⚠️ Por favor, corrija os erros destacados no formulário.");
+      setErro(" Por favor, corrija os erros destacados no formulário.");
       return;
     }
 
     setLoading(true);
 
     try {
-      console.log("🔄 Autenticando usuário...");
+      console.log(" Autenticando usuário...");
 
       const usuario = await login(
         formData.email.trim().toLowerCase(),
         formData.senha
       );
 
-      console.log("✅ Login realizado com sucesso:", usuario?.nome);
+      console.log("Login realizado com sucesso:", usuario?.nome);
 
       // Aguardar um pouco antes de navegar para melhor UX
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       // Redirecionar para a página anterior ou home
       const from = location.state?.from?.pathname || "/home";
-      console.log("🔄 Redirecionando para:", from);
+      console.log("Redirecionando para:", from);
       navigate(from, { replace: true });
     } catch (error) {
-      console.error("❌ Erro no login:", error);
+      console.error(" Erro no login:", error);
 
       let mensagemErro = {
         titulo: "Erro ao fazer login",
@@ -102,8 +102,8 @@ function Login() {
         const status = error.response.status;
         const data = error.response.data;
 
-        console.log("📊 Status HTTP:", status);
-        console.log("📋 Resposta do servidor:", data);
+        console.log("Status HTTP:", status);
+        console.log(" Resposta do servidor:", data);
 
         switch (status) {
           case 400:
@@ -204,7 +204,7 @@ function Login() {
       >
         <Card.Body className="p-4 p-md-5">
           <div className="text-center mb-4">
-            <h2 className="fw-bold mb-2">🍔 Tártaro Delivery</h2>
+            <h2 className="fw-bold mb-2">Tártaro Delivery</h2>
             <p className="text-muted">Faça login para continuar</p>
           </div>
 
@@ -289,7 +289,7 @@ function Login() {
                   Entrando...
                 </>
               ) : (
-                "🔓 Entrar"
+                "Entrar"
               )}
             </Button>
 
@@ -300,7 +300,7 @@ function Login() {
                   className="text-decoration-none text-muted small"
                   style={{ fontSize: "0.9rem" }}
                 >
-                  🔑 Esqueci minha senha
+                  Esqueci minha senha
                 </Link>
               </p>
 
