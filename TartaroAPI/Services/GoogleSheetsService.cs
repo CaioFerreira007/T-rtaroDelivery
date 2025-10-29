@@ -53,7 +53,7 @@ namespace TartaroAPI.Services
                 var googleCredential = await GoogleCredential.FromStreamAsync(stream, CancellationToken.None);
                 var credential = googleCredential.CreateScoped(SheetsService.Scope.Spreadsheets);
 
-                _logger.LogInformation("✅ Google Sheets Service inicializado com sucesso");
+                _logger.LogInformation(" Google Sheets Service inicializado com sucesso");
 
                 return new SheetsService(new BaseClientService.Initializer
                 {
@@ -63,7 +63,7 @@ namespace TartaroAPI.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Erro ao inicializar Google Sheets Service");
+                _logger.LogError(ex, " Erro ao inicializar Google Sheets Service");
                 throw;
             }
         }
@@ -72,7 +72,7 @@ namespace TartaroAPI.Services
         {
             try
             {
-                _logger.LogInformation("🔄 Iniciando sincronização COMPLETA com Google Sheets...");
+                _logger.LogInformation("Iniciando sincronização COMPLETA com Google Sheets...");
 
                 await SincronizarClientesAsync();
                 await SincronizarProdutosAsync();
@@ -80,11 +80,11 @@ namespace TartaroAPI.Services
                 await SincronizarPagamentosAsync();
                 await AtualizarEstatisticasAsync();
 
-                _logger.LogInformation("✅ Sincronização COMPLETA finalizada com sucesso!");
+                _logger.LogInformation(" Sincronização COMPLETA finalizada com sucesso!");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Erro na sincronização completa");
+                _logger.LogError(ex, " Erro na sincronização completa");
                 throw;
             }
         }
@@ -93,7 +93,7 @@ namespace TartaroAPI.Services
         {
             try
             {
-                _logger.LogInformation("🔄 Sincronizando CLIENTES...");
+                _logger.LogInformation(" Sincronizando CLIENTES...");
 
                 using var scope = _scopeFactory.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<TartaroDbContext>();
@@ -131,11 +131,11 @@ namespace TartaroAPI.Services
 
                 await FormatarAbaClientes();
 
-                _logger.LogInformation("✅ {Count} clientes sincronizados", clientes.Count);
+                _logger.LogInformation(" {Count} clientes sincronizados", clientes.Count);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Erro ao sincronizar clientes");
+                _logger.LogError(ex, " Erro ao sincronizar clientes");
                 throw;
             }
         }
@@ -144,7 +144,7 @@ namespace TartaroAPI.Services
         {
             try
             {
-                _logger.LogInformation("🔄 Sincronizando PRODUTOS...");
+                _logger.LogInformation(" Sincronizando PRODUTOS...");
 
                 using var scope = _scopeFactory.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<TartaroDbContext>();
@@ -182,11 +182,11 @@ namespace TartaroAPI.Services
 
                 await FormatarAbaProdutos();
 
-                _logger.LogInformation("✅ {Count} produtos sincronizados", produtos.Count);
+                _logger.LogInformation(" {Count} produtos sincronizados", produtos.Count);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Erro ao sincronizar produtos");
+                _logger.LogError(ex, " Erro ao sincronizar produtos");
                 throw;
             }
         }
@@ -195,7 +195,7 @@ namespace TartaroAPI.Services
         {
             try
             {
-                _logger.LogInformation("🔄 Sincronizando PEDIDOS...");
+                _logger.LogInformation(" Sincronizando PEDIDOS...");
 
                 using var scope = _scopeFactory.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<TartaroDbContext>();
@@ -205,30 +205,26 @@ namespace TartaroAPI.Services
                     .OrderByDescending(p => p.DataPedido)
                     .ToListAsync();
 
-                // --- ALTERAÇÃO --- Limpando menos colunas (A-F)
                 await LimparAba("Pedidos!A2:F");
 
                 var valores = new List<IList<object>>
                 {
-                    // --- ALTERAÇÃO --- Cabeçalho atualizado
                     new List<object> { "ID", "Código", "Data", "Cliente", "Total", "Status" }
                 };
 
                 foreach (var pedido in pedidos)
                 {
-                    // --- ALTERAÇÃO --- Lista de valores atualizada
                     valores.Add(new List<object>
                     {
                         pedido.Id,
                         pedido.Codigo ?? "",
                         pedido.DataPedido.ToString("dd/MM/yyyy HH:mm"),
                         pedido.NomeCliente ?? "",
-                        pedido.Subtotal, // Coluna "Total" agora usa o Subtotal
+                        pedido.Subtotal,
                         pedido.Status ?? ""
                     });
                 }
 
-                // --- ALTERAÇÃO --- Range de atualização (A-F)
                 var range = "Pedidos!A1:F";
                 var valueRange = new ValueRange { Values = valores };
                 var updateRequest = _sheetsService.Spreadsheets.Values.Update(valueRange, _spreadsheetId, range);
@@ -237,11 +233,11 @@ namespace TartaroAPI.Services
 
                 await FormatarAbaPedidos();
 
-                _logger.LogInformation("✅ {Count} pedidos sincronizados", pedidos.Count);
+                _logger.LogInformation("{Count} pedidos sincronizados", pedidos.Count);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Erro ao sincronizar pedidos");
+                _logger.LogError(ex, " Erro ao sincronizar pedidos");
                 throw;
             }
         }
@@ -250,7 +246,7 @@ namespace TartaroAPI.Services
         {
             try
             {
-                _logger.LogInformation("🔄 Sincronizando PAGAMENTOS...");
+                _logger.LogInformation(" Sincronizando PAGAMENTOS...");
 
                 using var scope = _scopeFactory.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<TartaroDbContext>();
@@ -261,18 +257,15 @@ namespace TartaroAPI.Services
                     .OrderByDescending(p => p.Id)
                     .ToListAsync();
 
-                // --- ALTERAÇÃO --- Limpando menos colunas (A-D)
                 await LimparAba("Pagamentos!A2:D");
 
                 var valores = new List<IList<object>>
                 {
-                    // --- ALTERAÇÃO --- Cabeçalho atualizado
                     new List<object> { "ID", "Pedido Código", "Valor Total", "Forma Pagamento" }
                 };
 
                 foreach (var pagamento in pagamentos)
                 {
-                    // --- ALTERAÇÃO --- Lista de valores atualizada (removido Pago e Data)
                     valores.Add(new List<object>
                     {
                         pagamento.Id,
@@ -282,7 +275,6 @@ namespace TartaroAPI.Services
                     });
                 }
 
-                // --- ALTERAÇÃO --- Range de atualização (A-D)
                 var range = "Pagamentos!A1:D";
                 var valueRange = new ValueRange { Values = valores };
                 var updateRequest = _sheetsService.Spreadsheets.Values.Update(valueRange, _spreadsheetId, range);
@@ -291,11 +283,11 @@ namespace TartaroAPI.Services
 
                 await FormatarAbaPagamentos();
 
-                _logger.LogInformation("✅ {Count} pagamentos sincronizados", pagamentos.Count);
+                _logger.LogInformation(" {Count} pagamentos sincronizados", pagamentos.Count);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Erro ao sincronizar pagamentos");
+                _logger.LogError(ex, " Erro ao sincronizar pagamentos");
                 throw;
             }
         }
@@ -304,7 +296,7 @@ namespace TartaroAPI.Services
         {
             try
             {
-                _logger.LogInformation("🔄 Atualizando ESTATÍSTICAS...");
+                _logger.LogInformation(" Atualizando ESTATÍSTICAS...");
 
                 using var scope = _scopeFactory.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<TartaroDbContext>();
@@ -343,11 +335,11 @@ namespace TartaroAPI.Services
 
                 await FormatarAbaEstatisticas();
 
-                _logger.LogInformation("✅ Estatísticas atualizadas");
+                _logger.LogInformation(" Estatísticas atualizadas");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Erro ao atualizar estatísticas");
+                _logger.LogError(ex, " Erro ao atualizar estatísticas");
                 throw;
             }
         }
@@ -477,7 +469,6 @@ namespace TartaroAPI.Services
                             Fields = "userEnteredFormat.numberFormat"
                         }
                     },
-                    // --- ALTERAÇÃO --- Adiciona o filtro básico na aba
                     new Request
                     {
                         SetBasicFilter = new SetBasicFilterRequest
@@ -528,7 +519,6 @@ namespace TartaroAPI.Services
                     {
                         RepeatCell = new RepeatCellRequest
                         {
-                            // Este range continua correto (coluna C, índice 2)
                             Range = new GridRange { SheetId = 3, StartColumnIndex = 2, EndColumnIndex = 3, StartRowIndex = 1 },
                             Cell = new CellData
                             {
