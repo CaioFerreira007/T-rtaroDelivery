@@ -12,7 +12,7 @@ function EditarPerfil() {
     nome: "",
     email: "",
     telefone: "",
-    endereco: "", // 🆕 Adicionar endereço
+    endereco: "", 
   });
   const [sucesso, setSucesso] = useState(false);
   const [erro, setErro] = useState("");
@@ -24,7 +24,7 @@ function EditarPerfil() {
         nome: usuarioLogado.nome || "",
         email: usuarioLogado.email || "",
         telefone: usuarioLogado.telefone || "",
-        endereco: usuarioLogado.endereco || "", // 🆕 Carregar endereço
+        endereco: usuarioLogado.endereco || "",
       });
     }
   }, [usuarioLogado]);
@@ -54,9 +54,9 @@ function EditarPerfil() {
     setCarregando(true);
 
     try {
-      console.log("📤 Enviando atualização:", form);
+      console.log(" Enviando atualização:", form);
       const response = await axiosConfig.put("/cliente/perfil", form);
-      console.log("📥 Resposta do servidor:", response.data);
+      console.log(" Resposta do servidor:", response.data);
 
       const dadosAtualizados = response.data.user || response.data;
 
@@ -65,18 +65,18 @@ function EditarPerfil() {
         nome: dadosAtualizados.nome,
         email: dadosAtualizados.email,
         telefone: dadosAtualizados.telefone,
-        endereco: dadosAtualizados.endereco || form.endereco, // 🆕 Atualizar endereço
+        endereco: dadosAtualizados.endereco || form.endereco,
         role: dadosAtualizados.role || usuarioLogado.role,
       };
 
-      console.log("✅ Atualizando usuário:", usuarioAtualizado);
+      console.log(" Atualizando usuário:", usuarioAtualizado);
 
       atualizarUsuario(usuarioAtualizado);
 
       setSucesso(true);
       setTimeout(() => navigate("/perfil"), 2000);
     } catch (err) {
-      console.error("❌ Erro ao atualizar perfil:", err);
+      console.error(" Erro ao atualizar perfil:", err);
       console.error("Resposta do erro:", err.response?.data);
 
       const errorMsg =
@@ -147,7 +147,6 @@ function EditarPerfil() {
           />
         </Form.Group>
 
-        {/* 🆕 NOVO CAMPO DE ENDEREÇO */}
         <Form.Group className="mb-3">
           <Form.Label>Endereço de Entrega</Form.Label>
           <Form.Control
