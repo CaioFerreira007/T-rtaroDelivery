@@ -81,7 +81,7 @@ function Checkout() {
   }, [usuarioLogado, isInitialized, isLoggedIn, navigate]);
 
   const handleInputChange = (campo, valor) => {
-    console.log(`📝 Alterando ${campo} para:`, valor);
+    console.log(` Alterando ${campo} para:`, valor);
     setDadosEntrega((prev) => ({
       ...prev,
       [campo]: valor,
@@ -89,17 +89,17 @@ function Checkout() {
   };
 
   const montarMensagemWhatsApp = () => {
-    console.log("🔍 Montando mensagem com dados:", dadosEntrega);
+    console.log(" Montando mensagem com dados:", dadosEntrega);
 
     let mensagem = "🛒 *NOVO PEDIDO*\n\n";
 
-    mensagem += `👤 *Cliente:* ${usuarioLogado?.nome || "Cliente"}\n`;
+    mensagem += ` *Cliente:* ${usuarioLogado?.nome || "Cliente"}\n`;
     if (usuarioLogado?.telefone) {
-      mensagem += `📱 *Telefone:* ${usuarioLogado.telefone}\n`;
+      mensagem += ` *Telefone:* ${usuarioLogado.telefone}\n`;
     }
     mensagem += "\n━━━━━━━━━━━━━━━━━━\n\n";
 
-    mensagem += "*📋 ITENS DO PEDIDO:*\n\n";
+    mensagem += "* ITENS DO PEDIDO:*\n\n";
     carrinho.forEach((item) => {
       const subtotal = (item.preco * item.quantidade).toFixed(2);
       mensagem += `• ${item.quantidade}x *${item.nome}*\n`;
@@ -107,23 +107,23 @@ function Checkout() {
     });
 
     mensagem += "━━━━━━━━━━━━━━━━━━\n\n";
-    mensagem += `💰 *TOTAL: R$ ${total.toFixed(2)}*\n\n`;
+    mensagem += ` *TOTAL: R$ ${total.toFixed(2)}*\n\n`;
     mensagem += "━━━━━━━━━━━━━━━━━━\n\n";
 
     // VERIFICAÇÃO DO TIPO DE PEDIDO
     if (dadosEntrega.tipoPedido === "RETIRADA") {
-      mensagem += `🏪 *TIPO:* RETIRADA NO LOCAL\n\n`;
-      mensagem += `📍 *Cliente vai retirar em:*\nRua do Ouro, 350 - Sarapui\nDuque de Caxias - RJ\n\n`;
-      mensagem += `⏰ *Tempo estimado:* 30-40 minutos\n\n`;
+      mensagem += ` *TIPO:* RETIRADA NO LOCAL\n\n`;
+      mensagem += ` *Cliente vai retirar em:*\nRua do Ouro, 350 - Sarapui\nDuque de Caxias - RJ\n\n`;
+      mensagem += ` *Tempo estimado:* 30-40 minutos\n\n`;
     } else {
       // ENTREGA
-      mensagem += `🚚 *TIPO:* ENTREGA\n\n`;
-      mensagem += `📍 *Endereço de Entrega:*\n${
+      mensagem += ` *TIPO:* ENTREGA\n\n`;
+      mensagem +=  *Endereço de Entrega:*\n${
         dadosEntrega.endereco || "Não informado"
       }\n\n`;
 
       if (dadosEntrega.pontoReferencia) {
-        mensagem += `🗺️ *Ponto de Referência:*\n${dadosEntrega.pontoReferencia}\n\n`;
+        mensagem += `*Ponto de Referência:*\n${dadosEntrega.pontoReferencia}\n\n`;
       }
     }
 
@@ -142,23 +142,23 @@ function Checkout() {
     }\n\n`;
 
     if (dadosEntrega.formaPagamento === "DINHEIRO" && dadosEntrega.troco) {
-      mensagem += `💵 *Troco para:* ${dadosEntrega.troco}\n\n`;
+      mensagem += `*Troco para:* ${dadosEntrega.troco}\n\n`;
     }
 
     if (dadosEntrega.observacoes) {
       mensagem += "━━━━━━━━━━━━━━━━━━\n\n";
-      mensagem += `📝 *Observações:*\n${dadosEntrega.observacoes}\n\n`;
+      mensagem += ` *Observações:*\n${dadosEntrega.observacoes}\n\n`;
     }
 
     mensagem += "━━━━━━━━━━━━━━━━━━\n\n";
-    mensagem += "✅ _Pedido enviado via sistema online_";
+    mensagem += " _Pedido enviado via sistema online_";
 
     return mensagem;
   };
 
   const enviarPedidoWhatsApp = () => {
     const mensagem = montarMensagemWhatsApp();
-    console.log("📱 Enviando para WhatsApp:", mensagem);
+    console.log("Enviando para WhatsApp:", mensagem);
 
     const numeroWhatsApp = "5521970754898";
     const urlWhatsApp = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(
@@ -170,7 +170,7 @@ function Checkout() {
   const handleConfirmarPedido = async () => {
     if (!usuarioLogado?.id || carrinho.length === 0) return;
 
-    console.log("✅ Confirmando pedido com dados:", dadosEntrega);
+    console.log("Confirmando pedido com dados:", dadosEntrega);
 
     setConfirmando(true);
     try {
@@ -223,7 +223,7 @@ function Checkout() {
           </div>
         ) : pedidoConfirmado ? (
           <Alert variant="success" className="text-center">
-            <Alert.Heading>✅ Pedido Confirmado!</Alert.Heading>
+            <Alert.Heading> Pedido Confirmado!</Alert.Heading>
             <p>
               Seu pedido foi enviado para a loja via WhatsApp e está sendo
               preparado.
