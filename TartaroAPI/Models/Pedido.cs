@@ -8,7 +8,6 @@ namespace TartaroAPI.Models
 
         public DateTime DataPedido { get; set; } = DateTime.Now;
 
-        // 🔹 Agora opcional para permitir checkout anônimo via WhatsApp
         public int? ClienteId { get; set; }
         public Cliente? Cliente { get; set; }
 
@@ -16,13 +15,11 @@ namespace TartaroAPI.Models
 
         public Pagamento? Pagamento { get; set; }
 
-        // Status padrão antigo era "Recebido". Para o fluxo WhatsApp, usaremos "AGUARDANDO_CONFIRMACAO".
         public string Status { get; set; } = "Recebido";
 
       
         public string Codigo { get; set; } = string.Empty;
 
-        // Dados básicos do cliente informados no checkout
         public string NomeCliente { get; set; } = string.Empty;
         public string Endereco { get; set; } = string.Empty;
         public string? Referencia { get; set; }
