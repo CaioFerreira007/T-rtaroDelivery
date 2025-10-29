@@ -157,9 +157,7 @@ namespace TartaroAPI.Controllers
         // MÉTODOS AUXILIARES PRIVADOS
         // ===================================================================
 
-        /// <summary>
-        /// Verifica se a loja está aberta no momento atual
-        /// </summary>
+
         private StatusLojaDTO VerificarStatusLoja(ConfiguracaoLoja config, DateTime agora, DayOfWeek diaSemana)
         {
             var status = new StatusLojaDTO
@@ -206,9 +204,7 @@ namespace TartaroAPI.Controllers
             return status;
         }
 
-        /// <summary>
-        /// Obtém os horários de abertura e fechamento para um dia específico
-        /// </summary>
+    
         private (TimeSpan?, TimeSpan?, bool) ObterHorarios(ConfiguracaoLoja config, DayOfWeek dia)
         {
             return dia switch
@@ -239,9 +235,7 @@ namespace TartaroAPI.Controllers
             };
         }
 
-        /// <summary>
-        /// Calcula quando será a próxima abertura da loja
-        /// </summary>
+  
         private string? CalcularProximaAbertura(ConfiguracaoLoja config, DateTime agora)
         {
             for (int i = 1; i <= 7; i++)
@@ -259,9 +253,7 @@ namespace TartaroAPI.Controllers
             return null;
         }
 
-        /// <summary>
-        /// Converte DayOfWeek para nome em português
-        /// </summary>
+     
         private string ObterNomeDia(DayOfWeek dia)
         {
             return dia switch
@@ -277,9 +269,7 @@ namespace TartaroAPI.Controllers
             };
         }
 
-        /// <summary>
         /// Mapeia a entidade ConfiguracaoLoja para DTO
-        /// </summary>
         private ConfiguracaoLojaDTO MapearParaDTO(ConfiguracaoLoja config)
         {
             return new ConfiguracaoLojaDTO
@@ -335,9 +325,7 @@ namespace TartaroAPI.Controllers
             };
         }
 
-        /// <summary>
         /// Atualiza os horários de um dia específico
-        /// </summary>
         private void AtualizarHorarioDia(ConfiguracaoLoja config, string dia, HorarioDiaDTO horario)
         {
             TimeSpan? abertura = horario.Abertura != null ? TimeSpan.Parse(horario.Abertura) : null;
