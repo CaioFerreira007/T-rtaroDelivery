@@ -19,7 +19,6 @@ namespace TartaroAPI.Models
 
         public int PedidoId { get; set; }
 
-        // O EF vai cuidar da atribuição. Null! evita warning de inicialização obrigatória.
         public Pedido Pedido { get; set; } = null!;
     }
 }
