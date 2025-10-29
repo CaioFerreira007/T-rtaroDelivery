@@ -29,7 +29,6 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
 
-  <!-- 🆕 COPIAR google-credentials.json PARA BUILD E PUBLISH -->
   <ItemGroup>
     <None Update="google-credentials.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -37,7 +36,6 @@
     </None>
   </ItemGroup>
 
-  <!-- Garantir que wwwroot/imagens seja criada e mantida -->
   <ItemGroup>
     <Folder Include="wwwroot\" />
     <Folder Include="wwwroot\imagens\" />
