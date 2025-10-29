@@ -37,13 +37,13 @@ export default function RecuperarSenha() {
     setCarregando(true);
 
     try {
-      console.log("📧 Enviando solicitação de recuperação para:", email);
+      console.log(" Enviando solicitação de recuperação para:", email);
 
       const response = await axiosConfig.post("/auth/forgot-password", {
         email: email.trim(),
       });
 
-      console.log("✅ Resposta do servidor:", response.data);
+      console.log(" Resposta do servidor:", response.data);
 
       setEnviado(true);
     } catch (err) {
@@ -82,12 +82,12 @@ export default function RecuperarSenha() {
     >
       <Card className="shadow">
         <Card.Header as="h4" className="text-center bg-success text-white">
-          🔒 Recuperar Senha
+          Recuperar Senha
         </Card.Header>
         <Card.Body className="p-4">
           {enviado ? (
             <Alert variant="success" className="text-center">
-              <Alert.Heading>✅ Solicitação Enviada!</Alert.Heading>
+              <Alert.Heading>Solicitação Enviada!</Alert.Heading>
               <p className="mb-3">
                 Se o e-mail <strong>{email}</strong> existir em nossa base de
                 dados, um link de recuperação será enviado em breve.
