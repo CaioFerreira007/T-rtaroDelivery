@@ -17,7 +17,7 @@ namespace TartaroAPI.Data
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
         public DbSet<LogEntry> LogEntries { get; set; }
-        public DbSet<ConfiguracaoLoja> ConfiguracoesLoja { get; set; } // 🆕 ADICIONADO
+        public DbSet<ConfiguracaoLoja> ConfiguracoesLoja { get; set; } 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -102,7 +102,6 @@ namespace TartaroAPI.Data
                     .HasFilter("[Telefone] IS NOT NULL AND [Telefone] != ''");
             });
 
-            // 🆕 CONFIGURAÇÃO DA TABELA CONFIGURACAOLOJA
             modelBuilder.Entity<ConfiguracaoLoja>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -120,7 +119,6 @@ namespace TartaroAPI.Data
                     .HasDefaultValueSql("GETUTCDATE()");
             });
 
-            // 🆕 SEED INICIAL DA CONFIGURAÇÃO DA LOJA
             modelBuilder.Entity<ConfiguracaoLoja>().HasData(
                 new ConfiguracaoLoja
                 {
