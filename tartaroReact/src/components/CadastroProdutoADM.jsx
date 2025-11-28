@@ -12,7 +12,6 @@ function CadastroProdutoADM() {
     preco: "",
     categoria: "",
     tipo: "Padrão",
-    isPromocao: false,
   });
 
   const [imagemFiles, setImagemFiles] = useState([]);
@@ -32,23 +31,24 @@ function CadastroProdutoADM() {
   ];
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  // 🆕 Handler específico para preço
   const handlePrecoChange = (e) => {
     let valor = e.target.value;
 
+    // Remove caracteres inválidos, mantém apenas números e ponto
     valor = valor.replace(/[^0-9.]/g, "");
 
+    // Garante apenas um ponto decimal
     const partes = valor.split(".");
     if (partes.length > 2) {
       valor = partes[0] + "." + partes.slice(1).join("");
     }
 
+    // Limita a 2 casas decimais
     if (partes.length === 2 && partes[1].length > 2) {
       valor = partes[0] + "." + partes[1].substring(0, 2);
     }
@@ -73,33 +73,38 @@ function CadastroProdutoADM() {
     setErro("");
     setSucesso(false);
 
+    // 🆕 Validação melhorada do preço
     const precoNumero = parseFloat(form.preco);
 
     if (isNaN(precoNumero) || precoNumero <= 0) {
-      setErro("Preco invalido. Use ponto (.) para centavos. Ex: 34.99");
+      setErro("❌ Preço inválido. Use ponto (.) para centavos. Ex: 34.99");
       setEnviando(false);
       return;
     }
 
     if (imagemFiles.length === 0) {
-      setErro("Selecione ao menos uma imagem para o produto.");
+      setErro("❌ Selecione ao menos uma imagem para o produto.");
       setEnviando(false);
       return;
     }
 
     try {
-      console.log("Cadastrando produto...");
-      console.log("Preco digitado:", form.preco);
-      console.log("Preco convertido:", precoNumero);
-      console.log("Is Promocao:", form.isPromocao);
+      console.log("📤 Cadastrando produto...");
+      console.log("Preço digitado:", form.preco);
+      console.log("Preço convertido:", precoNumero);
 
       const data = new FormData();
       data.append("nome", form.nome.trim());
       data.append("descricao", form.descricao.trim());
+
+      // ==================================================================
+      // AQUI ESTÁ A CORREÇÃO
+      // Garante que "35.5" seja enviado como "35.50"
       data.append("preco", precoNumero.toFixed(2));
+      // ==================================================================
+
       data.append("categoria", form.categoria);
       data.append("tipo", form.tipo);
-      data.append("isPromocao", form.isPromocao);
 
       imagemFiles.forEach((file) => {
         data.append("imagens", file);
@@ -111,7 +116,7 @@ function CadastroProdutoADM() {
         },
       });
 
-      console.log("Produto cadastrado:", res.data);
+      console.log("✅ Produto cadastrado:", res.data);
 
       setSucesso(true);
       setForm({
@@ -120,16 +125,17 @@ function CadastroProdutoADM() {
         preco: "",
         categoria: "",
         tipo: "Padrão",
-        isPromocao: false,
       });
       setImagemFiles([]);
       setPreviewImagens([]);
 
+      // Limpar preview URLs
       previewImagens.forEach((url) => URL.revokeObjectURL(url));
 
+      // Scroll para o topo
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
-      console.error("Erro ao cadastrar:", error);
+      console.error("❌ Erro ao cadastrar:", error);
       console.error("Resposta:", error.response?.data);
 
       const mensagemErro =
@@ -137,27 +143,28 @@ function CadastroProdutoADM() {
         error.response?.data ||
         "Erro ao cadastrar produto. Verifique os campos.";
 
-      setErro(mensagemErro);
+      setErro(`❌ ${mensagemErro}`);
     } finally {
       setEnviando(false);
     }
   };
 
+  // 🔐 Verificação de acesso
   if (!usuariologado || usuariologado.tipo?.toUpperCase() !== "ADM") {
     return (
       <Alert variant="danger" className="m-5 text-center">
-        Acesso negado: apenas administradores podem cadastrar produtos.
+        ❌ Acesso negado: apenas administradores podem cadastrar produtos.
       </Alert>
     );
   }
 
   return (
     <Container className="mt-5 mb-5 fade-in" style={{ maxWidth: "800px" }}>
-      <h2 className="text-center mb-4">Cadastrar Novo Produto</h2>
+      <h2 className="text-center mb-4">📦 Cadastrar Novo Produto</h2>
 
       {sucesso && (
         <Alert variant="success" dismissible onClose={() => setSucesso(false)}>
-          <Alert.Heading>Sucesso!</Alert.Heading>
+          <Alert.Heading>✅ Sucesso!</Alert.Heading>
           <p>Produto cadastrado com sucesso!</p>
         </Alert>
       )}
@@ -182,14 +189,14 @@ function CadastroProdutoADM() {
         </Form.Group>
 
         <Form.Group className="mb-3">
-          <Form.Label>Descricao</Form.Label>
+          <Form.Label>Descrição</Form.Label>
           <Form.Control
             as="textarea"
             name="descricao"
             rows={3}
             value={form.descricao}
             onChange={handleChange}
-            placeholder="Descreva os ingredientes e caracteristicas do produto..."
+            placeholder="Descreva os ingredientes e características do produto..."
             required
             disabled={enviando}
           />
@@ -214,7 +221,7 @@ function CadastroProdutoADM() {
         </Form.Group>
 
         <Form.Group className="mb-3">
-          <Form.Label>Preco (R$)</Form.Label>
+          <Form.Label>Preço (R$)</Form.Label>
           <Form.Control
             type="text"
             name="preco"
@@ -226,20 +233,6 @@ function CadastroProdutoADM() {
           />
           <Form.Text className="text-muted">
             Use ponto (.) para separar centavos. Exemplo: 34.99
-          </Form.Text>
-        </Form.Group>
-
-        <Form.Group className="mb-3">
-          <Form.Check
-            type="checkbox"
-            name="isPromocao"
-            label="Este produto esta em promocao"
-            checked={form.isPromocao}
-            onChange={handleChange}
-            disabled={enviando}
-          />
-          <Form.Text className="text-muted">
-            Produtos marcados como promocao aparecerao no filtro "Promocoes"
           </Form.Text>
         </Form.Group>
 
@@ -291,7 +284,7 @@ function CadastroProdutoADM() {
                 Cadastrando...
               </>
             ) : (
-              "Cadastrar Produto"
+              "➕ Cadastrar Produto"
             )}
           </Button>
         </div>

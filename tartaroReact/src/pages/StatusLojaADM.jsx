@@ -92,7 +92,7 @@ function StatusLojaADM() {
 
       await axiosConfig.put("/configuracaoLoja", config);
 
-      setSucesso("✅ Horários atualizados com sucesso!");
+      setSucesso("Horários atualizados com sucesso!");
       await carregarDados();
     } catch (error) {
       console.error("Erro ao salvar horários:", error);
@@ -106,7 +106,7 @@ function StatusLojaADM() {
     return (
       <Container className="mt-5">
         <Alert variant="danger">
-          ❌ Acesso negado: apenas administradores podem gerenciar a loja.
+          Acesso negado: apenas administradores podem gerenciar a loja.
         </Alert>
       </Container>
     );
@@ -133,7 +133,7 @@ function StatusLojaADM() {
 
   return (
     <Container className="mt-5 mb-5">
-      <h2 className="text-center mb-4">🏪 Gerenciar Loja</h2>
+      <h2 className="text-center mb-4">Gerenciar Loja</h2>
 
       {erro && (
         <Alert variant="danger" dismissible onClose={() => setErro("")}>
@@ -149,7 +149,7 @@ function StatusLojaADM() {
 
       <Card className="mb-4 shadow-sm">
         <Card.Header className="bg-dark text-white">
-          <h5 className="mb-0">📊 Status Atual</h5>
+          <h5 className="mb-0">Status Atual</h5>
         </Card.Header>
         <Card.Body>
           <Row className="align-items-center">

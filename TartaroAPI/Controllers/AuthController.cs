@@ -397,7 +397,7 @@ namespace TartaroAPI.Controllers
 
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("✅ Senha alterada com sucesso para: {Email}", dto.Email);
+                _logger.LogInformation(" Senha alterada com sucesso para: {Email}", dto.Email);
 
                 return Ok(new { message = "Senha alterada com sucesso!" });
             }
@@ -434,7 +434,7 @@ namespace TartaroAPI.Controllers
                     return BadRequest(new { message = "Token inválido ou expirado." });
                 }
 
-                _logger.LogInformation("✅ Token válido para email: {Email}", cliente.Email);
+                _logger.LogInformation("Token válido para email: {Email}", cliente.Email);
 
                 return Ok(new { 
                     email = cliente.Email, 

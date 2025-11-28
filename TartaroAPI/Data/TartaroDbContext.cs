@@ -17,7 +17,7 @@ namespace TartaroAPI.Data
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
         public DbSet<LogEntry> LogEntries { get; set; }
-        public DbSet<ConfiguracaoLoja> ConfiguracoesLoja { get; set; }
+        public DbSet<ConfiguracaoLoja> ConfiguracoesLoja { get; set; } // 🆕 ADICIONADO
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

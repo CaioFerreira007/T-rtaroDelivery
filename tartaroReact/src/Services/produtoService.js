@@ -6,29 +6,46 @@ export const getProdutos = async (page = 1, pageSize = 100) => {
       `/produtos?page=${page}&pageSize=${pageSize}`
     );
 
+<<<<<<< HEAD
     // console.log(" Resposta bruta do getProdutos:", data);
 
     //  Caso a API já retorne um array diretamente
+=======
+    console.log(" Resposta bruta do getProdutos:", data);
+
+>>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
     if (Array.isArray(data)) {
       return data;
     }
 
+<<<<<<< HEAD
     //  Caso a API use 'items'
+=======
+>>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
     if (data && Array.isArray(data.items)) {
       return data.items;
     }
 
+<<<<<<< HEAD
     //  Caso a API use 'data.items'
+=======
+>>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
     if (data?.data && Array.isArray(data.data.items)) {
       return data.data.items;
     }
 
+<<<<<<< HEAD
     // 4️Caso a API use 'produtos'
+=======
+>>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
     if (data?.produtos && Array.isArray(data.produtos)) {
       return data.produtos;
     }
 
+<<<<<<< HEAD
     // 5️ Caso a API use 'data' como array
+=======
+>>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
     if (data?.data && Array.isArray(data.data)) {
       return data.data;
     }
@@ -36,7 +53,11 @@ export const getProdutos = async (page = 1, pageSize = 100) => {
     console.warn(" Resposta inesperada de getProdutos:", data);
     return [];
   } catch (error) {
+<<<<<<< HEAD
     console.error(" Erro em getProdutos:", error);
+=======
+    console.error("Erro em getProdutos:", error);
+>>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
     return [];
   }
 };

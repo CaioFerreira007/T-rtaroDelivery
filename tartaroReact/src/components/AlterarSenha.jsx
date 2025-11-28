@@ -94,7 +94,7 @@ export default function AlterarSenha() {
     return (
       <Container className="mt-5 text-center">
         <Alert variant="danger">
-          <h4>❌ Token Inválido</h4>
+          <h4> Token Inválido</h4>
           <p>{erro}</p>
         </Alert>
         <Button variant="primary" onClick={() => navigate("/esqueci-senha")}>
@@ -109,7 +109,7 @@ export default function AlterarSenha() {
     return (
       <Container className="mt-5 text-center">
         <Alert variant="success">
-          <h4>✅ Senha Alterada com Sucesso!</h4>
+          <h4> Senha Alterada com Sucesso!</h4>
           <p>
             Você será redirecionado para a tela de login em alguns segundos.
           </p>
@@ -126,7 +126,7 @@ export default function AlterarSenha() {
     <Container className="mt-5 login-container fade-in">
       <Card>
         <Card.Header as="h4" className="text-center">
-          🔑 Nova Senha
+           Nova Senha
         </Card.Header>
         <Card.Body>
           <Form onSubmit={handleSubmit}>

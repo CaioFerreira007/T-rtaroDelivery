@@ -92,7 +92,11 @@ function Checkout() {
   }, [mostrarModal]);
 
   const handleInputChange = (campo, valor) => {
+<<<<<<< HEAD
     console.log(`Alterando ${campo} para:`, valor);
+=======
+    console.log(` Alterando ${campo} para:`, valor);
+>>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
     setDadosEntrega((prev) => ({
       ...prev,
       [campo]: valor,
@@ -100,39 +104,73 @@ function Checkout() {
   };
 
   const montarMensagemWhatsApp = () => {
+<<<<<<< HEAD
     console.log("Montando mensagem com dados:", dadosEntrega);
+=======
+    console.log(" Montando mensagem com dados:", dadosEntrega);
+>>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
 
     let mensagem = "NOVO PEDIDO\n\n";
 
+<<<<<<< HEAD
     mensagem += `Cliente: ${usuarioLogado?.nome || "Cliente"}\n`;
     if (usuarioLogado?.telefone) {
       mensagem += `Telefone: ${usuarioLogado.telefone}\n`;
+=======
+    mensagem += ` *Cliente:* ${usuarioLogado?.nome || "Cliente"}\n`;
+    if (usuarioLogado?.telefone) {
+      mensagem += ` *Telefone:* ${usuarioLogado.telefone}\n`;
+>>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
     }
     mensagem += "\n";
 
+<<<<<<< HEAD
     mensagem += "*ITENS DO PEDIDO:*\n\n";
+=======
+    mensagem += "* ITENS DO PEDIDO:*\n\n";
+>>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
     carrinho.forEach((item) => {
       const subtotal = (item.preco * item.quantidade).toFixed(2);
       mensagem += `${item.quantidade}x *${item.nome}*\n`;
       mensagem += `  R$ ${item.preco.toFixed(2)} → R$ ${subtotal}\n\n`;
     });
 
+<<<<<<< HEAD
     mensagem += "\n";
     mensagem += `TOTAL: R$ ${total.toFixed(2)}\n\n`;
     mensagem += "\n";
+=======
+    mensagem += "━━━━━━━━━━━━━━━━━━\n\n";
+    mensagem += ` *TOTAL: R$ ${total.toFixed(2)}*\n\n`;
+    mensagem += "━━━━━━━━━━━━━━━━━━\n\n";
+>>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
 
     if (dadosEntrega.tipoPedido === "RETIRADA") {
+<<<<<<< HEAD
       mensagem += `*TIPO:* RETIRADA NO LOCAL\n\n`;
       mensagem += `Cliente vai retirar em:\nRua do Ouro, 350 - Sarapui\nDuque de Caxias - RJ\n\n`;
       mensagem += `Tempo estimado: 30-40 minutos\n\n`;
     } else {
       mensagem += `*TIPO:* ENTREGA\n\n`;
       mensagem += `Endereço de Entrega:\n${
+=======
+      mensagem += ` *TIPO:* RETIRADA NO LOCAL\n\n`;
+      mensagem += ` *Cliente vai retirar em:*\nRua do Ouro, 350 - Sarapui\nDuque de Caxias - RJ\n\n`;
+      mensagem += ` *Tempo estimado:* 30-40 minutos\n\n`;
+    } else {
+      // ENTREGA
+      mensagem += ` *TIPO:* ENTREGA\n\n`;
+      mensagem +=  *Endereço de Entrega:*\n${
+>>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
         dadosEntrega.endereco || "Não informado"
       }\n\n`;
 
       if (dadosEntrega.pontoReferencia) {
+<<<<<<< HEAD
         mensagem += `Ponto de Referência:\n${dadosEntrega.pontoReferencia}\n\n`;
+=======
+        mensagem += `*Ponto de Referência:*\n${dadosEntrega.pontoReferencia}\n\n`;
+>>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
       }
     }
 
@@ -151,6 +189,7 @@ function Checkout() {
     }\n\n`;
 
     if (dadosEntrega.formaPagamento === "DINHEIRO" && dadosEntrega.troco) {
+<<<<<<< HEAD
       mensagem += `Troco para: ${dadosEntrega.troco}\n\n`;
     }
 
@@ -161,6 +200,18 @@ function Checkout() {
 
     mensagem += "\n";
     mensagem += "Pedido enviado via sistema online";
+=======
+      mensagem += `*Troco para:* ${dadosEntrega.troco}\n\n`;
+    }
+
+    if (dadosEntrega.observacoes) {
+      mensagem += "━━━━━━━━━━━━━━━━━━\n\n";
+      mensagem += ` *Observações:*\n${dadosEntrega.observacoes}\n\n`;
+    }
+
+    mensagem += "━━━━━━━━━━━━━━━━━━\n\n";
+    mensagem += " _Pedido enviado via sistema online_";
+>>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
 
     return mensagem;
   };
@@ -183,12 +234,16 @@ function Checkout() {
       return;
     }
 
+<<<<<<< HEAD
     // PROTEÇÃO 2: Verificar se já foi enviado
     if (pedidoEnviadoRef.current) {
       console.warn("BLOQUEADO: Pedido já foi enviado");
       alert("Este pedido já foi enviado! Verifique seus pedidos.");
       return;
     }
+=======
+    console.log("Confirmando pedido com dados:", dadosEntrega);
+>>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
 
     // PROTEÇÃO 3: Debounce de 3 segundos
     const agora = Date.now();
@@ -293,7 +348,11 @@ function Checkout() {
           </div>
         ) : pedidoConfirmado ? (
           <Alert variant="success" className="text-center">
+<<<<<<< HEAD
             <Alert.Heading>Pedido Confirmado!</Alert.Heading>
+=======
+            <Alert.Heading> Pedido Confirmado!</Alert.Heading>
+>>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
             <p>
               Seu pedido foi enviado para a loja via WhatsApp e está sendo
               preparado.

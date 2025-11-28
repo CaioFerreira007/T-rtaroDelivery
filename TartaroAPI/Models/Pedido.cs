@@ -20,7 +20,6 @@ namespace TartaroAPI.Models
       
         public string Codigo { get; set; } = string.Empty;
 
-        // Dados básicos do cliente informados no checkout
         public string NomeCliente { get; set; } = string.Empty;
         public string Endereco { get; set; } = string.Empty;
         public string? Referencia { get; set; }

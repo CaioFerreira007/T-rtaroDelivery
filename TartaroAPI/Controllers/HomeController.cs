@@ -9,7 +9,6 @@ namespace TartaroAPI.Controllers
         [HttpGet]
         public IActionResult Index()
         {
-            // Se você tem arquivos React na wwwroot
             return PhysicalFile(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "index.html"), "text/html");
         }
         

@@ -79,7 +79,11 @@ export default function MeusPedidos() {
 
     try {
       const detalhes = await buscarDetalhesPedido(pedidoId);
+<<<<<<< HEAD
       console.log(`Detalhes do pedido ${pedidoId}:`, detalhes);
+=======
+      console.log(` Detalhes do pedido ${pedidoId}:`, detalhes);
+>>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
       setPedidosDetalhados((prev) => ({ ...prev, [pedidoId]: detalhes }));
       setErrosDetalhes((prev) => ({ ...prev, [pedidoId]: null }));
     } catch (err) {

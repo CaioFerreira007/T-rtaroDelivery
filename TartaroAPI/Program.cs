@@ -62,6 +62,11 @@ builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IFileStorageService, LocalStorageService>();
 
+<<<<<<< HEAD
+=======
+// REGISTRAR BACKGROUND SERVICE PARA SINCRONIZAÇÃO AUTOMÁTICA
+builder.Services.AddHostedService<BackgroundSyncService>();
+>>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
 
 // Configuração de Logging
 builder.Logging.ClearProviders();
@@ -89,7 +94,29 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+<<<<<<< HEAD
 
+=======
+// SINCRONIZAÇÃO INICIAL AO INICIAR O SERVIDOR
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation(" Executando sincronização inicial com Google Sheets...");
+
+        var googleSheetsService = scope.ServiceProvider.GetRequiredService<IGoogleSheetsService>();
+        await googleSheetsService.SincronizarTudoAsync();
+
+        logger.LogInformation(" Sincronização inicial concluída com sucesso!");
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, " Erro na sincronização inicial (continuando normalmente)");
+    }
+}
+>>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
 
 if (app.Environment.IsDevelopment())
 {
