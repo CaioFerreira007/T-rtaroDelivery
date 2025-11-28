@@ -19,7 +19,7 @@ namespace TartaroAPI.Controllers
         private const string DiretorioImagens = "imagens";
 
         public ProdutosController(
-            TartaroDbContext context, 
+            TartaroDbContext context,
             IFileStorageService storageService,
             ILogger<ProdutosController> logger)
         {
@@ -48,7 +48,7 @@ namespace TartaroAPI.Controllers
         {
             var produtosDto = await _context.Produtos
                 .AsNoTracking()
-                .OrderByDescending(p => p.Preco) // 🆕 ORDENAR POR PREÇO (MAIOR PARA MENOR)
+                .OrderByDescending(p => p.Preco)
                 .Select(p => new ProdutoReadDTO
                 {
                     Id = p.Id,
@@ -100,12 +100,12 @@ namespace TartaroAPI.Controllers
             try
             {
                 _logger.LogInformation("=== CRIANDO NOVO PRODUTO ===");
-                _logger.LogInformation("Nome: {Nome}, Categoria: {Categoria}, Preço (string): {Preco}", 
+                _logger.LogInformation("Nome: {Nome}, Categoria: {Categoria}, Preço (string): {Preco}",
                     dto.Nome, dto.Categoria, dto.Preco);
 
                 if (!ModelState.IsValid) return BadRequest(ModelState);
 
-                // 🆕 CONVERTER STRING PARA DECIMAL COM CULTURA INVARIANTE
+
                 if (!decimal.TryParse(dto.Preco, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal preco))
                 {
                     _logger.LogWarning("Preço inválido recebido: {Preco}", dto.Preco);
@@ -117,7 +117,7 @@ namespace TartaroAPI.Controllers
                     return BadRequest(new { message = "Preço deve ser maior que zero." });
                 }
 
-                _logger.LogInformation("✅ Preço convertido com sucesso: {Preco}", preco);
+                _logger.LogInformation("Preço convertido com sucesso: {Preco}", preco);
 
                 if (await _context.Produtos.AnyAsync(p => p.Nome == dto.Nome))
                     return BadRequest(new { message = "Já existe um produto com esse nome." });
@@ -128,24 +128,24 @@ namespace TartaroAPI.Controllers
                     Nome = dto.Nome,
                     Descricao = dto.Descricao ?? string.Empty,
                     Categoria = dto.Categoria,
-                    Preco = preco // 🆕 USA O DECIMAL CONVERTIDO
+                    Preco = preco
                 };
 
                 _context.Produtos.Add(p);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("✅ Produto criado com ID: {Id}, Preço: {Preco}", p.Id, p.Preco);
+                _logger.LogInformation("Produto criado com ID: {Id}, Preço: {Preco}", p.Id, p.Preco);
 
                 if (imagens?.Any() == true)
                 {
-                    _logger.LogInformation("📸 Salvando {Count} imagens...", imagens.Count);
+                    _logger.LogInformation(" Salvando {Count} imagens...", imagens.Count);
                     foreach (var img in imagens)
                     {
                         var url = await _storageService.SalvarArquivoAsync(img, DiretorioImagens);
                         _context.ProductImages.Add(new ProdutoImage { Url = url, ProdutoId = p.Id });
                     }
                     await _context.SaveChangesAsync();
-                    _logger.LogInformation("✅ Imagens salvas com sucesso");
+                    _logger.LogInformation(" Imagens salvas com sucesso");
                 }
 
                 var actionResult = await GetById(p.Id);
@@ -163,7 +163,7 @@ namespace TartaroAPI.Controllers
             }
         }
 
-        //  UPDATE (FormData - com imagens)
+
         [HttpPut("{id:int}")]
         [Authorize(Roles = "ADM")]
         public async Task<IActionResult> Update(int id, [FromForm] ProdutoCreateUpdateDTO dto, [FromForm] List<IFormFile> imagens)
@@ -175,7 +175,6 @@ namespace TartaroAPI.Controllers
 
                 if (!ModelState.IsValid) return BadRequest(ModelState);
 
-                // 🆕 CONVERTER STRING PARA DECIMAL
                 if (!decimal.TryParse(dto.Preco, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal preco))
                 {
                     _logger.LogWarning("Preço inválido recebido: {Preco}", dto.Preco);
@@ -187,7 +186,7 @@ namespace TartaroAPI.Controllers
                     return BadRequest(new { message = "Preço deve ser maior que zero." });
                 }
 
-                _logger.LogInformation("✅ Preço convertido com sucesso: {Preco}", preco);
+                _logger.LogInformation(" Preço convertido com sucesso: {Preco}", preco);
 
                 var existing = await _context.Produtos.Include(x => x.Imagens).FirstOrDefaultAsync(x => x.Id == id);
                 if (existing == null) return NotFound(new { message = "Produto não encontrado." });
@@ -196,13 +195,13 @@ namespace TartaroAPI.Controllers
                 existing.Nome = dto.Nome;
                 existing.Descricao = dto.Descricao ?? string.Empty;
                 existing.Categoria = dto.Categoria;
-                existing.Preco = preco; // 🆕 USA O DECIMAL CONVERTIDO
+                existing.Preco = preco;
 
                 _logger.LogInformation("Produto atualizado - Preço: {Preco}", existing.Preco);
 
                 if (imagens?.Any() == true)
                 {
-                    _logger.LogInformation("📸 Substituindo imagens...");
+                    _logger.LogInformation(" Substituindo imagens...");
                     foreach (var img in existing.Imagens)
                     {
                         _storageService.ApagarArquivo(img.Url, DiretorioImagens);
@@ -217,7 +216,7 @@ namespace TartaroAPI.Controllers
                 }
 
                 await _context.SaveChangesAsync();
-                _logger.LogInformation("✅ Produto atualizado com sucesso");
+                _logger.LogInformation(" Produto atualizado com sucesso");
 
                 var actionResult = await GetById(existing.Id);
                 if (actionResult is OkObjectResult okResult)
@@ -229,12 +228,12 @@ namespace TartaroAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Erro ao atualizar produto ID: {Id}", id);
+                _logger.LogError(ex, "Erro ao atualizar produto ID: {Id}", id);
                 return StatusCode(500, new { message = "Erro interno do servidor.", error = ex.Message });
             }
         }
 
-        // 🆕 UPDATE DADOS APENAS (JSON - sem imagens)
+
         [HttpPatch("{id:int}")]
         [Authorize(Roles = "ADM")]
         public async Task<IActionResult> UpdateDados(int id, [FromBody] ProdutoCreateUpdateDTO dto)
@@ -250,7 +249,7 @@ namespace TartaroAPI.Controllers
                     return BadRequest(ModelState);
                 }
 
-                // 🆕 CONVERTER STRING PARA DECIMAL
+
                 if (!decimal.TryParse(dto.Preco, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal preco))
                 {
                     _logger.LogWarning("Preço inválido recebido: {Preco}", dto.Preco);
@@ -273,10 +272,10 @@ namespace TartaroAPI.Controllers
                 existing.Nome = dto.Nome;
                 existing.Descricao = dto.Descricao ?? string.Empty;
                 existing.Categoria = dto.Categoria;
-                existing.Preco = preco; // 🆕 USA O DECIMAL CONVERTIDO
+                existing.Preco = preco;
 
                 await _context.SaveChangesAsync();
-                _logger.LogInformation("✅ Dados do produto ID {Id} atualizados com sucesso, Preço: {Preco}", id, existing.Preco);
+                _logger.LogInformation(" Dados do produto ID {Id} atualizados com sucesso, Preço: {Preco}", id, existing.Preco);
 
                 var actionResult = await GetById(existing.Id);
                 if (actionResult is OkObjectResult okResult)
@@ -288,12 +287,12 @@ namespace TartaroAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Erro ao atualizar dados do produto ID: {Id}", id);
+                _logger.LogError(ex, " Erro ao atualizar dados do produto ID: {Id}", id);
                 return StatusCode(500, new { message = "Erro interno do servidor.", error = ex.Message });
             }
         }
 
-        // 🆕 ATUALIZAR APENAS IMAGENS
+        //  ATUALIZAR APENAS IMAGENS
         [HttpPost("{id:int}/imagens")]
         [Authorize(Roles = "ADM")]
         public async Task<IActionResult> AtualizarImagens(int id, [FromForm] List<IFormFile> imagens)
@@ -314,7 +313,7 @@ namespace TartaroAPI.Controllers
                     return NotFound(new { message = "Produto não encontrado." });
                 }
 
-                _logger.LogInformation("📸 Removendo {Count} imagens antigas...", existing.Imagens.Count);
+                _logger.LogInformation(" Removendo {Count} imagens antigas...", existing.Imagens.Count);
                 // Remover imagens antigas
                 foreach (var img in existing.Imagens)
                 {
@@ -322,7 +321,7 @@ namespace TartaroAPI.Controllers
                 }
                 _context.ProductImages.RemoveRange(existing.Imagens);
 
-                _logger.LogInformation("📸 Salvando {Count} novas imagens...", imagens.Count);
+                _logger.LogInformation(" Salvando {Count} novas imagens...", imagens.Count);
                 // Adicionar novas imagens
                 foreach (var img in imagens)
                 {
@@ -331,16 +330,17 @@ namespace TartaroAPI.Controllers
                 }
 
                 await _context.SaveChangesAsync();
-                _logger.LogInformation("✅ Imagens atualizadas com sucesso");
+                _logger.LogInformation(" Imagens atualizadas com sucesso");
 
-                return Ok(new { 
-                    message = "Imagens atualizadas com sucesso!", 
-                    totalImagens = imagens.Count 
+                return Ok(new
+                {
+                    message = "Imagens atualizadas com sucesso!",
+                    totalImagens = imagens.Count
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Erro ao atualizar imagens do produto ID: {Id}", id);
+                _logger.LogError(ex, " Erro ao atualizar imagens do produto ID: {Id}", id);
                 return StatusCode(500, new { message = "Erro interno do servidor.", error = ex.Message });
             }
         }
@@ -361,7 +361,7 @@ namespace TartaroAPI.Controllers
                     return NotFound(new { message = "Produto não encontrado." });
                 }
 
-                _logger.LogInformation("🗑️ Deletando {Count} imagens...", p.Imagens.Count);
+                _logger.LogInformation(" Deletando {Count} imagens...", p.Imagens.Count);
                 foreach (var img in p.Imagens)
                 {
                     _storageService.ApagarArquivo(img.Url, DiretorioImagens);
@@ -370,13 +370,13 @@ namespace TartaroAPI.Controllers
                 _context.Produtos.Remove(p);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("✅ Produto e imagens removidos com sucesso");
+                _logger.LogInformation(" Produto e imagens removidos com sucesso");
 
                 return Ok(new { message = "Produto e imagens removidos com sucesso." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Erro ao deletar produto ID: {Id}", id);
+                _logger.LogError(ex, " Erro ao deletar produto ID: {Id}", id);
                 return StatusCode(500, new { message = "Erro interno do servidor.", error = ex.Message });
             }
         }

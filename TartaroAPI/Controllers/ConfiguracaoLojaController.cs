@@ -105,7 +105,7 @@ namespace TartaroAPI.Controllers
                     AtualizarHorarioDia(config, horario.Key, horario.Value);
                 }
 
-                config.UltimaAtualizacao = DateTime.UtcNow;
+                config.UltimaAtualizacao = DateTime.Now;
 
                 await _context.SaveChangesAsync();
 
@@ -137,7 +137,7 @@ namespace TartaroAPI.Controllers
                 }
 
                 config.LojaAberta = abrir;
-                config.UltimaAtualizacao = DateTime.UtcNow;
+                config.UltimaAtualizacao = DateTime.Now;
 
                 await _context.SaveChangesAsync();
 

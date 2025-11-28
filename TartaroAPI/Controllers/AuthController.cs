@@ -41,7 +41,7 @@ namespace TartaroAPI.Controllers
             return Ok(new
             {
                 message = "API Tartaro Delivery funcionando!",
-                timestamp = DateTime.UtcNow,
+                timestamp = DateTime.Now,
                 version = "2.0.0",
                 environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
             });
@@ -126,7 +126,7 @@ namespace TartaroAPI.Controllers
                     token = jwt,
                     refreshToken = refreshToken,
                     user = MapUser(cliente),
-                    expiresAt = DateTime.UtcNow.Add(TokenTtl)
+                    expiresAt = DateTime.Now.Add(TokenTtl)
                 });
             }
             catch (Exception ex)
@@ -207,7 +207,7 @@ namespace TartaroAPI.Controllers
                     Endereco = dto.Endereco?.Trim(),
                     SenhaHash = senhaHash,
                     Tipo = "cliente",
-                    DataCriacao = DateTime.UtcNow,
+                    DataCriacao = DateTime.Now,
                     Ativo = true
                 };
 
@@ -265,7 +265,7 @@ namespace TartaroAPI.Controllers
 
                 var refreshToken = await _context.RefreshTokens
                     .Include(r => r.Cliente)
-                    .FirstOrDefaultAsync(r => r.Token == dto.Token && r.Expiracao > DateTime.UtcNow);
+                    .FirstOrDefaultAsync(r => r.Token == dto.Token && r.Expiracao > DateTime.Now);
 
                 if (refreshToken?.Cliente?.Ativo != true)
                 {
@@ -282,7 +282,7 @@ namespace TartaroAPI.Controllers
                 {
                     token = newJwt,
                     refreshToken = newRefreshToken,
-                    expiresAt = DateTime.UtcNow.Add(TokenTtl)
+                    expiresAt = DateTime.Now.Add(TokenTtl)
                 });
             }
             catch (Exception ex)
@@ -341,7 +341,7 @@ namespace TartaroAPI.Controllers
                 {
                     var resetToken = Guid.NewGuid().ToString();
                     cliente.TokenRecuperacao = resetToken;
-                    cliente.TokenExpiraEm = DateTime.UtcNow.AddHours(1);
+                    cliente.TokenExpiraEm = DateTime.Now.AddHours(1);
 
                     await _context.SaveChangesAsync();
                     await _emailService.EnviarEmailRecuperacaoAsync(cliente.Email, resetToken);
@@ -381,7 +381,7 @@ namespace TartaroAPI.Controllers
                     .FirstOrDefaultAsync(c => 
                         c.Email == emailNormalizado && 
                         c.TokenRecuperacao == dto.Token &&
-                        c.TokenExpiraEm > DateTime.UtcNow &&
+                        c.TokenExpiraEm > DateTime.Now &&
                         c.Ativo);
 
                 if (cliente == null)
@@ -425,7 +425,7 @@ namespace TartaroAPI.Controllers
                 var cliente = await _context.Clientes
                     .FirstOrDefaultAsync(c => 
                         c.TokenRecuperacao == token &&
-                        c.TokenExpiraEm > DateTime.UtcNow &&
+                        c.TokenExpiraEm > DateTime.Now &&
                         c.Ativo);
 
                 if (cliente == null)
@@ -475,7 +475,7 @@ namespace TartaroAPI.Controllers
         private async Task LimparRefreshTokensExpirados(int clienteId)
         {
             var tokensExpirados = await _context.RefreshTokens
-                .Where(r => r.ClienteId == clienteId && r.Expiracao <= DateTime.UtcNow)
+                .Where(r => r.ClienteId == clienteId && r.Expiracao <= DateTime.Now)
                 .ToListAsync();
 
             if (tokensExpirados.Any())
@@ -490,7 +490,7 @@ namespace TartaroAPI.Controllers
             var keyString = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key não configurada.");
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var expiresAt = DateTime.UtcNow.Add(TokenTtl);
+            var expiresAt = DateTime.Now.Add(TokenTtl);
 
             var claims = new[]
             {
@@ -518,7 +518,7 @@ namespace TartaroAPI.Controllers
             var refresh = new RefreshToken
             {
                 Token = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N"),
-                Expiracao = DateTime.UtcNow.AddDays(30),
+                Expiracao = DateTime.Now.AddDays(30),
                 ClienteId = clienteId
             };
 

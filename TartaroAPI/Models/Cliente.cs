@@ -36,7 +36,7 @@ namespace TartaroAPI.Models
         public DateTime? TokenExpiraEm { get; set; }
 
         // Campos de auditoria
-        public DateTime DataCriacao { get; set; } = DateTime.UtcNow;
+        public DateTime DataCriacao { get; set; } = DateTime.Now;
         public DateTime? UltimaAtualizacao { get; set; }
         public bool Ativo { get; set; } = true;
 
@@ -56,7 +56,7 @@ namespace TartaroAPI.Models
             if (endereco != null)
                 Endereco = endereco.Trim();
 
-            UltimaAtualizacao = DateTime.UtcNow;
+            UltimaAtualizacao = DateTime.Now;
         }
     }
 }

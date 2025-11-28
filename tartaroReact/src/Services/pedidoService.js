@@ -1,5 +1,21 @@
-// PedidoService.js
 import axiosConfig from "./axiosConfig";
+
+export async function criarPedido(dadosPedido) {
+  try {
+    console.log(" Enviando pedido para API:", dadosPedido);
+    const response = await axiosConfig.post("/pedido", dadosPedido);
+    console.log(" Pedido criado com sucesso:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error(" Erro ao criar pedido:", error);
+    console.error("Status:", error.response?.status);
+    console.error("Mensagem:", error.response?.data);
+
+    throw new Error(
+      error.response?.data?.message || error.message || "Erro ao criar pedido"
+    );
+  }
+}
 
 export async function buscarMeusPedidos() {
   try {
@@ -25,7 +41,7 @@ export async function buscarDetalhesPedido(pedidoId) {
     console.log(` Itens encontrados:`, response.data.itens?.length || 0);
     return response.data;
   } catch (error) {
-    console.error(`Erro ao buscar detalhes do pedido ${pedidoId}:`, error);
+    console.error(` Erro ao buscar detalhes do pedido ${pedidoId}:`, error);
     console.error("Status HTTP:", error.response?.status);
     console.error("Dados do erro:", error.response?.data);
     console.error("Mensagem:", error.message);

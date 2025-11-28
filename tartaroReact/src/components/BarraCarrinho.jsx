@@ -1,5 +1,5 @@
-import React, { useContext, useState, useEffect } from "react";
-import { Button, Alert } from "react-bootstrap";
+import React, { useContext, useState, useEffect, useRef } from "react";
+import { Alert } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import axiosConfig from "../services/axiosConfig";
@@ -24,9 +24,13 @@ function BarraCarrinho({
   const [observacoesItens, setObservacoesItens] = useState({});
   const [expandedItem, setExpandedItem] = useState(null);
 
-  // 🆕 ESTADO DO STATUS DA LOJA
   const [statusLoja, setStatusLoja] = useState(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
+
+  // PROTEÇÃO CONTRA DUPLICATAS
+  const [enviandoPedido, setEnviandoPedido] = useState(false);
+  const pedidoEnviadoRef = useRef(false);
+  const ultimoEnvioRef = useRef(0);
 
   const NUMERO_WHATSAPP = "5521980280098";
   const total = carrinho.reduce(
@@ -34,16 +38,15 @@ function BarraCarrinho({
     0
   );
 
-  // 🆕 CARREGAR STATUS DA LOJA
   useEffect(() => {
     const carregarStatus = async () => {
       try {
         setLoadingStatus(true);
         const response = await axiosConfig.get("/configuracaoLoja/status");
-        console.log("📊 Status da loja (Carrinho):", response.data);
+        console.log("Status da loja (Carrinho):", response.data);
         setStatusLoja(response.data);
       } catch (error) {
-        console.error("❌ Erro ao carregar status:", error);
+        console.error("Erro ao carregar status:", error);
       } finally {
         setLoadingStatus(false);
       }
@@ -51,6 +54,13 @@ function BarraCarrinho({
 
     carregarStatus();
   }, []);
+
+  // Reset da flag quando o modal é fechado
+  useEffect(() => {
+    if (!showModal) {
+      pedidoEnviadoRef.current = false;
+    }
+  }, [showModal]);
 
   if (carrinho.length === 0) return null;
 
@@ -60,9 +70,8 @@ function BarraCarrinho({
   };
 
   const handleFinalizarPedido = () => {
-    // 🆕 VERIFICAR SE LOJA ESTÁ ABERTA
     if (!statusLoja?.estaAberta) {
-      alert("❌ Loja fechada! Não é possível finalizar pedidos no momento.");
+      alert("Loja fechada! Não é possível finalizar pedidos no momento.");
       return;
     }
 
@@ -74,9 +83,29 @@ function BarraCarrinho({
   };
 
   const enviarParaWhatsApp = async () => {
-    // 🆕 VERIFICAR NOVAMENTE ANTES DE ENVIAR
+    // PROTEÇÃO 1: Verificar se já está processando
+    if (enviandoPedido) {
+      console.warn("BLOQUEADO: Pedido já está sendo processado");
+      return;
+    }
+
+    // PROTEÇÃO 2: Verificar se já foi enviado nesta sessão
+    if (pedidoEnviadoRef.current) {
+      console.warn("BLOQUEADO: Pedido já foi enviado");
+      alert("Este pedido já foi enviado! Verifique seu WhatsApp.");
+      return;
+    }
+
+    // PROTEÇÃO 3: Debounce de 3 segundos entre envios
+    const agora = Date.now();
+    if (agora - ultimoEnvioRef.current < 3000) {
+      console.warn("BLOQUEADO: Aguarde antes de enviar novamente");
+      alert("Por favor, aguarde alguns segundos antes de tentar novamente.");
+      return;
+    }
+
     if (!statusLoja?.estaAberta) {
-      alert("❌ Loja fechada! Não é possível finalizar pedidos no momento.");
+      alert("Loja fechada! Não é possível finalizar pedidos no momento.");
       setShowModal(false);
       return;
     }
@@ -90,7 +119,13 @@ function BarraCarrinho({
       return;
     }
 
+    // Marcar como em processamento
+    setEnviandoPedido(true);
+    ultimoEnvioRef.current = Date.now();
+
     try {
+      console.log("Iniciando envio do pedido...");
+
       const pedidoDTO = {
         clienteId: usuariologado.id,
         nomeCliente: usuariologado.nome,
@@ -106,8 +141,14 @@ function BarraCarrinho({
         })),
       };
 
+      console.log("Enviando pedido para API...");
       const resposta = await axiosConfig.post("/pedido", pedidoDTO);
-      const { id, codigo, subtotal } = resposta.data;
+
+      // Marcar como enviado com sucesso
+      pedidoEnviadoRef.current = true;
+
+      console.log("Pedido criado com sucesso:", resposta.data);
+      const { codigo, subtotal } = resposta.data;
 
       const produtosList = carrinho
         .map((item) => {
@@ -162,10 +203,21 @@ function BarraCarrinho({
           formaPagamento: "",
         });
         setObservacoesItens({});
+        setEnviandoPedido(false);
       }, 500);
     } catch (error) {
       console.error("Erro ao enviar pedido:", error);
-      alert("Não foi possível registrar o pedido. Tente novamente.");
+
+      // Resetar flag apenas em caso de erro
+      pedidoEnviadoRef.current = false;
+      setEnviandoPedido(false);
+
+      // Mensagens específicas de erro
+      if (error.response?.status === 409) {
+        alert("Este pedido já foi registrado! Verifique seus pedidos.");
+      } else {
+        alert("Não foi possível registrar o pedido. Tente novamente.");
+      }
     }
   };
 
@@ -189,10 +241,9 @@ function BarraCarrinho({
           </button>
         </div>
 
-        {/* 🆕 ALERTA SE LOJA FECHADA */}
         {!loadingStatus && statusLoja && !statusLoja.estaAberta && (
           <Alert variant="danger" className="m-3">
-            <Alert.Heading className="h6">🔴 Loja Fechada</Alert.Heading>
+            <Alert.Heading className="h6">Loja Fechada</Alert.Heading>
             <p className="mb-1 small">{statusLoja.mensagem}</p>
             {statusLoja.proximaAbertura && (
               <small className="text-muted">
@@ -270,12 +321,16 @@ function BarraCarrinho({
             <button
               className="btn-finalizar"
               onClick={handleFinalizarPedido}
-              disabled={!statusLoja?.estaAberta || loadingStatus} // 🆕 DESABILITAR SE FECHADA
+              disabled={
+                !statusLoja?.estaAberta || loadingStatus || enviandoPedido
+              }
             >
               {loadingStatus
                 ? "Carregando..."
+                : enviandoPedido
+                ? "Enviando..."
                 : !statusLoja?.estaAberta
-                ? "🔴 Loja Fechada"
+                ? "Loja Fechada"
                 : "Finalizar Pedido"}
             </button>
           </div>
@@ -288,6 +343,7 @@ function BarraCarrinho({
         onConfirm={enviarParaWhatsApp}
         dadosEntrega={dadosEntrega}
         handleInputChange={handleInputChange}
+        enviando={enviandoPedido}
       />
     </>
   );

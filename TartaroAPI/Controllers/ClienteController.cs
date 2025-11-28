@@ -14,16 +14,13 @@ namespace TartaroAPI.Controllers
     public class ClienteController : ControllerBase
     {
         private readonly TartaroDbContext _context;
-        private readonly IGoogleSheetsService _googleSheetsService;
         private readonly ILogger<ClienteController> _logger;
 
         public ClienteController(
-            TartaroDbContext context, 
-            IGoogleSheetsService googleSheetsService,
+            TartaroDbContext context,
             ILogger<ClienteController> logger)
         {
             _context = context;
-            _googleSheetsService = googleSheetsService;
             _logger = logger;
         }
 
@@ -61,20 +58,10 @@ namespace TartaroAPI.Controllers
                 }
 
                 cliente.Nome = dto.Nome.Trim();
-                cliente.UltimaAtualizacao = DateTime.UtcNow;
+                cliente.UltimaAtualizacao = DateTime.Now;
 
                 await _context.SaveChangesAsync();
 
-                //  SINCRONIZAR CLIENTES NO GOOGLE SHEETS
-                try
-                {
-                    await _googleSheetsService.SincronizarClientesAsync();
-                    _logger.LogInformation(" Cliente {Id} atualizado e sincronizado no Google Sheets", cliente.Id);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, " Erro ao sincronizar cliente no Google Sheets");
-                }
 
                 return Ok(new
                 {
@@ -140,7 +127,7 @@ namespace TartaroAPI.Controllers
             try
             {
                 var skip = (page - 1) * size;
-                
+
                 var clientes = await _context.Clientes
                     .AsNoTracking()
                     .Where(c => c.Tipo == "cliente")
@@ -200,16 +187,6 @@ namespace TartaroAPI.Controllers
                 _context.Clientes.Remove(cliente);
                 await _context.SaveChangesAsync();
 
-                //  SINCRONIZAR CLIENTES NO GOOGLE SHEETS
-                try
-                {
-                    await _googleSheetsService.SincronizarClientesAsync();
-                    _logger.LogInformation("Cliente {Id} deletado e sincronizado no Google Sheets", id);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Erro ao sincronizar após deletar cliente");
-                }
 
                 return Ok(new { message = "Cliente deletado com sucesso." });
             }

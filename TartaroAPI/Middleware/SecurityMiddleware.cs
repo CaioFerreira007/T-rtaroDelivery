@@ -45,7 +45,7 @@ namespace TartaroAPI.Middleware
         private bool CheckRateLimit(string clientIp)
         {
             var key = $"rate_limit_{clientIp}";
-            var now = DateTime.UtcNow;
+            var now = DateTime.Now;
             
             var requests = _requestCounts.GetOrAdd(key, _ => new List<DateTime>());
             

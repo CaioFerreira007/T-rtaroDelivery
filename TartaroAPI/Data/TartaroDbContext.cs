@@ -17,7 +17,7 @@ namespace TartaroAPI.Data
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
         public DbSet<LogEntry> LogEntries { get; set; }
-        public DbSet<ConfiguracaoLoja> ConfiguracoesLoja { get; set; } // 🆕 ADICIONADO
+        public DbSet<ConfiguracaoLoja> ConfiguracoesLoja { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -47,54 +47,54 @@ namespace TartaroAPI.Data
                 // Configurações básicas
                 entity.Property(e => e.Tipo).IsRequired().HasMaxLength(20).HasDefaultValue("cliente");
                 entity.HasIndex(e => e.Email).IsUnique();
-                
+
                 // CORREÇÃO: Mapeamento explícito das colunas problemáticas
                 entity.Property(e => e.Ativo)
                     .IsRequired()
                     .HasColumnName("Ativo")
                     .HasDefaultValue(true);
-                
+
                 entity.Property(e => e.Endereco)
                     .HasMaxLength(300)
                     .HasColumnName("Endereco")
                     .IsRequired(false);
-                
+
                 // Outras configurações importantes
                 entity.Property(e => e.Nome)
                     .IsRequired()
                     .HasMaxLength(100)
                     .HasColumnName("Nome");
-                
+
                 entity.Property(e => e.Email)
                     .IsRequired()
                     .HasMaxLength(150)
                     .HasColumnName("Email");
-                
+
                 entity.Property(e => e.Telefone)
                     .HasMaxLength(15)
                     .HasColumnName("Telefone");
-                
+
                 entity.Property(e => e.SenhaHash)
                     .IsRequired()
                     .HasColumnName("SenhaHash");
-                
+
                 entity.Property(e => e.DataCriacao)
                     .HasColumnName("DataCriacao")
                     .HasDefaultValueSql("GETUTCDATE()");
-                
+
                 entity.Property(e => e.UltimaAtualizacao)
                     .HasColumnName("UltimaAtualizacao")
                     .IsRequired(false);
-                
+
                 entity.Property(e => e.TokenRecuperacao)
                     .HasMaxLength(100)
                     .HasColumnName("TokenRecuperacao")
                     .IsRequired(false);
-                
+
                 entity.Property(e => e.TokenExpiraEm)
                     .HasColumnName("TokenExpiraEm")
                     .IsRequired(false);
-                
+
                 // Índice único para telefone
                 entity.HasIndex(e => e.Telefone)
                     .IsUnique()
@@ -102,65 +102,63 @@ namespace TartaroAPI.Data
                     .HasFilter("[Telefone] IS NOT NULL AND [Telefone] != ''");
             });
 
-            // 🆕 CONFIGURAÇÃO DA TABELA CONFIGURACAOLOJA
             modelBuilder.Entity<ConfiguracaoLoja>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                
+
                 entity.Property(e => e.LojaAberta)
                     .IsRequired()
                     .HasDefaultValue(true);
-                
+
                 entity.Property(e => e.MensagemFechamento)
                     .HasMaxLength(500)
                     .IsRequired(false);
-                
+
                 entity.Property(e => e.UltimaAtualizacao)
                     .IsRequired()
                     .HasDefaultValueSql("GETUTCDATE()");
             });
 
-            // 🆕 SEED INICIAL DA CONFIGURAÇÃO DA LOJA
             modelBuilder.Entity<ConfiguracaoLoja>().HasData(
                 new ConfiguracaoLoja
                 {
                     Id = 1,
                     LojaAberta = true,
                     MensagemFechamento = "Estamos fechados no momento. Voltamos em breve!",
-                    
+
                     // Segunda e Terça: FECHADO
                     SegundaFechado = true,
                     TercaFechado = true,
-                    
+
                     // Quarta: 19:00 - 22:00
                     QuartaAbertura = new TimeSpan(19, 0, 0),
                     QuartaFechamento = new TimeSpan(22, 0, 0),
                     QuartaFechado = false,
-                    
+
                     // Quinta: 19:00 - 22:00
                     QuintaAbertura = new TimeSpan(19, 0, 0),
                     QuintaFechamento = new TimeSpan(22, 0, 0),
                     QuintaFechado = false,
-                    
+
                     // Sexta: 19:00 - 23:00
                     SextaAbertura = new TimeSpan(19, 0, 0),
                     SextaFechamento = new TimeSpan(23, 0, 0),
                     SextaFechado = false,
-                    
+
                     // Sábado: 19:00 - 23:00
                     SabadoAbertura = new TimeSpan(19, 0, 0),
                     SabadoFechamento = new TimeSpan(23, 0, 0),
                     SabadoFechado = false,
-                    
+
                     // Domingo: 19:00 - 22:00
                     DomingoAbertura = new TimeSpan(19, 0, 0),
                     DomingoFechamento = new TimeSpan(22, 0, 0),
                     DomingoFechado = false,
-                    
+
                     UltimaAtualizacao = DateTime.UtcNow
                 }
             );
-            
+
             // Outras configurações mantidas
             modelBuilder.Entity<Pedido>(e =>
             {
@@ -170,10 +168,10 @@ namespace TartaroAPI.Data
             });
 
             modelBuilder.Entity<Produto>().HasIndex(p => p.Categoria);
-            
+
             modelBuilder.Entity<RefreshToken>().HasIndex(e => e.Token).IsUnique();
             modelBuilder.Entity<PasswordResetToken>().HasIndex(e => e.Token).IsUnique();
-            
+
             // Relacionamentos
             modelBuilder.Entity<ItemPedido>().HasOne(i => i.Pedido).WithMany(p => p.Itens).HasForeignKey(i => i.PedidoId).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<ItemPedido>().HasOne(i => i.Produto).WithMany(p => p.Itens).HasForeignKey(i => i.ProdutoId).OnDelete(DeleteBehavior.Restrict);

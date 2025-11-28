@@ -45,7 +45,7 @@ namespace TartaroAPI.Migrations
 
                     b.HasIndex("ProdutoId");
 
-                    b.ToTable("ItensPedido");
+                    b.ToTable("ItensPedido", (string)null);
                 });
 
             modelBuilder.Entity("ProdutoImage", b =>
@@ -68,7 +68,7 @@ namespace TartaroAPI.Migrations
 
                     b.HasIndex("ProdutoId");
 
-                    b.ToTable("product_images");
+                    b.ToTable("product_images", (string)null);
                 });
 
             modelBuilder.Entity("TartaroAPI.Models.Cliente", b =>
@@ -149,7 +149,7 @@ namespace TartaroAPI.Migrations
                         .HasDatabaseName("IX_Clientes_Telefone")
                         .HasFilter("[Telefone] IS NOT NULL AND [Telefone] != ''");
 
-                    b.ToTable("Clientes");
+                    b.ToTable("Clientes", (string)null);
                 });
 
             modelBuilder.Entity("TartaroAPI.Models.ConfiguracaoLoja", b =>
@@ -239,7 +239,7 @@ namespace TartaroAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ConfiguracoesLoja");
+                    b.ToTable("ConfiguracoesLoja", (string)null);
 
                     b.HasData(
                         new
@@ -322,7 +322,7 @@ namespace TartaroAPI.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("LogEntries");
+                    b.ToTable("LogEntries", (string)null);
                 });
 
             modelBuilder.Entity("TartaroAPI.Models.Pagamento", b =>
@@ -356,7 +356,7 @@ namespace TartaroAPI.Migrations
                     b.HasIndex("PedidoId")
                         .IsUnique();
 
-                    b.ToTable("Pagamentos");
+                    b.ToTable("Pagamentos", (string)null);
                 });
 
             modelBuilder.Entity("TartaroAPI.Models.PasswordResetToken", b =>
@@ -387,7 +387,7 @@ namespace TartaroAPI.Migrations
                     b.HasIndex("Token")
                         .IsUnique();
 
-                    b.ToTable("PasswordResetTokens");
+                    b.ToTable("PasswordResetTokens", (string)null);
                 });
 
             modelBuilder.Entity("TartaroAPI.Models.Pedido", b =>
@@ -448,7 +448,7 @@ namespace TartaroAPI.Migrations
                     b.HasIndex("Codigo")
                         .IsUnique();
 
-                    b.ToTable("Pedidos");
+                    b.ToTable("Pedidos", (string)null);
                 });
 
             modelBuilder.Entity("TartaroAPI.Models.Produto", b =>
@@ -486,7 +486,7 @@ namespace TartaroAPI.Migrations
 
                     b.HasIndex("Categoria");
 
-                    b.ToTable("Produtos");
+                    b.ToTable("Produtos", (string)null);
                 });
 
             modelBuilder.Entity("TartaroAPI.Models.RefreshToken", b =>
@@ -514,7 +514,7 @@ namespace TartaroAPI.Migrations
                     b.HasIndex("Token")
                         .IsUnique();
 
-                    b.ToTable("RefreshTokens");
+                    b.ToTable("RefreshTokens", (string)null);
                 });
 
             modelBuilder.Entity("ItemPedido", b =>

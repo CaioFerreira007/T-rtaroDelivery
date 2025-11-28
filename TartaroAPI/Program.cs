@@ -16,7 +16,7 @@ builder.Services.AddCors(options =>
                       policy =>
                       {
                           policy.WithOrigins("http://localhost:3000",
-                                             "https://tartarodelivery.com.br",
+                         "https://tartarodelivery.com.br",
                                              "http://tartarodelivery.com.br")
                                 .AllowAnyHeader()
                                 .AllowAnyMethod();
@@ -53,20 +53,15 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Conexão com o Banco de Dados
 builder.Services.AddDbContext<TartaroDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("TartaroDb")));
 
-// Injeção de Dependências dos Serviços
-builder.Services.AddScoped<IGoogleSheetsService, GoogleSheetsService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPedidoService, PedidoService>();
 builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IFileStorageService, LocalStorageService>();
 
-// 🆕 REGISTRAR BACKGROUND SERVICE PARA SINCRONIZAÇÃO AUTOMÁTICA
-builder.Services.AddHostedService<BackgroundSyncService>();
 
 // Configuração de Logging
 builder.Logging.ClearProviders();
@@ -94,25 +89,7 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// 🆕 SINCRONIZAÇÃO INICIAL AO INICIAR O SERVIDOR
-using (var scope = app.Services.CreateScope())
-{
-    try
-    {
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogInformation("🔄 Executando sincronização inicial com Google Sheets...");
 
-        var googleSheetsService = scope.ServiceProvider.GetRequiredService<IGoogleSheetsService>();
-        await googleSheetsService.SincronizarTudoAsync();
-
-        logger.LogInformation("✅ Sincronização inicial concluída com sucesso!");
-    }
-    catch (Exception ex)
-    {
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "❌ Erro na sincronização inicial (continuando normalmente)");
-    }
-}
 
 if (app.Environment.IsDevelopment())
 {

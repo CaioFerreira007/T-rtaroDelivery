@@ -41,6 +41,6 @@ namespace TartaroAPI.Models
         public TimeSpan? DomingoFechamento { get; set; }
         public bool DomingoFechado { get; set; } = false;
 
-        public DateTime UltimaAtualizacao { get; set; } = DateTime.UtcNow;
+        public DateTime UltimaAtualizacao { get; set; } = DateTime.Now;
     }
 }

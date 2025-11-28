@@ -15,7 +15,7 @@ import { useAuth } from "../context/AuthContext";
 import {
   buscarMeusPedidos,
   buscarDetalhesPedido,
-} from "../services/PedidoService";
+} from "../services/pedidoService";
 
 export default function MeusPedidos() {
   const [pedidos, setPedidos] = useState([]);
@@ -79,11 +79,11 @@ export default function MeusPedidos() {
 
     try {
       const detalhes = await buscarDetalhesPedido(pedidoId);
-      console.log(`✅ Detalhes do pedido ${pedidoId}:`, detalhes);
+      console.log(`Detalhes do pedido ${pedidoId}:`, detalhes);
       setPedidosDetalhados((prev) => ({ ...prev, [pedidoId]: detalhes }));
       setErrosDetalhes((prev) => ({ ...prev, [pedidoId]: null }));
     } catch (err) {
-      console.error(`❌ Erro ao carregar detalhes do pedido ${pedidoId}:`, err);
+      console.error(` Erro ao carregar detalhes do pedido ${pedidoId}:`, err);
       setErrosDetalhes((prev) => ({
         ...prev,
         [pedidoId]: "Os itens deste pedido não estão disponíveis no momento.",

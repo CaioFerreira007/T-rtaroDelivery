@@ -6,7 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { getProdutos } from "../services/produtoService";
 import HamburguerCard from "../components/HamburguerCard";
 import BarraCarrinho from "../components/BarraCarrinho";
-import AlertaLojaFechada from "../components/AlertaLojaFechada"; // 🆕 IMPORTAR
+import AlertaLojaFechada from "../components/AlertaLojaFechada";
 import axiosConfig from "../services/axiosConfig";
 
 import "../styles/Home.css";
@@ -23,7 +23,6 @@ function Home() {
   const [error, setError] = useState("");
   const [finalizandoPedido, setFinalizandoPedido] = useState(false);
 
-  // 🆕 ESTADO DO STATUS DA LOJA
   const [statusLoja, setStatusLoja] = useState(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
 
@@ -83,16 +82,17 @@ function Home() {
     }
   }, []);
 
-  // 🆕 CARREGAR STATUS DA LOJA
   useEffect(() => {
     const carregarStatusLoja = async () => {
       try {
         setLoadingStatus(true);
         const response = await axiosConfig.get("/configuracaoLoja/status");
-        console.log("📊 Status da loja:", response.data);
+        // console.log(" Status da loja:", response.data);
         setStatusLoja(response.data);
       } catch (error) {
-        console.error("❌ Erro ao carregar status da loja:", error);
+        console.error(" Erro ao carregar status da loja:", error);
+        // Define como aberta por padrão em caso de erro
+        setStatusLoja({ estaAberta: true });
       } finally {
         setLoadingStatus(false);
       }
@@ -111,13 +111,13 @@ function Home() {
         setLoading(true);
         setError("");
 
-        console.log("🔄 Iniciando carregamento de produtos...");
+        // console.log(" Iniciando carregamento de produtos...");
         const listaProdutos = await getProdutos();
 
-        console.log("📦 Resposta de getProdutos:", listaProdutos);
-        console.log("📦 Tipo da resposta:", typeof listaProdutos);
-        console.log("📦 É array?", Array.isArray(listaProdutos));
-        console.log("📦 Quantidade de itens:", listaProdutos?.length);
+        // console.log(" Resposta de getProdutos:", listaProdutos);
+        // console.log(" Tipo da resposta:", typeof listaProdutos);
+        // console.log(" É array?", Array.isArray(listaProdutos));
+        console.log(" Quantidade de itens:", listaProdutos?.length);
 
         if (Array.isArray(listaProdutos) && listaProdutos.length > 0) {
           const produtosValidos = listaProdutos.filter((p) => {
@@ -130,12 +130,12 @@ function Home() {
               p.categoria.trim() !== "";
 
             if (!valido) {
-              console.warn("⚠️ Produto inválido ignorado:", p);
+              console.warn(" Produto inválido ignorado:", p);
             }
             return valido;
           });
 
-          console.log("✅ Produtos válidos:", produtosValidos.length);
+          // console.log(" Produtos válidos:", produtosValidos.length);
 
           if (produtosValidos.length > 0) {
             setProdutos(produtosValidos);
@@ -144,17 +144,17 @@ function Home() {
             setError("Produtos estão com dados incompletos.");
           }
         } else if (Array.isArray(listaProdutos) && listaProdutos.length === 0) {
-          console.warn("⚠️ API retornou array vazio");
+          console.warn(" API retornou array vazio");
           setProdutos([]);
           setError("Nenhum produto cadastrado no momento.");
         } else {
-          console.error("❌ API retornou formato inválido:", listaProdutos);
+          console.error(" API retornou formato inválido:", listaProdutos);
           setProdutos([]);
           setError("Formato de dados inválido recebido do servidor.");
         }
       } catch (err) {
-        console.error("❌ Erro ao carregar produtos:", err);
-        console.error("❌ Detalhes do erro:", {
+        console.error(" Erro ao carregar produtos:", err);
+        console.error(" Detalhes do erro:", {
           message: err.message,
           response: err.response?.data,
           status: err.response?.status,
@@ -173,7 +173,7 @@ function Home() {
         setError(mensagemErro);
       } finally {
         setLoading(false);
-        console.log("🏁 Carregamento finalizado");
+        console.log(" Carregamento finalizado");
       }
     };
 
@@ -181,17 +181,17 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    console.log("🔄 Estado de autenticação mudou:");
+    console.log(" Estado de autenticação mudou:");
     console.log("- isInitialized:", isInitialized);
     console.log("- usuarioLogado:", usuarioLogado);
     console.log("- isLoggedIn:", isLoggedIn);
 
     if (isInitialized && usuarioLogado?.id) {
       const carrinhoUsuario = obterCarrinhoUsuario(usuarioLogado.id);
-      console.log("🛒 Carrinho carregado:", carrinhoUsuario);
+      console.log(" Carrinho carregado:", carrinhoUsuario);
       setCarrinho(carrinhoUsuario);
     } else if (isInitialized && !usuarioLogado) {
-      console.log("👤 Usuário não logado, limpando carrinho");
+      console.log(" Usuário não logado, limpando carrinho");
       setCarrinho([]);
     }
   }, [usuarioLogado, isInitialized, isLoggedIn, obterCarrinhoUsuario]);
@@ -222,16 +222,13 @@ function Home() {
 
   useEffect(() => {
     if (mostrarCarrinho && usuarioLogado?.endereco) {
-      console.log(
-        "📍 Preenchendo endereço do usuário:",
-        usuarioLogado.endereco
-      );
+      console.log(" Preenchendo endereço do usuário:", usuarioLogado.endereco);
       setDadosEntrega((prev) => ({
         ...prev,
         endereco: usuarioLogado.endereco,
       }));
     } else if (mostrarCarrinho && !usuarioLogado?.endereco) {
-      console.log("⚠️ Usuário sem endereço cadastrado");
+      console.log(" Usuário sem endereço cadastrado");
       setDadosEntrega((prev) => ({
         ...prev,
         endereco: "",
@@ -247,10 +244,10 @@ function Home() {
         return;
       }
 
-      // 🆕 VERIFICAR SE LOJA ESTÁ ABERTA
+      // VERIFICAR SE LOJA ESTÁ ABERTA
       if (!statusLoja?.estaAberta) {
         alert(
-          "❌ Loja fechada! Não é possível adicionar produtos ao carrinho no momento."
+          " Loja fechada! Não é possível adicionar produtos ao carrinho no momento."
         );
         return;
       }
@@ -281,7 +278,7 @@ function Home() {
         return [...prevCarrinho, { ...produto, quantidade: 1 }];
       });
     },
-    [usuarioLogado, navigate, statusLoja] // 🆕 ADICIONAR statusLoja
+    [usuarioLogado, navigate, statusLoja]
   );
 
   const atualizarQuantidade = useCallback((produtoId, operacao) => {
@@ -307,9 +304,9 @@ function Home() {
   const finalizarPedido = useCallback(async () => {
     if (!usuarioLogado?.id || carrinho.length === 0) return;
 
-    // 🆕 VERIFICAR SE LOJA ESTÁ ABERTA ANTES DE FINALIZAR
+    // VERIFICAR SE LOJA ESTÁ ABERTA ANTES DE FINALIZAR
     if (!statusLoja?.estaAberta) {
-      alert("❌ Loja fechada! Não é possível finalizar pedidos no momento.");
+      alert(" Loja fechada! Não é possível finalizar pedidos no momento.");
       return;
     }
 
@@ -339,25 +336,25 @@ function Home() {
     dadosEntrega,
     limparCarrinhoUsuario,
     statusLoja,
-  ]); // 🆕 ADICIONAR statusLoja
+  ]);
 
-  // 🆕 FUNÇÃO PARA DELETAR PRODUTO
+  // FUNÇÃO PARA DELETAR PRODUTO
   const deletarProduto = useCallback(async (produtoId) => {
     try {
-      console.log("🗑️ Deletando produto ID:", produtoId);
+      console.log(" Deletando produto ID:", produtoId);
 
       const response = await axiosConfig.delete(`/produtos/${produtoId}`);
 
-      console.log("✅ Produto deletado:", response.data);
+      console.log(" Produto deletado:", response.data);
 
       setProdutos((prev) => prev.filter((p) => p.id !== produtoId));
 
-      alert("✅ Produto excluído com sucesso!");
+      alert(" Produto excluído com sucesso!");
     } catch (error) {
-      console.error("❌ Erro ao deletar produto:", error);
+      console.error(" Erro ao deletar produto:", error);
       const mensagem =
         error.response?.data?.message || "Erro ao excluir produto.";
-      alert(`❌ ${mensagem}`);
+      alert(` ${mensagem}`);
       throw error;
     }
   }, []);
@@ -395,7 +392,7 @@ function Home() {
     <Container className="menu-container mt-5 mb-5 fade-in">
       <h1 className="text-center mb-4">Cardápio Tártaro Delivery</h1>
 
-      {/* 🆕 ALERTA DE LOJA FECHADA */}
+      {/* ALERTA DE LOJA FECHADA */}
       {!loadingStatus && statusLoja && (
         <AlertaLojaFechada status={statusLoja} />
       )}
@@ -482,7 +479,7 @@ function Home() {
                 imagens={item.imagemUrls}
                 onAdd={() => adicionarAoCarrinho(item)}
                 onDelete={deletarProduto}
-                disabled={!isLoggedIn || !statusLoja?.estaAberta} // 🆕 DESABILITAR SE LOJA FECHADA
+                disabled={!statusLoja?.estaAberta}
               />
             </Col>
           ))
