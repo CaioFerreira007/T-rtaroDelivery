@@ -1,7 +1,7 @@
 import { Navbar, Nav, Container, NavDropdown, Spinner } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import "../styles/SiteNavbar.css";
+import "../styles/SiteNavBar.css";
 
 function SiteNavbar() {
   const { usuarioLogado, logout, loading } = useAuth();

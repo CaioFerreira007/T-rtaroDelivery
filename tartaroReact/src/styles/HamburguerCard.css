@@ -2,23 +2,42 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
-  background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background: linear-gradient(145deg, #2a2a3e 0%, #1a1a2e 100%);
+  border: 2px solid rgba(255, 179, 0, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.hamburguer-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, #ffb300, transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .hamburguer-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-8px);
+  box-shadow: 0 12px 32px rgba(255, 179, 0, 0.4);
+  border-color: #ffb300;
+}
+
+.hamburguer-card:hover::before {
+  opacity: 1;
 }
 
 .imagem-container {
   position: relative;
   width: 100%;
-  height: 350px;
-  background: #ffffff;
+  height: 300px;
+  background: #1a1a2e;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -46,19 +65,25 @@
 
 .carousel-wrapper .carousel-control-prev,
 .carousel-wrapper .carousel-control-next {
-  width: 40px;
-  height: 40px;
+  width: 45px;
+  height: 45px;
   top: 50%;
   transform: translateY(-50%);
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(255, 179, 0, 0.9);
   border-radius: 50%;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .hamburguer-card:hover .carousel-control-prev,
 .hamburguer-card:hover .carousel-control-next {
   opacity: 1;
+}
+
+.carousel-wrapper .carousel-control-prev:hover,
+.carousel-wrapper .carousel-control-next:hover {
+  background-color: #ffb300;
+  transform: translateY(-50%) scale(1.1);
 }
 
 .carousel-wrapper .carousel-control-prev {
@@ -75,10 +100,17 @@
 }
 
 .carousel-wrapper .carousel-indicators button {
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(255, 179, 0, 0.5);
+  border: 2px solid rgba(255, 179, 0, 0.8);
+  transition: all 0.3s ease;
+}
+
+.carousel-wrapper .carousel-indicators button.active {
+  background-color: #ffb300;
+  transform: scale(1.2);
 }
 
 .produto-img {
@@ -92,7 +124,7 @@
 .imagem-fallback {
   width: 100%;
   min-height: 250px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: linear-gradient(135deg, #2a2a3e 0%, #1a1a2e 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -107,104 +139,161 @@
 }
 
 .conteudo-card {
-  padding: 1.25rem;
+  padding: 1.5rem;
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  background: white;
+  background: linear-gradient(180deg, #2a2a3e 0%, #1a1a2e 100%);
 }
+
+/* ===== NOME DO PRODUTO - DOURADO BRILHANTE ===== */
 .titulo-card {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-  color: #2c3e50;
-  line-height: 1.4;
+  font-family: "Philosopher", serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #ffb300 !important;
+  line-height: 1.3;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 0 10px rgba(255, 179, 0, 0.8), 0 0 20px rgba(255, 179, 0, 0.6),
+    0 0 30px rgba(255, 179, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.8);
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    text-shadow: 0 0 10px rgba(255, 179, 0, 0.8),
+      0 0 20px rgba(255, 179, 0, 0.6), 0 0 30px rgba(255, 179, 0, 0.4),
+      0 2px 8px rgba(0, 0, 0, 0.8);
+  }
+  to {
+    text-shadow: 0 0 15px rgba(255, 179, 0, 1), 0 0 30px rgba(255, 179, 0, 0.8),
+      0 0 45px rgba(255, 179, 0, 0.6), 0 2px 10px rgba(0, 0, 0, 1);
+  }
 }
 
 .descricao-card {
   flex-grow: 1;
-  font-size: 0.9rem;
-  color: #6c757d;
+  font-size: 0.95rem;
+  color: #e2e8f0;
   margin-bottom: 1rem;
   line-height: 1.6;
   word-wrap: break-word;
   overflow-wrap: break-word;
   white-space: normal;
+  font-family: "Roboto", sans-serif;
+  font-weight: 400;
 }
 
 .rodape-card {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.875rem;
   margin-top: auto;
-  padding-top: 1rem;
-  border-top: 1px solid #e9ecef;
+  padding-top: 1.25rem;
+  border-top: 2px solid rgba(255, 179, 0, 0.4);
 }
 
 .preco-card {
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 700;
-  color: #198754;
+  color: #20c997;
   text-align: center;
   letter-spacing: -0.5px;
+  font-family: "Cinzel", serif;
+  text-shadow: 0 0 10px rgba(32, 201, 151, 0.6),
+    0 0 20px rgba(32, 201, 151, 0.4), 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 .rodape-card .btn {
-  font-weight: 500;
-  padding: 0.625rem 1rem;
-  border-radius: 8px;
+  font-family: "Philosopher", serif;
+  font-weight: 700;
+  padding: 0.875rem 1.25rem;
+  border-radius: 12px;
   transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rodape-card .btn::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  transform: translate(-50%, -50%);
+  transition: width 0.5s, height 0.5s;
+}
+
+.rodape-card .btn:hover::before {
+  width: 350px;
+  height: 350px;
 }
 
 .rodape-card .btn-success {
-  background-color: #198754;
-  border-color: #198754;
+  background: linear-gradient(135deg, #198754 0%, #20c997 100%);
+  border: 2px solid #20c997;
+  color: white;
 }
 
 .rodape-card .btn-success:hover {
-  background-color: #157347;
-  border-color: #157347;
-  transform: scale(1.02);
+  background: linear-gradient(135deg, #20c997 0%, #198754 100%);
+  border-color: #1abc9c;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(32, 201, 151, 0.5);
 }
 
 .rodape-card .btn-secondary {
-  background-color: #6c757d;
-  border-color: #6c757d;
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+  border: 2px solid #6c757d;
+  color: white;
 }
 
 .rodape-card .btn-secondary:hover {
-  background-color: #5c636a;
+  background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
   border-color: #5c636a;
+  transform: translateY(-3px);
 }
 
 .rodape-card .btn-warning {
-  background-color: #ffc107;
-  border-color: #ffc107;
-  color: #000;
+  background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);
+  border: 2px solid #ffc107;
+  color: #1a1a2e;
+  font-weight: 700;
 }
 
 .rodape-card .btn-warning:hover {
-  background-color: #ffca2c;
+  background: linear-gradient(135deg, #ffb300 0%, #ffc107 100%);
   border-color: #ffca2c;
-  transform: scale(1.02);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(255, 193, 7, 0.5);
 }
 
 .rodape-card .btn-danger {
-  background-color: #dc3545;
-  border-color: #dc3545;
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  border: 2px solid #dc3545;
+  color: white;
 }
 
 .rodape-card .btn-danger:hover {
-  background-color: #bb2d3b;
+  background: linear-gradient(135deg, #c82333 0%, #dc3545 100%);
   border-color: #bb2d3b;
-  transform: scale(1.02);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(220, 53, 69, 0.5);
 }
 
 .rodape-card .d-flex {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
   width: 100%;
 }
 
@@ -214,11 +303,33 @@
 
 @media (max-width: 991px) {
   .imagem-container {
-    height: 320px;
+    height: 280px;
   }
 
   .titulo-card {
-    font-size: 1.15rem;
+    font-size: 1.5rem;
+  }
+
+  .descricao-card {
+    font-size: 0.9rem;
+  }
+
+  .preco-card {
+    font-size: 1.85rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .imagem-container {
+    height: 260px;
+  }
+
+  .conteudo-card {
+    padding: 1.25rem;
+  }
+
+  .titulo-card {
+    font-size: 1.4rem;
   }
 
   .descricao-card {
@@ -226,13 +337,18 @@
   }
 
   .preco-card {
-    font-size: 1.4rem;
+    font-size: 1.75rem;
+  }
+
+  .rodape-card .btn {
+    font-size: 0.95rem;
+    padding: 0.75rem 1rem;
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 575px) {
   .imagem-container {
-    height: 280px;
+    height: 240px;
   }
 
   .conteudo-card {
@@ -240,7 +356,7 @@
   }
 
   .titulo-card {
-    font-size: 1.1rem;
+    font-size: 1.3rem;
   }
 
   .descricao-card {
@@ -248,48 +364,22 @@
   }
 
   .preco-card {
-    font-size: 1.3rem;
+    font-size: 1.6rem;
+  }
+
+  .rodape-card {
+    gap: 0.75rem;
+    padding-top: 1rem;
   }
 
   .rodape-card .btn {
     font-size: 0.9rem;
-    padding: 0.5rem 0.875rem;
-  }
-}
-
-@media (max-width: 575px) {
-  .imagem-container {
-    height: 250px;
-  }
-
-  .conteudo-card {
-    padding: 0.875rem;
-  }
-
-  .titulo-card {
-    font-size: 1rem;
-  }
-
-  .descricao-card {
-    font-size: 0.8rem;
-  }
-
-  .preco-card {
-    font-size: 1.25rem;
-  }
-
-  .rodape-card {
-    gap: 0.5rem;
-    padding-top: 0.75rem;
-  }
-
-  .rodape-card .btn {
-    font-size: 0.875rem;
-    padding: 0.5rem 0.75rem;
+    padding: 0.7rem 0.875rem;
   }
 
   .rodape-card .d-flex {
     flex-direction: column;
+    gap: 0.5rem;
   }
 
   .rodape-card .d-flex .btn {
@@ -298,13 +388,13 @@
 }
 
 .hamburguer-card {
-  animation: fadeIn 0.5s ease-in-out;
+  animation: fadeInUp 0.6s ease-out;
 }
 
-@keyframes fadeIn {
+@keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(30px);
   }
   to {
     opacity: 1;
@@ -314,7 +404,7 @@
 
 .produto-img[src=""],
 .produto-img:not([src]) {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, #2a2a3e 25%, #1a1a2e 50%, #2a2a3e 75%);
   background-size: 200% 100%;
   animation: loading 1.5s infinite;
   min-height: 250px;
@@ -329,8 +419,9 @@
   }
 }
 
-/* Spinner de Loading */
 .spinner-border-sm {
   width: 1rem;
   height: 1rem;
+  border-color: rgba(255, 179, 0, 0.3);
+  border-top-color: #ffb300;
 }
