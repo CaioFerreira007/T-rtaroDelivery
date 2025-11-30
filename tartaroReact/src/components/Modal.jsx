@@ -1,6 +1,7 @@
 import React from "react";
 import { Modal, Form, Button, ButtonGroup, Alert } from "react-bootstrap";
 import { useAuth } from "../context/AuthContext";
+import "../styles/Modal.css";
 
 function ModalEntrega({
   show,
@@ -20,7 +21,7 @@ function ModalEntrega({
       dadosEntrega.tipoPedido === "ENTREGA"
     ) {
       console.log(
-        "📍 Preenchendo endereço automaticamente:",
+        "Preenchendo endereço automaticamente:",
         usuarioLogado.endereco
       );
       handleInputChange("endereco", usuarioLogado.endereco);
@@ -36,59 +37,58 @@ function ModalEntrega({
   const handleSubmit = (e) => {
     e?.preventDefault();
 
-    console.log(" [MODAL] Dados antes de enviar:", dadosEntrega);
-    console.log(" [MODAL] Tipo de pedido atual:", dadosEntrega.tipoPedido);
+    console.log("Dados antes de enviar:", dadosEntrega);
+    console.log("Tipo de pedido atual:", dadosEntrega.tipoPedido);
 
-    // Validações conforme o tipo de pedido
     if (dadosEntrega.tipoPedido === "ENTREGA") {
       if (!dadosEntrega.endereco || dadosEntrega.endereco.trim() === "") {
-        console.log(" [MODAL] Erro: Endereço não informado");
+        console.log("Erro: Endereço não informado");
         alert("Por favor, informe o endereço de entrega.");
         return;
       }
     } else {
-      console.log(" [MODAL] Tipo RETIRADA - Endereço não necessário");
+      console.log("Tipo RETIRADA - Endereço não necessário");
     }
 
     if (!dadosEntrega.formaPagamento) {
-      console.log(" [MODAL] Erro: Forma de pagamento não selecionada");
+      console.log("Erro: Forma de pagamento não selecionada");
       alert("Por favor, selecione a forma de pagamento.");
       return;
     }
 
-    console.log(
-      " [MODAL] Validação OK! Tipo de pedido:",
-      dadosEntrega.tipoPedido
-    );
-    console.log("✅ [MODAL] Chamando onConfirm...");
+    console.log("Validação OK! Tipo de pedido:", dadosEntrega.tipoPedido);
+    console.log("Chamando onConfirm...");
     onConfirm();
   };
 
   const handleTipoPedidoChange = (tipo) => {
-    console.log(` [MODAL] Mudando tipo de pedido para: ${tipo}`);
+    console.log(`Mudando tipo de pedido para: ${tipo}`);
     handleInputChange("tipoPedido", tipo);
 
-    // Limpar endereço quando mudar para RETIRADA
     if (tipo === "RETIRADA") {
-      console.log(" [MODAL] Limpando campo de endereço...");
+      console.log("Limpando campo de endereço...");
       handleInputChange("endereco", "Cliente vai retirar no balcão!");
     }
   };
 
   return (
-    <Modal show={show} onHide={onClose} centered backdrop="static">
+    <Modal
+      show={show}
+      onHide={onClose}
+      centered
+      backdrop="static"
+      className="modal-entrega"
+    >
       <Modal.Header closeButton>
-        <Modal.Title>📍 Finalizar Pedido</Modal.Title>
+        <Modal.Title>Finalizar Pedido</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {/* IMPORTANTE: noValidate desabilita validação HTML5 */}
         <Form onSubmit={handleSubmit} noValidate>
-          {/* Tipo de Pedido */}
           <Form.Group className="mb-4">
             <Form.Label className="fw-bold">
               Tipo de Pedido <span className="text-danger">*</span>
             </Form.Label>
-            <ButtonGroup className="w-100">
+            <ButtonGroup className="w-100 tipo-pedido-group">
               <Button
                 variant={
                   dadosEntrega.tipoPedido === "ENTREGA"
@@ -97,9 +97,9 @@ function ModalEntrega({
                 }
                 onClick={() => handleTipoPedidoChange("ENTREGA")}
                 disabled={carregando}
-                style={{ padding: "12px" }}
+                className="tipo-pedido-btn"
               >
-                🚚 Entrega
+                Entrega
               </Button>
               <Button
                 variant={
@@ -109,17 +109,16 @@ function ModalEntrega({
                 }
                 onClick={() => handleTipoPedidoChange("RETIRADA")}
                 disabled={carregando}
-                style={{ padding: "12px" }}
+                className="tipo-pedido-btn"
               >
-                🏪 Retirar no Local
+                Retirar no Local
               </Button>
             </ButtonGroup>
-            <small className="text-muted d-block mt-1">
+            <small className="d-block mt-1 tipo-pedido-info">
               Tipo selecionado: <strong>{dadosEntrega.tipoPedido}</strong>
             </small>
           </Form.Group>
 
-          {/* Campos de ENTREGA */}
           {dadosEntrega.tipoPedido === "ENTREGA" && (
             <>
               <Form.Group className="mb-3">
@@ -157,9 +156,8 @@ function ModalEntrega({
             </>
           )}
 
-          {/* Campos de RETIRADA */}
           {dadosEntrega.tipoPedido === "RETIRADA" && (
-            <Alert variant="info" className="mb-3">
+            <Alert variant="info" className="mb-3 retirada-info">
               <div className="d-flex align-items-start">
                 <span className="me-2">📍</span>
                 <div>
@@ -175,7 +173,6 @@ function ModalEntrega({
             </Alert>
           )}
 
-          {/* Observações */}
           <Form.Group className="mb-3">
             <Form.Label>Observações</Form.Label>
             <Form.Control
@@ -196,7 +193,6 @@ function ModalEntrega({
             </Form.Text>
           </Form.Group>
 
-          {/* Forma de Pagamento */}
           <Form.Group className="mb-3">
             <Form.Label>
               Forma de Pagamento <span className="text-danger">*</span>
@@ -209,10 +205,10 @@ function ModalEntrega({
               disabled={carregando}
             >
               <option value="">Selecione...</option>
-              <option value="PIX">💳 PIX</option>
-              <option value="DINHEIRO">💵 Dinheiro</option>
-              <option value="CARTAO_DEBITO">💳 Cartão de Débito</option>
-              <option value="CARTAO_CREDITO">💳 Cartão de Crédito</option>
+              <option value="PIX">PIX</option>
+              <option value="DINHEIRO">Dinheiro</option>
+              <option value="CARTAO_DEBITO">Cartão de Débito</option>
+              <option value="CARTAO_CREDITO">Cartão de Crédito</option>
             </Form.Select>
           </Form.Group>
         </Form>
@@ -231,7 +227,7 @@ function ModalEntrega({
             !dadosEntrega.formaPagamento
           }
         >
-          {carregando ? "Enviando..." : " Enviar Pedido"}
+          {carregando ? "Enviando..." : "Enviar Pedido"}
         </Button>
       </Modal.Footer>
     </Modal>

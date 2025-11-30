@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Container, Form, Button, Alert, Card, Spinner } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
 import axiosConfig from "../services/axiosConfig";
+import "../styles/AlterarSenha.css";
 
 export default function AlterarSenha() {
   const { token } = useParams();
@@ -79,22 +80,20 @@ export default function AlterarSenha() {
     }
   }
 
-  // Estado de Carregamento (validando token)
   if (tokenValido === null) {
     return (
-      <Container className="mt-5 text-center">
+      <Container className="alterar-senha-container loading">
         <Spinner animation="border" />
         <p>Validando token...</p>
       </Container>
     );
   }
 
-  // Estado de Token Inválido
   if (tokenValido === false) {
     return (
-      <Container className="mt-5 text-center">
+      <Container className="alterar-senha-container error">
         <Alert variant="danger">
-          <h4> Token Inválido</h4>
+          <h4>Token Inválido</h4>
           <p>{erro}</p>
         </Alert>
         <Button variant="primary" onClick={() => navigate("/esqueci-senha")}>
@@ -104,12 +103,11 @@ export default function AlterarSenha() {
     );
   }
 
-  // Estado de Sucesso
   if (sucesso) {
     return (
-      <Container className="mt-5 text-center">
+      <Container className="alterar-senha-container success">
         <Alert variant="success">
-          <h4> Senha Alterada com Sucesso!</h4>
+          <h4>Senha Alterada com Sucesso!</h4>
           <p>
             Você será redirecionado para a tela de login em alguns segundos.
           </p>
@@ -121,12 +119,11 @@ export default function AlterarSenha() {
     );
   }
 
-  // Estado Principal: Formulário para alterar a senha
   return (
-    <Container className="mt-5 login-container fade-in">
-      <Card>
-        <Card.Header as="h4" className="text-center">
-           Nova Senha
+    <Container className="alterar-senha-container">
+      <Card className="alterar-senha-card">
+        <Card.Header>
+          <h4>Nova Senha</h4>
         </Card.Header>
         <Card.Body>
           <Form onSubmit={handleSubmit}>

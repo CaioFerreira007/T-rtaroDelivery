@@ -10,6 +10,7 @@ import {
   Col,
   Badge,
 } from "react-bootstrap";
+import "../styles/StatusLojaADM.css";
 import { useAuth } from "../context/AuthContext";
 import axiosConfig from "../services/axiosConfig";
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Container, Form, Button, Alert, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import "../styles/EditarPerfil.css";
 import { useAuth } from "../context/AuthContext";
 import axiosConfig from "../services/axiosConfig";
 
@@ -12,7 +13,7 @@ function EditarPerfil() {
     nome: "",
     email: "",
     telefone: "",
-    endereco: "", 
+    endereco: "",
   });
   const [sucesso, setSucesso] = useState(false);
   const [erro, setErro] = useState("");

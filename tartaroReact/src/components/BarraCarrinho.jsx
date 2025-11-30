@@ -27,7 +27,6 @@ function BarraCarrinho({
   const [statusLoja, setStatusLoja] = useState(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
 
-  // PROTEÇÃO CONTRA DUPLICATAS
   const [enviandoPedido, setEnviandoPedido] = useState(false);
   const pedidoEnviadoRef = useRef(false);
   const ultimoEnvioRef = useRef(0);
@@ -43,7 +42,6 @@ function BarraCarrinho({
       try {
         setLoadingStatus(true);
         const response = await axiosConfig.get("/configuracaoLoja/status");
-        console.log("Status da loja (Carrinho):", response.data);
         setStatusLoja(response.data);
       } catch (error) {
         console.error("Erro ao carregar status:", error);
@@ -55,7 +53,6 @@ function BarraCarrinho({
     carregarStatus();
   }, []);
 
-  // Reset da flag quando o modal é fechado
   useEffect(() => {
     if (!showModal) {
       pedidoEnviadoRef.current = false;
@@ -83,20 +80,17 @@ function BarraCarrinho({
   };
 
   const enviarParaWhatsApp = async () => {
-    // PROTEÇÃO 1: Verificar se já está processando
     if (enviandoPedido) {
       console.warn("BLOQUEADO: Pedido já está sendo processado");
       return;
     }
 
-    // PROTEÇÃO 2: Verificar se já foi enviado nesta sessão
     if (pedidoEnviadoRef.current) {
       console.warn("BLOQUEADO: Pedido já foi enviado");
       alert("Este pedido já foi enviado! Verifique seu WhatsApp.");
       return;
     }
 
-    // PROTEÇÃO 3: Debounce de 3 segundos entre envios
     const agora = Date.now();
     if (agora - ultimoEnvioRef.current < 3000) {
       console.warn("BLOQUEADO: Aguarde antes de enviar novamente");
@@ -119,13 +113,10 @@ function BarraCarrinho({
       return;
     }
 
-    // Marcar como em processamento
     setEnviandoPedido(true);
     ultimoEnvioRef.current = Date.now();
 
     try {
-      console.log("Iniciando envio do pedido...");
-
       const pedidoDTO = {
         clienteId: usuariologado.id,
         nomeCliente: usuariologado.nome,
@@ -141,13 +132,9 @@ function BarraCarrinho({
         })),
       };
 
-      console.log("Enviando pedido para API...");
       const resposta = await axiosConfig.post("/pedido", pedidoDTO);
-
-      // Marcar como enviado com sucesso
       pedidoEnviadoRef.current = true;
 
-      console.log("Pedido criado com sucesso:", resposta.data);
       const { codigo, subtotal } = resposta.data;
 
       const produtosList = carrinho
@@ -207,12 +194,9 @@ function BarraCarrinho({
       }, 500);
     } catch (error) {
       console.error("Erro ao enviar pedido:", error);
-
-      // Resetar flag apenas em caso de erro
       pedidoEnviadoRef.current = false;
       setEnviandoPedido(false);
 
-      // Mensagens específicas de erro
       if (error.response?.status === 409) {
         alert("Este pedido já foi registrado! Verifique seus pedidos.");
       } else {

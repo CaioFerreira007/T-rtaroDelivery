@@ -1,27 +1,25 @@
 import { Navbar, Nav, Container, NavDropdown, Spinner } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext"; // Caminho correto para o contexto
+import { useAuth } from "../context/AuthContext";
+import "../styles/SiteNavbar.css";
 
 function SiteNavbar() {
-  // Pega os valores do nosso novo AuthContext padronizado
-  const { usuarioLogado, logout, loading } = useAuth(); // <-- MUDANÇA AQUI
+  const { usuarioLogado, logout, loading } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout(); // <-- MUDANÇA AQUI: Usa a função de logout simplificada
+    logout();
     navigate("/login");
   };
 
-  // Lógica para verificar se o usuário é admin, agora dentro do componente
-  const isAdmin = usuarioLogado?.tipo === "ADM"; // <-- MUDANÇA AQUI
+  const isAdmin = usuarioLogado?.tipo === "ADM";
 
-  // Mostra um spinner enquanto o contexto está carregando o estado inicial do usuário
   if (loading) {
     return (
       <Navbar bg="dark" variant="dark" expand="md" fixed="top">
         <Container>
           <Navbar.Brand as={Link} to="/home">
-            🔥 Tártaro Delivery
+            Tártaro Delivery
           </Navbar.Brand>
           <Nav className="ms-auto">
             <Spinner animation="border" size="sm" variant="light" />
@@ -41,7 +39,7 @@ function SiteNavbar() {
     >
       <Container>
         <Navbar.Brand as={Link} to="/home" className="brand-logo">
-          🔥 Tártaro Delivery
+          Tártaro Delivery
         </Navbar.Brand>
 
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
@@ -49,10 +47,9 @@ function SiteNavbar() {
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="ms-auto">
             <Nav.Link as={Link} to="/home" className="nav-link-custom">
-              🏠 Início
+              Início
             </Nav.Link>
 
-            {/* Links de admin, usam a nova variável 'isAdmin' */}
             {isAdmin && (
               <>
                 <Nav.Link
@@ -60,13 +57,13 @@ function SiteNavbar() {
                   to="/admin/cadastro-produto"
                   className="nav-link-custom admin-link"
                 >
-                  ➕ Cadastrar Produto
+                  Cadastrar Produto
                 </Nav.Link>
               </>
             )}
             {isAdmin && (
               <Nav.Link as={Link} to="/admin/loja">
-                🏪 Gerenciar Loja
+                Gerenciar Loja
               </Nav.Link>
             )}
 
@@ -74,28 +71,28 @@ function SiteNavbar() {
               <NavDropdown
                 title={
                   <span className="user-dropdown-title">
-                    👤 {usuarioLogado.nome}
-                    {isAdmin && <span className="admin-badge"> ADM</span>}{" "}
+                    {usuarioLogado.nome}
+                    {isAdmin && <span className="admin-badge"> ADM</span>}
                   </span>
                 }
                 id="perfil-dropdown"
                 className="user-dropdown"
               >
                 <NavDropdown.Item as={Link} to="/perfil">
-                  🔎 Ver Perfil
+                  Ver Perfil
                 </NavDropdown.Item>
                 <NavDropdown.Item as={Link} to="/editar-perfil">
-                  ✏️ Editar Conta
+                  Editar Conta
                 </NavDropdown.Item>
                 <NavDropdown.Item as={Link} to="/meus-pedidos">
-                  📦 Meus Pedidos
+                  Meus Pedidos
                 </NavDropdown.Item>
                 <NavDropdown.Divider />
                 <NavDropdown.Item
                   onClick={handleLogout}
                   className="logout-item"
                 >
-                  🚪 Sair
+                  Sair
                 </NavDropdown.Item>
               </NavDropdown>
             ) : (
@@ -104,7 +101,7 @@ function SiteNavbar() {
                 to="/login"
                 className="nav-link-custom login-link"
               >
-                📝 Login
+                Login
               </Nav.Link>
             )}
           </Nav>

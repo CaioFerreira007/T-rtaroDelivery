@@ -1,32 +1,34 @@
-import { Alert } from "react-bootstrap";
+import React from "react";
 import { FaClock } from "react-icons/fa";
+import "../styles/AlertaLojaFechada.css";
 
 function AlertaLojaFechada({ status }) {
   if (status?.estaAberta) return null;
 
   return (
-    <Alert variant="danger" className="text-center mb-4 shadow-sm">
-      <Alert.Heading className="d-flex align-items-center justify-content-center gap-2">
-        <FaClock size={24} />
-        <span>Loja Fechada</span>
-      </Alert.Heading>
-      <p className="mb-2">
+    <div className="alerta-loja-fechada">
+      <div className="alerta-header">
+        <div className="alerta-icon">
+          <FaClock />
+        </div>
+        <h4 className="alerta-titulo">Loja Fechada</h4>
+      </div>
+      <p className="alerta-mensagem">
         {status?.mensagem || "Estamos fechados no momento."}
       </p>
       {status?.proximaAbertura && (
-        <small className="text-muted">
-          📅 Próxima abertura: {status.proximaAbertura}
-        </small>
-      )}
-      {status?.horarioHoje && !status.horarioHoje.fechado && (
-        <div className="mt-2">
-          <small>
-            🕐 Horário de hoje: {status.horarioHoje.abertura} -{" "}
-            {status.horarioHoje.fechamento}
-          </small>
+        <div className="alerta-info">
+          <FaClock className="alerta-info-icon" />
+          <span>Próxima abertura: {status.proximaAbertura}</span>
         </div>
       )}
-    </Alert>
+      {status?.horarioHoje && !status.horarioHoje.fechado && (
+        <div className="alerta-horario">
+          Horário de hoje: {status.horarioHoje.abertura} -{" "}
+          {status.horarioHoje.fechamento}
+        </div>
+      )}
+    </div>
   );
 }
 

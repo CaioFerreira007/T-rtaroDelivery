@@ -60,6 +60,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPedidoService, PedidoService>();
 builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IGoogleSheetsService, GoogleSheetsService>();
 builder.Services.AddScoped<IFileStorageService, LocalStorageService>();
 
 

@@ -1,0 +1,170 @@
+/* AlertaLojaFechada.css */
+
+.alerta-loja-fechada {
+  background: linear-gradient(
+    135deg,
+    rgba(211, 47, 47, 0.95) 0%,
+    rgba(255, 179, 0, 0.9) 100%
+  );
+  border: 2px solid #ffb300;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 32px;
+  animation: fadeIn 0.5s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.alerta-loja-fechada::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 70%
+  );
+  animation: pulse 2s infinite;
+}
+
+.alerta-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.alerta-icon {
+  font-size: 2.5rem;
+  color: white;
+  animation: flicker 2s infinite;
+}
+
+.alerta-titulo {
+  font-family: "Cinzel", serif;
+  color: white;
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.alerta-mensagem {
+  color: white;
+  margin: 0 0 16px 0;
+  font-family: "Philosopher", serif;
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+.alerta-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.alerta-info-icon {
+  font-size: 1rem;
+}
+
+.alerta-horario {
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  display: inline-block;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.01);
+    opacity: 0.95;
+  }
+}
+
+@keyframes flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@media (max-width: 768px) {
+  .alerta-loja-fechada {
+    padding: 20px;
+  }
+
+  .alerta-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .alerta-icon {
+    font-size: 2rem;
+  }
+
+  .alerta-titulo {
+    font-size: 1.3rem;
+  }
+
+  .alerta-mensagem {
+    font-size: 1rem;
+    text-align: center;
+  }
+
+  .alerta-info {
+    justify-content: center;
+  }
+
+  .alerta-horario {
+    display: block;
+    text-align: center;
+  }
+}
+
+@media (max-width: 576px) {
+  .alerta-loja-fechada {
+    padding: 16px;
+  }
+
+  .alerta-icon {
+    font-size: 1.8rem;
+  }
+
+  .alerta-titulo {
+    font-size: 1.2rem;
+  }
+
+  .alerta-mensagem {
+    font-size: 0.95rem;
+  }
+}

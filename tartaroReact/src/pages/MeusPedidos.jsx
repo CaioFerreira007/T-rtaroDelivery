@@ -10,6 +10,7 @@ import {
   ListGroup,
   Collapse,
 } from "react-bootstrap";
+import "../styles/MeusPedidos.css";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {

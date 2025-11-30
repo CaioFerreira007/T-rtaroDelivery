@@ -33,15 +33,13 @@ function EditarProduto() {
   const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
-    console.log("📦 Carregando produto ID:", id);
     axiosConfig
       .get(`/produtos/${id}`)
       .then((res) => {
-        console.log("✅ Produto carregado:", res.data);
         setProduto(res.data);
       })
       .catch((err) => {
-        console.error("❌ Erro ao carregar produto:", err);
+        console.error("Erro ao carregar produto:", err);
         setErro("Produto não encontrado ou acesso negado.");
       });
   }, [id]);
@@ -50,7 +48,7 @@ function EditarProduto() {
   if (!isAdmin) {
     return (
       <Alert variant="danger" className="m-5 text-center">
-        ❌ Acesso negado: apenas administradores podem editar produtos.
+        Acesso negado: apenas administradores podem editar produtos.
       </Alert>
     );
   }
@@ -60,24 +58,16 @@ function EditarProduto() {
     setProduto((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 🆕 Handler específico para preço
   const handlePrecoChange = (e) => {
     let valor = e.target.value;
-
-    // Remove caracteres inválidos, mantém apenas números e ponto
     valor = valor.replace(/[^0-9.]/g, "");
-
-    // Garante apenas um ponto decimal
     const partes = valor.split(".");
     if (partes.length > 2) {
       valor = partes[0] + "." + partes.slice(1).join("");
     }
-
-    // Limita a 2 casas decimais
     if (partes.length === 2 && partes[1].length > 2) {
       valor = partes[0] + "." + partes[1].substring(0, 2);
     }
-
     setProduto((prev) => ({ ...prev, preco: valor }));
   };
 
@@ -92,14 +82,9 @@ function EditarProduto() {
     setSucesso("");
 
     try {
-      console.log("📤 Enviando atualização do produto...");
-      console.log("Produto atual:", produto);
-      console.log("Novas imagens:", novasImagens.length);
-
-      // Validar preço
       const precoNumero = parseFloat(produto.preco);
       if (isNaN(precoNumero) || precoNumero <= 0) {
-        setErro("❌ Preço inválido. Use ponto (.) para centavos. Ex: 35.50");
+        setErro("Preço inválido. Use ponto (.) para centavos. Ex: 35.50");
         setEnviando(false);
         return;
       }
@@ -107,25 +92,15 @@ function EditarProduto() {
       const formData = new FormData();
       formData.append("nome", produto.nome.trim());
       formData.append("descricao", produto.descricao.trim());
-
-      // ==================================================================
-      // AQUI ESTÁ A CORREÇÃO
-      // Garante que "35.5" seja enviado como "35.50"
       formData.append("preco", precoNumero.toFixed(2));
-      // ==================================================================
-
       formData.append("categoria", produto.categoria);
       formData.append("tipo", produto.tipo || "Padrão");
 
-      // Adicionar imagens se houver
       if (novasImagens.length > 0) {
-        console.log("📸 Adicionando", novasImagens.length, "imagens...");
         novasImagens.forEach((img) => {
           formData.append("imagens", img);
         });
       }
-
-      console.log("📦 Enviando FormData...");
 
       const response = await axiosConfig.put(`/produtos/${id}`, formData, {
         headers: {
@@ -133,14 +108,10 @@ function EditarProduto() {
         },
       });
 
-      console.log("✅ Produto atualizado:", response.data);
-
       setSucesso("Produto atualizado com sucesso! Redirecionando...");
       setTimeout(() => navigate("/home"), 2000);
     } catch (err) {
-      console.error("❌ Erro ao atualizar produto:", err);
-      console.error("Resposta do erro:", err.response?.data);
-
+      console.error("Erro ao atualizar produto:", err);
       const msg =
         err.response?.data?.message ||
         err.response?.data ||
@@ -162,7 +133,7 @@ function EditarProduto() {
 
   return (
     <Container className="editar-produto-container mt-5 mb-5 fade-in">
-      <h2 className="text-center mb-4">✏️ Editar Produto</h2>
+      <h2 className="text-center mb-4">Editar Produto</h2>
 
       {erro && (
         <Alert variant="danger" dismissible onClose={() => setErro("")}>
@@ -187,7 +158,6 @@ function EditarProduto() {
                     className="d-block w-100 carousel-image-edit"
                     src={url}
                     alt={`Imagem ${index + 1}`}
-                    style={{ maxHeight: "400px", objectFit: "cover" }}
                   />
                 </Carousel.Item>
               ))}
@@ -287,7 +257,7 @@ function EditarProduto() {
                 Salvando...
               </>
             ) : (
-              "💾 Salvar Alterações"
+              "Salvar Alterações"
             )}
           </Button>
 

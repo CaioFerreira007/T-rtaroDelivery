@@ -1,7 +1,7 @@
 import { Container, Card, Spinner, Alert, Button } from "react-bootstrap";
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
-
+import "../styles/Perfil.css";
 function Perfil() {
   const { usuarioLogado, loading } = useAuth();
 
