@@ -62,11 +62,6 @@ builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IFileStorageService, LocalStorageService>();
 
-<<<<<<< HEAD
-=======
-// REGISTRAR BACKGROUND SERVICE PARA SINCRONIZAÇÃO AUTOMÁTICA
-builder.Services.AddHostedService<BackgroundSyncService>();
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
 
 // Configuração de Logging
 builder.Logging.ClearProviders();
@@ -74,7 +69,6 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Logging.SetMinimumLevel(LogLevel.Information);
 
-// Configuração de Autenticação JWT
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured.");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -94,10 +88,7 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-<<<<<<< HEAD
 
-=======
-// SINCRONIZAÇÃO INICIAL AO INICIAR O SERVIDOR
 using (var scope = app.Services.CreateScope())
 {
     try
@@ -116,7 +107,6 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, " Erro na sincronização inicial (continuando normalmente)");
     }
 }
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
 
 if (app.Environment.IsDevelopment())
 {

@@ -92,11 +92,7 @@ function Checkout() {
   }, [mostrarModal]);
 
   const handleInputChange = (campo, valor) => {
-<<<<<<< HEAD
-    console.log(`Alterando ${campo} para:`, valor);
-=======
-    console.log(` Alterando ${campo} para:`, valor);
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
+    console.log(`✅ Alterando ${campo} para:`, valor);
     setDadosEntrega((prev) => ({
       ...prev,
       [campo]: valor,
@@ -104,73 +100,39 @@ function Checkout() {
   };
 
   const montarMensagemWhatsApp = () => {
-<<<<<<< HEAD
-    console.log("Montando mensagem com dados:", dadosEntrega);
-=======
-    console.log(" Montando mensagem com dados:", dadosEntrega);
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
+    console.log("📝 Montando mensagem com dados:", dadosEntrega);
 
-    let mensagem = "NOVO PEDIDO\n\n";
+    let mensagem = "*NOVO PEDIDO - TÁRTARO DELIVERY*\n\n";
 
-<<<<<<< HEAD
-    mensagem += `Cliente: ${usuarioLogado?.nome || "Cliente"}\n`;
+    mensagem += `*Cliente:* ${usuarioLogado?.nome || "Cliente"}\n`;
     if (usuarioLogado?.telefone) {
-      mensagem += `Telefone: ${usuarioLogado.telefone}\n`;
-=======
-    mensagem += ` *Cliente:* ${usuarioLogado?.nome || "Cliente"}\n`;
-    if (usuarioLogado?.telefone) {
-      mensagem += ` *Telefone:* ${usuarioLogado.telefone}\n`;
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
+      mensagem += `*Telefone:* ${usuarioLogado.telefone}\n`;
     }
     mensagem += "\n";
 
-<<<<<<< HEAD
     mensagem += "*ITENS DO PEDIDO:*\n\n";
-=======
-    mensagem += "* ITENS DO PEDIDO:*\n\n";
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
     carrinho.forEach((item) => {
       const subtotal = (item.preco * item.quantidade).toFixed(2);
       mensagem += `${item.quantidade}x *${item.nome}*\n`;
       mensagem += `  R$ ${item.preco.toFixed(2)} → R$ ${subtotal}\n\n`;
     });
 
-<<<<<<< HEAD
-    mensagem += "\n";
-    mensagem += `TOTAL: R$ ${total.toFixed(2)}\n\n`;
-    mensagem += "\n";
-=======
     mensagem += "━━━━━━━━━━━━━━━━━━\n\n";
-    mensagem += ` *TOTAL: R$ ${total.toFixed(2)}*\n\n`;
+    mensagem += `*TOTAL: R$ ${total.toFixed(2)}*\n\n`;
     mensagem += "━━━━━━━━━━━━━━━━━━\n\n";
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
 
     if (dadosEntrega.tipoPedido === "RETIRADA") {
-<<<<<<< HEAD
       mensagem += `*TIPO:* RETIRADA NO LOCAL\n\n`;
-      mensagem += `Cliente vai retirar em:\nRua do Ouro, 350 - Sarapui\nDuque de Caxias - RJ\n\n`;
-      mensagem += `Tempo estimado: 30-40 minutos\n\n`;
+      mensagem += `*Cliente vai retirar em:*\nRua do Ouro, 350 - Sarapui\nDuque de Caxias - RJ\n\n`;
+      mensagem += `*Tempo estimado:* 30-40 minutos\n\n`;
     } else {
       mensagem += `*TIPO:* ENTREGA\n\n`;
-      mensagem += `Endereço de Entrega:\n${
-=======
-      mensagem += ` *TIPO:* RETIRADA NO LOCAL\n\n`;
-      mensagem += ` *Cliente vai retirar em:*\nRua do Ouro, 350 - Sarapui\nDuque de Caxias - RJ\n\n`;
-      mensagem += ` *Tempo estimado:* 30-40 minutos\n\n`;
-    } else {
-      // ENTREGA
-      mensagem += ` *TIPO:* ENTREGA\n\n`;
-      mensagem +=  *Endereço de Entrega:*\n${
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
+      mensagem += `*Endereço de Entrega:*\n${
         dadosEntrega.endereco || "Não informado"
       }\n\n`;
 
       if (dadosEntrega.pontoReferencia) {
-<<<<<<< HEAD
-        mensagem += `Ponto de Referência:\n${dadosEntrega.pontoReferencia}\n\n`;
-=======
         mensagem += `*Ponto de Referência:*\n${dadosEntrega.pontoReferencia}\n\n`;
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
       }
     }
 
@@ -183,42 +145,29 @@ function Checkout() {
       CARTAO_CREDITO: "Cartão de Crédito",
     };
 
-    mensagem += `Pagamento: ${
+    mensagem += `*Pagamento:* ${
       formasPagamento[dadosEntrega.formaPagamento] ||
       dadosEntrega.formaPagamento
     }\n\n`;
 
     if (dadosEntrega.formaPagamento === "DINHEIRO" && dadosEntrega.troco) {
-<<<<<<< HEAD
-      mensagem += `Troco para: ${dadosEntrega.troco}\n\n`;
-    }
-
-    if (dadosEntrega.observacoes) {
-      mensagem += "\n";
-      mensagem += `Observações:\n${dadosEntrega.observacoes}\n\n`;
-    }
-
-    mensagem += "\n";
-    mensagem += "Pedido enviado via sistema online";
-=======
       mensagem += `*Troco para:* ${dadosEntrega.troco}\n\n`;
     }
 
     if (dadosEntrega.observacoes) {
       mensagem += "━━━━━━━━━━━━━━━━━━\n\n";
-      mensagem += ` *Observações:*\n${dadosEntrega.observacoes}\n\n`;
+      mensagem += `*Observações:*\n${dadosEntrega.observacoes}\n\n`;
     }
 
     mensagem += "━━━━━━━━━━━━━━━━━━\n\n";
-    mensagem += " _Pedido enviado via sistema online_";
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
+    mensagem += "_Pedido enviado via sistema online_";
 
     return mensagem;
   };
 
   const enviarPedidoWhatsApp = () => {
     const mensagem = montarMensagemWhatsApp();
-    console.log("Enviando para WhatsApp:", mensagem);
+    console.log("📤 Enviando para WhatsApp:", mensagem);
 
     const numeroWhatsApp = "5521970754898";
     const urlWhatsApp = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(
@@ -230,25 +179,21 @@ function Checkout() {
   const handleConfirmarPedido = async () => {
     // PROTEÇÃO 1: Verificar se já está processando
     if (confirmando) {
-      console.warn("BLOQUEADO: Pedido já está sendo processado");
+      console.warn("🚫 BLOQUEADO: Pedido já está sendo processado");
       return;
     }
 
-<<<<<<< HEAD
     // PROTEÇÃO 2: Verificar se já foi enviado
     if (pedidoEnviadoRef.current) {
-      console.warn("BLOQUEADO: Pedido já foi enviado");
+      console.warn("🚫 BLOQUEADO: Pedido já foi enviado");
       alert("Este pedido já foi enviado! Verifique seus pedidos.");
       return;
     }
-=======
-    console.log("Confirmando pedido com dados:", dadosEntrega);
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
 
     // PROTEÇÃO 3: Debounce de 3 segundos
     const agora = Date.now();
     if (agora - ultimoEnvioRef.current < 3000) {
-      console.warn("BLOQUEADO: Aguarde antes de enviar novamente");
+      console.warn("🚫 BLOQUEADO: Aguarde antes de enviar novamente");
       alert("Por favor, aguarde alguns segundos antes de tentar novamente.");
       return;
     }
@@ -258,7 +203,7 @@ function Checkout() {
       return;
     }
 
-    console.log("Confirmando pedido com dados:", dadosEntrega);
+    console.log("✅ Confirmando pedido com dados:", dadosEntrega);
     setConfirmando(true);
     ultimoEnvioRef.current = Date.now();
 
@@ -280,14 +225,14 @@ function Checkout() {
         })),
       };
 
-      console.log("Enviando pedido para API:", dadosPedido);
+      console.log("📤 Enviando pedido para API:", dadosPedido);
 
       const pedidoCriado = await criarPedido(dadosPedido);
 
       // Marcar como enviado com sucesso
       pedidoEnviadoRef.current = true;
 
-      console.log("Pedido salvo no banco:", pedidoCriado);
+      console.log("✅ Pedido salvo no banco:", pedidoCriado);
 
       enviarPedidoWhatsApp();
 
@@ -309,7 +254,7 @@ function Checkout() {
 
       setTimeout(() => navigate("/home"), 3000);
     } catch (error) {
-      console.error("Erro ao confirmar pedido:", error);
+      console.error("❌ Erro ao confirmar pedido:", error);
 
       // Resetar flag apenas em caso de erro
       pedidoEnviadoRef.current = false;
@@ -339,7 +284,7 @@ function Checkout() {
   return (
     <>
       <Container className="mt-5 fade-in">
-        <h2 className="text-center mb-4">Checkout - Finalizar Pedido</h2>
+        <h2 className="text-center mb-4">🛒 Checkout - Finalizar Pedido</h2>
 
         {carregandoCarrinho ? (
           <div className="text-center my-5">
@@ -348,11 +293,7 @@ function Checkout() {
           </div>
         ) : pedidoConfirmado ? (
           <Alert variant="success" className="text-center">
-<<<<<<< HEAD
-            <Alert.Heading>Pedido Confirmado!</Alert.Heading>
-=======
-            <Alert.Heading> Pedido Confirmado!</Alert.Heading>
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
+            <Alert.Heading>✅ Pedido Confirmado!</Alert.Heading>
             <p>
               Seu pedido foi enviado para a loja via WhatsApp e está sendo
               preparado.

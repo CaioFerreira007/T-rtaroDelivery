@@ -26,7 +26,7 @@ namespace TartaroAPI.Services
         private readonly IServiceScopeFactory _scopeFactory;
 
         public GoogleSheetsService(
-            IConfiguration configuration, 
+            IConfiguration configuration,
             ILogger<GoogleSheetsService> logger,
             IServiceScopeFactory scopeFactory)
         {
@@ -49,7 +49,7 @@ namespace TartaroAPI.Services
                     throw new FileNotFoundException($"Arquivo de credenciais não encontrado: {credentialsPath}");
 
                 using var stream = new FileStream(credentialsPath, FileMode.Open, FileAccess.Read);
-                
+
                 var googleCredential = await GoogleCredential.FromStreamAsync(stream, CancellationToken.None);
                 var credential = googleCredential.CreateScoped(SheetsService.Scope.Spreadsheets);
 
@@ -430,68 +430,76 @@ namespace TartaroAPI.Services
             catch { }
         }
 
+        // MÉTODO CORRIGIDO: FormatarAbaPedidos
+        // Substitua o método existente no arquivo TartaroAPI/Services/GoogleSheetsService.cs
+        // pela versão abaixo (aproximadamente na linha 260-300)
+
         private async Task FormatarAbaPedidos()
         {
             try
             {
                 var requests = new List<Request>
+        {
+            // Formatar cabeçalho
+            new Request
+            {
+                RepeatCell = new RepeatCellRequest
                 {
-                    new Request
+                    Range = new GridRange { SheetId = 2, StartRowIndex = 0, EndRowIndex = 1 },
+                    Cell = new CellData
                     {
-                        RepeatCell = new RepeatCellRequest
+                        UserEnteredFormat = new CellFormat
                         {
-                            Range = new GridRange { SheetId = 2, StartRowIndex = 0, EndRowIndex = 1 },
-                            Cell = new CellData
-                            {
-                                UserEnteredFormat = new CellFormat
-                                {
-                                    BackgroundColor = new Color { Red = 0.2f, Green = 0.5f, Blue = 0.3f },
-                                    TextFormat = new TextFormat { Bold = true, ForegroundColor = new Color { Red = 1f, Green = 1f, Blue = 1f }, FontSize = 11 },
-                                    HorizontalAlignment = "CENTER"
-                                }
-                            },
-                            Fields = "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)"
+                            BackgroundColor = new Color { Red = 0.2f, Green = 0.5f, Blue = 0.3f },
+                            TextFormat = new TextFormat { Bold = true, ForegroundColor = new Color { Red = 1f, Green = 1f, Blue = 1f }, FontSize = 11 },
+                            HorizontalAlignment = "CENTER"
                         }
                     },
-                    new Request
+                    Fields = "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)"
+                }
+            },
+            // Formatar coluna de valores (coluna E, índice 4)
+            new Request
+            {
+                RepeatCell = new RepeatCellRequest
+                {
+                    Range = new GridRange { SheetId = 2, StartColumnIndex = 4, EndColumnIndex = 5, StartRowIndex = 1 },
+                    Cell = new CellData
                     {
-                        RepeatCell = new RepeatCellRequest
+                        UserEnteredFormat = new CellFormat
                         {
-                            // --- ALTERAÇÃO --- Range de formatação de moeda (agora só coluna E, índice 4)
-                            Range = new GridRange { SheetId = 2, StartColumnIndex = 4, EndColumnIndex = 5, StartRowIndex = 1 },
-                            Cell = new CellData
-                            {
-                                UserEnteredFormat = new CellFormat
-                                {
-                                    NumberFormat = new NumberFormat { Type = "CURRENCY", Pattern = "R$ #,##0.00" }
-                                }
-                            },
-                            Fields = "userEnteredFormat.numberFormat"
+                            NumberFormat = new NumberFormat { Type = "CURRENCY", Pattern = "R$ #,##0.00" }
                         }
                     },
-                    new Request
+                    Fields = "userEnteredFormat.numberFormat"
+                }
+            },
+            // Adicionar filtro
+            new Request
+            {
+                SetBasicFilter = new SetBasicFilterRequest
+                {
+                    Filter = new BasicFilter
                     {
-                        SetBasicFilter = new SetBasicFilterRequest
+                        Range = new GridRange
                         {
-                            Filter = new BasicFilter
-                            {
-                                Range = new GridRange
-                                {
-                                    SheetId = 2, // ID da aba Pedidos
-                                    StartRowIndex = 0, // Começa na linha do cabeçalho
-                                    StartColumnIndex = 0,
-                                    EndColumnIndex = 6 // Temos 6 colunas (A-F)
-                                }
-                            }
+                            SheetId = 2,
+                            StartRowIndex = 0,
+                            StartColumnIndex = 0,
+                            EndColumnIndex = 6
                         }
                     }
-                };
+                }
+            }
+        };
 
                 await ExecutarFormatacao(requests);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao formatar aba de pedidos");
+            }
         }
-
         private async Task FormatarAbaPagamentos()
         {
             try

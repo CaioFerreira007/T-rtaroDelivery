@@ -60,7 +60,7 @@ function ModalEntrega({
       " [MODAL] Validação OK! Tipo de pedido:",
       dadosEntrega.tipoPedido
     );
-    console.log(" [MODAL] Chamando onConfirm...");
+    console.log("✅ [MODAL] Chamando onConfirm...");
     onConfirm();
   };
 
@@ -81,7 +81,7 @@ function ModalEntrega({
         <Modal.Title>📍 Finalizar Pedido</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {/* ⚠️ IMPORTANTE: noValidate desabilita validação HTML5 */}
+        {/* IMPORTANTE: noValidate desabilita validação HTML5 */}
         <Form onSubmit={handleSubmit} noValidate>
           {/* Tipo de Pedido */}
           <Form.Group className="mb-4">
@@ -219,7 +219,7 @@ function ModalEntrega({
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onClose} disabled={carregando}>
-          ❌ Cancelar
+          Cancelar
         </Button>
         <Button
           variant="primary"
@@ -231,7 +231,7 @@ function ModalEntrega({
             !dadosEntrega.formaPagamento
           }
         >
-          {carregando ? "Enviando..." : "✅ Enviar Pedido"}
+          {carregando ? "Enviando..." : " Enviar Pedido"}
         </Button>
       </Modal.Footer>
     </Modal>

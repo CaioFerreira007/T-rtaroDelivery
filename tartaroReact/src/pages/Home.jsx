@@ -6,11 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { getProdutos } from "../services/produtoService";
 import HamburguerCard from "../components/HamburguerCard";
 import BarraCarrinho from "../components/BarraCarrinho";
-<<<<<<< HEAD
 import AlertaLojaFechada from "../components/AlertaLojaFechada";
-=======
-import AlertaLojaFechada from "../components/AlertaLojaFechada"; 
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
 import axiosConfig from "../services/axiosConfig";
 
 import "../styles/Home.css";
@@ -91,19 +87,12 @@ function Home() {
       try {
         setLoadingStatus(true);
         const response = await axiosConfig.get("/configuracaoLoja/status");
-<<<<<<< HEAD
-        // console.log(" Status da loja:", response.data);
+        console.log("📊 Status da loja:", response.data);
         setStatusLoja(response.data);
       } catch (error) {
-        console.error(" Erro ao carregar status da loja:", error);
+        console.error("❌ Erro ao carregar status da loja:", error);
         // Define como aberta por padrão em caso de erro
         setStatusLoja({ estaAberta: true });
-=======
-        console.log("Status da loja:", response.data);
-        setStatusLoja(response.data);
-      } catch (error) {
-        console.error(" Erro ao carregar status da loja:", error);
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
       } finally {
         setLoadingStatus(false);
       }
@@ -122,22 +111,13 @@ function Home() {
         setLoading(true);
         setError("");
 
-<<<<<<< HEAD
-        // console.log(" Iniciando carregamento de produtos...");
+        console.log("📦 Iniciando carregamento de produtos...");
         const listaProdutos = await getProdutos();
 
-        // console.log(" Resposta de getProdutos:", listaProdutos);
-        // console.log(" Tipo da resposta:", typeof listaProdutos);
-        // console.log(" É array?", Array.isArray(listaProdutos));
-=======
-        console.log(" Iniciando carregamento de produtos...");
-        const listaProdutos = await getProdutos();
-
-        console.log Resposta de getProdutos:", listaProdutos);
-        console.log(" Tipo da resposta:", typeof listaProdutos);
-        console.log(" É array?", Array.isArray(listaProdutos));
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
-        console.log(" Quantidade de itens:", listaProdutos?.length);
+        console.log("📦 Resposta de getProdutos:", listaProdutos);
+        console.log("📦 Tipo da resposta:", typeof listaProdutos);
+        console.log("📦 É array?", Array.isArray(listaProdutos));
+        console.log("📦 Quantidade de itens:", listaProdutos?.length);
 
         if (Array.isArray(listaProdutos) && listaProdutos.length > 0) {
           const produtosValidos = listaProdutos.filter((p) => {
@@ -150,20 +130,12 @@ function Home() {
               p.categoria.trim() !== "";
 
             if (!valido) {
-<<<<<<< HEAD
-              console.warn(" Produto inválido ignorado:", p);
-=======
-              console.warn("Produto inválido ignorado:", p);
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
+              console.warn("⚠️ Produto inválido ignorado:", p);
             }
             return valido;
           });
 
-<<<<<<< HEAD
-          // console.log(" Produtos válidos:", produtosValidos.length);
-=======
-          console.log(" Produtos válidos:", produtosValidos.length);
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
+          console.log("✅ Produtos válidos:", produtosValidos.length);
 
           if (produtosValidos.length > 0) {
             setProdutos(produtosValidos);
@@ -172,21 +144,17 @@ function Home() {
             setError("Produtos estão com dados incompletos.");
           }
         } else if (Array.isArray(listaProdutos) && listaProdutos.length === 0) {
-          console.warn(" API retornou array vazio");
+          console.warn("⚠️ API retornou array vazio");
           setProdutos([]);
           setError("Nenhum produto cadastrado no momento.");
         } else {
-          console.error(" API retornou formato inválido:", listaProdutos);
+          console.error("❌ API retornou formato inválido:", listaProdutos);
           setProdutos([]);
           setError("Formato de dados inválido recebido do servidor.");
         }
       } catch (err) {
-        console.error(" Erro ao carregar produtos:", err);
-<<<<<<< HEAD
-        console.error(" Detalhes do erro:", {
-=======
-        console.error("Detalhes do erro:", {
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
+        console.error("❌ Erro ao carregar produtos:", err);
+        console.error("❌ Detalhes do erro:", {
           message: err.message,
           response: err.response?.data,
           status: err.response?.status,
@@ -205,7 +173,7 @@ function Home() {
         setError(mensagemErro);
       } finally {
         setLoading(false);
-        console.log(" Carregamento finalizado");
+        console.log("✅ Carregamento finalizado");
       }
     };
 
@@ -213,21 +181,17 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    console.log(" Estado de autenticação mudou:");
+    console.log("🔐 Estado de autenticação mudou:");
     console.log("- isInitialized:", isInitialized);
     console.log("- usuarioLogado:", usuarioLogado);
     console.log("- isLoggedIn:", isLoggedIn);
 
     if (isInitialized && usuarioLogado?.id) {
       const carrinhoUsuario = obterCarrinhoUsuario(usuarioLogado.id);
-<<<<<<< HEAD
-      console.log(" Carrinho carregado:", carrinhoUsuario);
-=======
-      console.log("Carrinho carregado:", carrinhoUsuario);
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
+      console.log("🛒 Carrinho carregado:", carrinhoUsuario);
       setCarrinho(carrinhoUsuario);
     } else if (isInitialized && !usuarioLogado) {
-      console.log(" Usuário não logado, limpando carrinho");
+      console.log("🚫 Usuário não logado, limpando carrinho");
       setCarrinho([]);
     }
   }, [usuarioLogado, isInitialized, isLoggedIn, obterCarrinhoUsuario]);
@@ -258,20 +222,16 @@ function Home() {
 
   useEffect(() => {
     if (mostrarCarrinho && usuarioLogado?.endereco) {
-<<<<<<< HEAD
-      console.log(" Preenchendo endereço do usuário:", usuarioLogado.endereco);
-=======
       console.log(
-        " Preenchendo endereço do usuário:",
+        "📍 Preenchendo endereço do usuário:",
         usuarioLogado.endereco
       );
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
       setDadosEntrega((prev) => ({
         ...prev,
         endereco: usuarioLogado.endereco,
       }));
     } else if (mostrarCarrinho && !usuarioLogado?.endereco) {
-      console.log(" Usuário sem endereço cadastrado");
+      console.log("⚠️ Usuário sem endereço cadastrado");
       setDadosEntrega((prev) => ({
         ...prev,
         endereco: "",
@@ -287,13 +247,10 @@ function Home() {
         return;
       }
 
-<<<<<<< HEAD
-      // VERIFICAR SE LOJA ESTÁ ABERTA
-=======
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
+      // Verificar se loja está aberta
       if (!statusLoja?.estaAberta) {
         alert(
-          " Loja fechada! Não é possível adicionar produtos ao carrinho no momento."
+          "🔒 Loja fechada! Não é possível adicionar produtos ao carrinho no momento."
         );
         return;
       }
@@ -324,11 +281,7 @@ function Home() {
         return [...prevCarrinho, { ...produto, quantidade: 1 }];
       });
     },
-<<<<<<< HEAD
     [usuarioLogado, navigate, statusLoja]
-=======
-    [usuarioLogado, navigate, statusLoja] 
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
   );
 
   const atualizarQuantidade = useCallback((produtoId, operacao) => {
@@ -354,12 +307,9 @@ function Home() {
   const finalizarPedido = useCallback(async () => {
     if (!usuarioLogado?.id || carrinho.length === 0) return;
 
-<<<<<<< HEAD
-    // VERIFICAR SE LOJA ESTÁ ABERTA ANTES DE FINALIZAR
-=======
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
+    // Verificar se loja está aberta antes de finalizar
     if (!statusLoja?.estaAberta) {
-      alert(" Loja fechada! Não é possível finalizar pedidos no momento.");
+      alert("🔒 Loja fechada! Não é possível finalizar pedidos no momento.");
       return;
     }
 
@@ -391,27 +341,22 @@ function Home() {
     statusLoja,
   ]);
 
-<<<<<<< HEAD
-  // FUNÇÃO PARA DELETAR PRODUTO
-=======
- 
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
   const deletarProduto = useCallback(async (produtoId) => {
     try {
-      console.log(" Deletando produto ID:", produtoId);
+      console.log("🗑️ Deletando produto ID:", produtoId);
 
       const response = await axiosConfig.delete(`/produtos/${produtoId}`);
 
-      console.log(" Produto deletado:", response.data);
+      console.log("✅ Produto deletado:", response.data);
 
       setProdutos((prev) => prev.filter((p) => p.id !== produtoId));
 
-      alert(" Produto excluído com sucesso!");
+      alert("✅ Produto excluído com sucesso!");
     } catch (error) {
-      console.error(" Erro ao deletar produto:", error);
+      console.error("❌ Erro ao deletar produto:", error);
       const mensagem =
         error.response?.data?.message || "Erro ao excluir produto.";
-      alert(` ${mensagem}`);
+      alert(`❌ ${mensagem}`);
       throw error;
     }
   }, []);
@@ -447,12 +392,9 @@ function Home() {
 
   return (
     <Container className="menu-container mt-5 mb-5 fade-in">
-      <h1 className="text-center mb-4">Cardápio Tártaro Delivery</h1>
+      <h1 className="text-center mb-4">🍔 Cardápio Tártaro Delivery</h1>
 
-<<<<<<< HEAD
-      {/* ALERTA DE LOJA FECHADA */}
-=======
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
+      {/* Alerta de loja fechada */}
       {!loadingStatus && statusLoja && (
         <AlertaLojaFechada status={statusLoja} />
       )}
@@ -539,11 +481,7 @@ function Home() {
                 imagens={item.imagemUrls}
                 onAdd={() => adicionarAoCarrinho(item)}
                 onDelete={deletarProduto}
-<<<<<<< HEAD
                 disabled={!statusLoja?.estaAberta}
-=======
-                disabled={!isLoggedIn || !statusLoja?.estaAberta} 
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
               />
             </Col>
           ))
@@ -566,7 +504,7 @@ function Home() {
           onClick={() => setMostrarCarrinho(true)}
           disabled={finalizandoPedido}
         >
-          Ver Carrinho ({totalItensCarrinho})
+          🛒 Ver Carrinho ({totalItensCarrinho})
         </Button>
       )}
 

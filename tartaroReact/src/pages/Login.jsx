@@ -35,19 +35,13 @@ function Login() {
       case "email":
         if (!value.trim()) return " Email é obrigatório";
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-<<<<<<< HEAD
+        // Unificado a mensagem de erro (removido o emoji 📧)
         return !emailRegex.test(value) ? " Formato de email inválido" : "";
       case "senha":
         if (!value) return " Senha é obrigatória";
+        // Unificado a mensagem de erro
         return value.length < 6
           ? " Senha deve ter pelo menos 6 caracteres"
-=======
-        return !emailRegex.test(value) ? "📧Formato de email inválido" : "";
-      case "senha":
-        if (!value) return " Senha é obrigatória";
-        return value.length < 6
-          ? "Senha deve ter pelo menos 6 caracteres"
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
           : "";
       default:
         return "";
@@ -68,13 +62,8 @@ function Login() {
     e.preventDefault();
     setErro("");
 
-<<<<<<< HEAD
-    // console.log("=== INICIANDO LOGIN ===");
-    // console.log(" Email:", formData.email);
-=======
-    console.log("=== INICIANDO LOGIN ===");
-    console.log(" Email:", formData.email);
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
+    // console.log("=== INICIANDO LOGIN ==="); // Removido o console.log não essencial (HEAD)
+    // console.log(" Email:", formData.email); // Removido o console.log não essencial (HEAD)
 
     // Validação do formulário
     if (!validateForm()) {
@@ -92,28 +81,17 @@ function Login() {
         formData.senha
       );
 
-<<<<<<< HEAD
       console.log(" Login realizado com sucesso:", usuario?.nome);
-=======
-      console.log("Login realizado com sucesso:", usuario?.nome);
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
 
       // Aguardar um pouco antes de navegar para melhor UX
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       // Redirecionar para a página anterior ou home
       const from = location.state?.from?.pathname || "/home";
-<<<<<<< HEAD
       console.log(" Redirecionando para:", from);
       navigate(from, { replace: true });
     } catch (error) {
-      // console.error(" Erro no login:", error);
-=======
-      console.log("Redirecionando para:", from);
-      navigate(from, { replace: true });
-    } catch (error) {
-      console.error(" Erro no login:", error);
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
+      // console.error(" Erro no login:", error); // Manteve a linha comentada do HEAD
 
       let mensagemErro = {
         titulo: "Erro ao fazer login",
@@ -126,13 +104,8 @@ function Login() {
         const status = error.response.status;
         const data = error.response.data;
 
-<<<<<<< HEAD
-        // console.log(" Status HTTP:", status);
-        // console.log(" Resposta do servidor:", data);
-=======
-        console.log("Status HTTP:", status);
-        console.log(" Resposta do servidor:", data);
->>>>>>> 61025b9085bd35456f10bb5aef64ba96023140b1
+        // console.log(" Status HTTP:", status); // Manteve a linha comentada do HEAD
+        // console.log(" Resposta do servidor:", data); // Manteve a linha comentada do HEAD
 
         switch (status) {
           case 400:

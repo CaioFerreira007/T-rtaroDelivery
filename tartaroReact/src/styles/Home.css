@@ -1,16 +1,394 @@
 .menu-container {
-  padding-bottom: 120px;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1e 100%);
+  padding: 100px 20px 120px;
+  position: relative;
+}
+
+.menu-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 400px;
+  background: radial-gradient(
+    ellipse at top,
+    rgba(211, 47, 47, 0.15) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.menu-container h1 {
+  font-family: "Cinzel", serif;
+  font-size: 3rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 40px;
+  color: #ffb300;
+  text-shadow: 0 0 20px rgba(255, 179, 0, 0.5);
+  letter-spacing: 2px;
+  position: relative;
+  animation: fadeIn 0.8s ease-out;
+}
+
+.menu-container h1::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 150px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #ffb300, transparent);
+}
+
+.filters-section {
+  margin-bottom: 40px;
+  position: relative;
+  z-index: 10;
+}
+
+.filters-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(26, 26, 46, 0.6);
+  --backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 179, 0, 0.2);
+}
+
+.filter-btn {
+  font-family: "Philosopher", serif;
+  font-weight: 700;
+  padding: 12px 28px;
+  border-radius: 30px;
+  border: 2px solid transparent;
+  background: rgba(42, 42, 62, 0.8);
+  color: #f5f5f5;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+}
+
+.filter-btn::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 179, 0, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.4s, height 0.4s;
+}
+
+.filter-btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.filter-btn:hover {
+  border-color: #ffb300;
+  color: #ffb300;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(255, 179, 0, 0.3);
+}
+
+.filter-btn.active {
+  background: linear-gradient(135deg, #d32f2f 0%, #ffb300 100%);
+  border-color: #ffb300;
+  color: white;
+  box-shadow: 0 6px 20px rgba(211, 47, 47, 0.4);
+}
+
+.filter-btn.active::before {
+  display: none;
+}
+
+.products-section {
+  position: relative;
+  z-index: 5;
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 32px;
+  margin-top: 30px;
+}
+
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  gap: 20px;
+}
+
+.loading-spinner {
+  border: 4px solid rgba(255, 179, 0, 0.2);
+  border-top: 4px solid #ffb300;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-container p,
+.error-container p {
+  color: #f5f5f5;
+  font-family: "Philosopher", serif;
+  font-size: 1.2rem;
+}
+
+.error-container h2 {
+  color: #d32f2f;
+  font-family: "Cinzel", serif;
 }
 
 .btn-ver-carrinho {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 999;
-  padding: 12px 20px;
-  font-size: 1rem;
+  bottom: 30px;
+  right: 30px;
+  z-index: 1000;
+  background: linear-gradient(135deg, #d32f2f 0%, #ffb300 100%);
+  color: white;
+  border: 2px solid #ffb300;
+  padding: 16px 32px;
   border-radius: 50px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  font-family: "Philosopher", serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  box-shadow: 0 8px 32px rgba(211, 47, 47, 0.5);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.btn-ver-carrinho:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 12px 40px rgba(211, 47, 47, 0.6);
+  border-color: #ffc107;
+}
+
+.btn-ver-carrinho:active {
+  transform: translateY(-2px) scale(1.03);
+}
+
+.cart-icon {
+  font-size: 1.4rem;
+}
+
+.cart-count {
+  background: white;
+  color: #d32f2f;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+  min-width: 28px;
+  text-align: center;
+}
+
+.store-alert {
+  background: linear-gradient(
+    135deg,
+    rgba(211, 47, 47, 0.95) 0%,
+    rgba(255, 179, 0, 0.9) 100%
+  );
+  border: 2px solid #ffb300;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  animation: pulse 3s infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.store-alert::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 70%
+  );
+  animation: pulse 2s infinite;
+}
+
+.alert-icon {
+  font-size: 3rem;
+  animation: flicker 2s infinite;
+}
+
+@keyframes flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.alert-content h3 {
+  font-family: "Cinzel", serif;
+  color: white;
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+}
+
+.alert-content p {
+  color: #fff;
+  margin: 0;
+  font-family: "Philosopher", serif;
+  font-size: 1.1rem;
+}
+
+@media (max-width: 1200px) {
+  .products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .menu-container {
+    padding: 80px 15px 100px;
+  }
+
+  .menu-container h1 {
+    font-size: 2.2rem;
+    margin-bottom: 30px;
+  }
+
+  .filters-container {
+    padding: 15px;
+    gap: 8px;
+  }
+
+  .filter-btn {
+    padding: 10px 20px;
+    font-size: 0.85rem;
+  }
+
+  .products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+  }
+
+  .btn-ver-carrinho {
+    bottom: 20px;
+    right: 20px;
+    padding: 14px 24px;
+    font-size: 1rem;
+  }
+
+  .store-alert {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .alert-content h3 {
+    font-size: 1.3rem;
+  }
+
+  .alert-content p {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .menu-container {
+    padding: 70px 10px 90px;
+  }
+
+  .menu-container h1 {
+    font-size: 1.8rem;
+  }
+
+  .filters-container {
+    gap: 6px;
+  }
+
+  .filter-btn {
+    padding: 8px 16px;
+    font-size: 0.8rem;
+  }
+
+  .products-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .btn-ver-carrinho {
+    bottom: 15px;
+    right: 15px;
+    left: 15px;
+    padding: 12px 20px;
+    font-size: 0.95rem;
+    justify-content: center;
+  }
+
+  .store-alert {
+    padding: 16px;
+  }
+
+  .alert-icon {
+    font-size: 2.5rem;
+  }
+
+  .alert-content h3 {
+    font-size: 1.2rem;
+  }
+
+  .alert-content p {
+    font-size: 0.95rem;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.01);
+    opacity: 0.95;
+  }
 }
 
 .painel-carrinho {
@@ -19,11 +397,11 @@
   left: 0;
   width: 100%;
   max-height: 60%;
-  background: #fff;
-  border-top: 2px solid #ccc;
+  background: linear-gradient(180deg, #2a2a3e 0%, #1a1a2e 100%);
+  border-top: 3px solid #ffb300;
   z-index: 1000;
   overflow-y: auto;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5);
   animation: slideUp 0.4s ease-in-out;
 }
 
