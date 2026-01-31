@@ -20,6 +20,8 @@ import EditarProduto from "./components/EditarProduto";
 import SiteNavbar from "./components/SiteNavbar";
 
 import "./styles/animations.css";
+import "./styles/ForcaTitulosDourados.css";
+import "./styles/CorrecaoSafariCSS.css";
 
 function App() {
   return (

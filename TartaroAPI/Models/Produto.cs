@@ -28,7 +28,7 @@ namespace TartaroAPI.Models
         public ICollection<ProdutoImage> Imagens { get; set; } = new List<ProdutoImage>();
 
 
-
+        public bool Disponivel { get; set; } = true;
         [JsonIgnore]
         public ICollection<ItemPedido> Itens { get; set; } = new List<ItemPedido>();
     }

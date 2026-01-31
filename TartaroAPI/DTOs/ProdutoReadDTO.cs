@@ -17,5 +17,7 @@ namespace TartaroAPI.DTOs
         public decimal Preco { get; set; }
 
         public List<string> ImagemUrls { get; set; } = new();
+
+        public bool Disponivel { get; set; } = true;
     }
 }

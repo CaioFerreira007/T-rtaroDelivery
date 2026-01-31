@@ -56,7 +56,8 @@ namespace TartaroAPI.Controllers
                     Descricao = p.Descricao,
                     Categoria = p.Categoria,
                     Preco = p.Preco,
-                    ImagemUrls = p.Imagens.Select(img => img.Url).ToList()
+                    ImagemUrls = p.Imagens.Select(img => img.Url).ToList(),
+                    Disponivel = p.Disponivel
                 })
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -91,6 +92,8 @@ namespace TartaroAPI.Controllers
 
             return Ok(produtoDto);
         }
+
+
 
         //  CREATE
         [HttpPost]
@@ -230,6 +233,39 @@ namespace TartaroAPI.Controllers
             {
                 _logger.LogError(ex, "Erro ao atualizar produto ID: {Id}", id);
                 return StatusCode(500, new { message = "Erro interno do servidor.", error = ex.Message });
+            }
+        }
+
+
+        [HttpPatch("{id}/disponibilidade")]
+        public async Task<IActionResult> ToggleDisponibilidade(int id)
+        {
+            try
+            {
+                var produto = await _context.Produtos.FindAsync(id);
+
+                if (produto == null)
+                {
+                    return NotFound(new { message = "Produto não encontrado" });
+                }
+
+                // Toggle do status
+                produto.Disponivel = !produto.Disponivel;
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    id = produto.Id,
+                    disponivel = produto.Disponivel,
+                    message = produto.Disponivel
+                        ? "Produto marcado como disponível"
+                        : "Produto marcado como indisponível"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao atualizar disponibilidade", error = ex.Message });
             }
         }
 

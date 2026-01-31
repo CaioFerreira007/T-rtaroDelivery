@@ -1,7 +1,13 @@
 import React, { useContext, useState } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { Carousel, Card, Button, Spinner } from "react-bootstrap";
-import { FaShoppingCart, FaEdit, FaTrash } from "react-icons/fa";
+import { Carousel, Card, Button, Spinner, Badge } from "react-bootstrap";
+import {
+  FaShoppingCart,
+  FaEdit,
+  FaTrash,
+  FaBan,
+  FaCheck,
+} from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import "../styles/HamburguerCard.css";
 
@@ -13,7 +19,9 @@ function HamburguerCard({
   imagens,
   onAdd,
   onDelete,
-  disabled = false, // 🆕 PROP PARA DESABILITAR
+  disabled = false,
+  isIndisponivel = false,
+  onToggleDisponibilidade = null,
 }) {
   const { usuariologado } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -55,11 +63,31 @@ function HamburguerCard({
     }
   };
 
+  const handleToggleDisponibilidade = () => {
+    if (onToggleDisponibilidade) {
+      onToggleDisponibilidade(id);
+    }
+  };
+
   const imagemFallback =
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect fill='%23f0f0f0' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='60' fill='%23999'%3E🍔%3C/text%3E%3C/svg%3E";
 
+  const produtoDesabilitado = disabled || isIndisponivel;
+
   return (
-    <Card className="hamburguer-card">
+    <Card
+      className={`hamburguer-card ${
+        isIndisponivel ? "produto-indisponivel" : ""
+      }`}
+    >
+      {isIndisponivel && (
+        <div className="badge-indisponivel">
+          <Badge bg="danger" className="px-3 py-2">
+            <FaBan className="me-1" /> INDISPONÍVEL
+          </Badge>
+        </div>
+      )}
+
       <div className="imagem-container">
         {listaImagens.length > 0 ? (
           <Carousel fade interval={null} className="carousel-wrapper">
@@ -75,6 +103,11 @@ function HamburguerCard({
                     console.warn(`Imagem não carregada: ${img}`);
                   }}
                   loading="lazy"
+                  style={
+                    isIndisponivel
+                      ? { opacity: 0.5, filter: "grayscale(100%)" }
+                      : {}
+                  }
                 />
               </Carousel.Item>
             ))}
@@ -106,41 +139,68 @@ function HamburguerCard({
         <Card.Text className="descricao-card">{descricao}</Card.Text>
         <div className="rodape-card">
           <span className="preco-card">R$ {precoFormatado}</span>
+
           {isAdmin ? (
-            <div className="d-flex gap-2 w-100">
+            <div className="d-flex flex-column gap-2 w-100">
+              {/* Botão de Toggle Disponibilidade */}
               <Button
-                variant="warning"
-                onClick={handleEditar}
-                className="flex-grow-1"
+                variant={isIndisponivel ? "success" : "warning"}
+                onClick={handleToggleDisponibilidade}
+                className="w-100"
                 size="sm"
               >
-                <FaEdit className="me-1" />
-                Editar
-              </Button>
-              <Button
-                variant="danger"
-                onClick={handleExcluir}
-                disabled={deletando}
-                size="sm"
-              >
-                {deletando ? (
-                  <Spinner animation="border" size="sm" />
+                {isIndisponivel ? (
+                  <>
+                    <FaCheck className="me-1" />
+                    Marcar Disponível
+                  </>
                 ) : (
                   <>
-                    <FaTrash className="me-1" />
-                    Excluir
+                    <FaBan className="me-1" />
+                    Marcar Indisponível
                   </>
                 )}
               </Button>
+
+              <div className="d-flex gap-2">
+                <Button
+                  variant="primary"
+                  onClick={handleEditar}
+                  className="flex-grow-1"
+                  size="sm"
+                >
+                  <FaEdit className="me-1" />
+                  Editar
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={handleExcluir}
+                  disabled={deletando}
+                  size="sm"
+                >
+                  {deletando ? (
+                    <Spinner animation="border" size="sm" />
+                  ) : (
+                    <>
+                      <FaTrash className="me-1" />
+                      Excluir
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           ) : (
             <Button
-              variant={disabled ? "secondary" : "success"}
+              variant={produtoDesabilitado ? "secondary" : "success"}
               onClick={onAdd}
-              disabled={disabled} // 🆕 USAR PROP DISABLED
+              disabled={produtoDesabilitado}
             >
               <FaShoppingCart className="me-2" />
-              {disabled ? "Indisponível" : "Adicionar"}
+              {isIndisponivel
+                ? "Indisponível"
+                : disabled
+                ? "Loja Fechada"
+                : "Adicionar"}
             </Button>
           )}
         </div>

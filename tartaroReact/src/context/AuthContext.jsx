@@ -1,12 +1,12 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { 
-  login as loginService, 
-  register as registerService, 
-  logout as logoutService, 
-  isAuthenticated, 
+import React, { createContext, useState, useEffect, useContext } from "react";
+import {
+  login as loginService,
+  register as registerService,
+  logout as logoutService,
+  isAuthenticated,
   getCurrentUser,
-  updateCurrentUser 
-} from '../services/authService';
+  updateCurrentUser,
+} from "../services/authService";
 
 const AuthContext = createContext();
 
@@ -19,24 +19,24 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = async () => {
       try {
         setIsLoading(true);
-        
+
         if (isAuthenticated()) {
           const user = getCurrentUser();
           if (user) {
             setUsuarioLogado(user);
           } else {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            localStorage.removeItem('refreshToken');
-            localStorage.removeItem('authData');
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            localStorage.removeItem("refreshToken");
+            localStorage.removeItem("authData");
           }
         }
       } catch (error) {
-        console.error('Erro ao verificar autenticação:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('authData');
+        console.error("Erro ao verificar autenticação:", error);
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("authData");
       } finally {
         setIsLoading(false);
         setIsInitialized(true);
@@ -48,22 +48,23 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const handleStorageChange = (e) => {
-      if (e.key === 'user' || e.key === 'token') {
+      if (e.key === "user" || e.key === "token") {
         if (!e.newValue && e.oldValue) {
           setUsuarioLogado(null);
         } else if (e.newValue) {
           try {
-            const user = e.key === 'user' ? JSON.parse(e.newValue) : getCurrentUser();
+            const user =
+              e.key === "user" ? JSON.parse(e.newValue) : getCurrentUser();
             setUsuarioLogado(user);
           } catch (error) {
-            console.error('Erro ao sincronizar dados entre abas:', error);
+            console.error("Erro ao sincronizar dados entre abas:", error);
           }
         }
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   const login = async (email, senha) => {
@@ -73,7 +74,7 @@ export const AuthProvider = ({ children }) => {
       setUsuarioLogado(usuario);
       return usuario;
     } catch (error) {
-      console.error('Erro no login:', error);
+      console.error("Erro no login:", error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -89,7 +90,7 @@ export const AuthProvider = ({ children }) => {
       }
       return response;
     } catch (error) {
-      console.error('Erro no registro:', error);
+      console.error("Erro no registro:", error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -101,7 +102,7 @@ export const AuthProvider = ({ children }) => {
       setIsLoading(true);
       await logoutService();
     } catch (error) {
-      console.error('Erro no logout:', error);
+      console.error("Erro no logout:", error);
     } finally {
       setUsuarioLogado(null);
       setIsLoading(false);
@@ -111,16 +112,14 @@ export const AuthProvider = ({ children }) => {
   const updateUser = (userData) => {
     setUsuarioLogado(userData);
     if (userData) {
-      localStorage.setItem('user', JSON.stringify(userData));
-      // Atualizar também no authService
+      localStorage.setItem("user", JSON.stringify(userData));
       updateCurrentUser(userData);
     }
   };
 
   const contextValue = {
-    // Manter compatibilidade com ambas as formas
     usuarioLogado,
-    usuariologado: usuarioLogado, // Compatibilidade
+    usuariologado: usuarioLogado,
     user: usuarioLogado,
     isLoading,
     loading: isLoading,
@@ -132,20 +131,18 @@ export const AuthProvider = ({ children }) => {
     updateUser,
     setUsuarioLogado: updateUser,
     atualizarUsuario: updateUser,
-    isAuthenticated: () => Boolean(usuarioLogado && isAuthenticated())
+    isAuthenticated: () => Boolean(usuarioLogado && isAuthenticated()),
   };
 
   return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
+    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
   }
   return context;
 };
