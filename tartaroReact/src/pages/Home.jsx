@@ -53,7 +53,7 @@ function Home() {
               item.id &&
               item.nome &&
               typeof item.preco === "number" &&
-              item.quantidade > 0
+              item.quantidade > 0,
           )
         : [];
     } catch (error) {
@@ -87,10 +87,10 @@ function Home() {
       try {
         setLoadingStatus(true);
         const response = await axiosConfig.get("/configuracaoLoja/status");
-        console.log(" Status da loja:", response.data);
+        console.log("Status da loja:", response.data);
         setStatusLoja(response.data);
       } catch (error) {
-        console.error(" Erro ao carregar status da loja:", error);
+        console.error("Erro ao carregar status da loja:", error);
         setStatusLoja({ estaAberta: true });
       } finally {
         setLoadingStatus(false);
@@ -108,10 +108,10 @@ function Home() {
         setLoading(true);
         setError("");
 
-        console.log(" Iniciando carregamento de produtos...");
+        console.log("Iniciando carregamento de produtos...");
         const listaProdutos = await getProdutos();
 
-        console.log(" Resposta de getProdutos:", listaProdutos);
+        console.log("Resposta de getProdutos:", listaProdutos);
 
         if (Array.isArray(listaProdutos) && listaProdutos.length > 0) {
           const produtosValidos = listaProdutos.filter((p) => {
@@ -124,12 +124,12 @@ function Home() {
               p.categoria.trim() !== "";
 
             if (!valido) {
-              console.warn(" Produto inválido ignorado:", p);
+              console.warn("Produto inválido ignorado:", p);
             }
             return valido;
           });
 
-          console.log(" Produtos válidos:", produtosValidos.length);
+          console.log("Produtos válidos:", produtosValidos.length);
 
           if (produtosValidos.length > 0) {
             setProdutos(produtosValidos);
@@ -138,16 +138,16 @@ function Home() {
             setError("Produtos estão com dados incompletos.");
           }
         } else if (Array.isArray(listaProdutos) && listaProdutos.length === 0) {
-          console.warn(" API retornou array vazio");
+          console.warn("API retornou array vazio");
           setProdutos([]);
           setError("Nenhum produto cadastrado no momento.");
         } else {
-          console.error(" API retornou formato inválido:", listaProdutos);
+          console.error("API retornou formato inválido:", listaProdutos);
           setProdutos([]);
           setError("Formato de dados inválido recebido do servidor.");
         }
       } catch (err) {
-        console.error(" Erro ao carregar produtos:", err);
+        console.error("Erro ao carregar produtos:", err);
         setProdutos([]);
 
         let mensagemErro = "Erro ao carregar produtos.";
@@ -161,7 +161,7 @@ function Home() {
         setError(mensagemErro);
       } finally {
         setLoading(false);
-        console.log(" Carregamento finalizado");
+        console.log("Carregamento finalizado");
       }
     };
 
@@ -224,13 +224,13 @@ function Home() {
       }
 
       if (!produto.disponivel) {
-        alert(" Este produto está temporariamente indisponível!");
+        alert("Este produto está temporariamente indisponível!");
         return;
       }
 
       if (!statusLoja?.estaAberta) {
         alert(
-          " Loja fechada! Não é possível adicionar produtos ao carrinho no momento."
+          "Loja fechada! Não é possível adicionar produtos ao carrinho no momento.",
         );
         return;
       }
@@ -247,21 +247,21 @@ function Home() {
 
       setCarrinho((prevCarrinho) => {
         const itemExistente = prevCarrinho.find(
-          (item) => item.id === produto.id
+          (item) => item.id === produto.id,
         );
 
         if (itemExistente) {
           return prevCarrinho.map((item) =>
             item.id === produto.id
               ? { ...item, quantidade: item.quantidade + 1 }
-              : item
+              : item,
           );
         }
 
         return [...prevCarrinho, { ...produto, quantidade: 1 }];
       });
     },
-    [usuarioLogado, navigate, statusLoja]
+    [usuarioLogado, navigate, statusLoja],
   );
 
   const atualizarQuantidade = useCallback((produtoId, operacao) => {
@@ -275,7 +275,7 @@ function Home() {
           }
           return item;
         })
-        .filter(Boolean)
+        .filter(Boolean),
     );
   }, []);
 
@@ -288,7 +288,7 @@ function Home() {
     if (!usuarioLogado?.id || carrinho.length === 0) return;
 
     if (!statusLoja?.estaAberta) {
-      alert(" Loja fechada! Não é possível finalizar pedidos no momento.");
+      alert("Loja fechada! Não é possível finalizar pedidos no momento.");
       return;
     }
 
@@ -322,30 +322,30 @@ function Home() {
 
   const deletarProduto = useCallback(async (produtoId) => {
     try {
-      console.log(" Deletando produto ID:", produtoId);
+      console.log("Deletando produto ID:", produtoId);
 
       const response = await axiosConfig.delete(`/produtos/${produtoId}`);
 
-      console.log(" Produto deletado:", response.data);
+      console.log("Produto deletado:", response.data);
 
       setProdutos((prev) => prev.filter((p) => p.id !== produtoId));
 
-      alert(" Produto excluído com sucesso!");
+      alert("Produto excluído com sucesso!");
     } catch (error) {
-      console.error(" Erro ao deletar produto:", error);
+      console.error("Erro ao deletar produto:", error);
       const mensagem =
         error.response?.data?.message || "Erro ao excluir produto.";
-      alert(` ${mensagem}`);
+      alert(mensagem);
       throw error;
     }
   }, []);
 
   const toggleDisponibilidade = useCallback(async (produtoId) => {
     try {
-      console.log("🔄 Alterando disponibilidade do produto:", produtoId);
+      console.log("Alterando disponibilidade do produto:", produtoId);
 
       const response = await axiosConfig.patch(
-        `/produtos/${produtoId}/disponibilidade`
+        `/produtos/${produtoId}/disponibilidade`,
       );
 
       console.log("Resposta da API:", response.data);
@@ -354,27 +354,26 @@ function Home() {
         prev.map((p) =>
           p.id === produtoId
             ? { ...p, disponivel: response.data.disponivel }
-            : p
-        )
+            : p,
+        ),
       );
 
       alert(
         response.data.disponivel
-          ? " Produto marcado como disponível!"
-          : " Produto marcado como indisponível!"
+          ? "Produto marcado como disponível!"
+          : "Produto marcado como indisponível!",
       );
     } catch (error) {
-      console.error(" Erro ao alterar disponibilidade:", error);
-      alert(" Erro ao atualizar disponibilidade!");
+      console.error("Erro ao alterar disponibilidade:", error);
+      alert("Erro ao atualizar disponibilidade!");
     }
   }, []);
 
   const ordenarProdutos = useCallback((produtos) => {
-    return [...produtos].sort((a, b) => {
-      if (a.disponivel && !b.disponivel) return -1;
-      if (!a.disponivel && b.disponivel) return 1;
-      return a.id - b.id;
-    });
+    const disponiveis = produtos.filter((p) => p.disponivel);
+    const indisponiveis = produtos.filter((p) => !p.disponivel);
+
+    return [...disponiveis, ...indisponiveis];
   }, []);
 
   if (!isInitialized) {
@@ -395,17 +394,30 @@ function Home() {
     "Batatas",
     "Adicionais",
   ];
+  const produtosBase = (() => {
+    let produtosFiltrados = produtos;
 
-  const produtosBase =
-    filtro === "Todos"
-      ? produtos
-      : produtos.filter((item) => item.categoria === filtro);
+    if (filtro !== "Todos") {
+      produtosFiltrados = produtosFiltrados.filter(
+        (item) => item.categoria === filtro,
+      );
+    }
+
+    const isAdmin = usuarioLogado?.tipo === "ADM";
+
+    if (!isAdmin) {
+      produtosFiltrados = produtosFiltrados.filter(
+        (item) => item.disponivel === true,
+      );
+    }
+
+    return produtosFiltrados;
+  })();
 
   const produtosFiltrados = ordenarProdutos(produtosBase);
-
   const totalItensCarrinho = carrinho.reduce(
     (acc, item) => acc + item.quantidade,
-    0
+    0,
   );
 
   return (
@@ -474,8 +486,8 @@ function Home() {
                 {error
                   ? "Ocorreu um erro ao carregar os produtos."
                   : filtro === "Todos"
-                  ? "Não há produtos cadastrados no momento."
-                  : `Não há produtos na categoria "${filtro}".`}
+                    ? "Não há produtos cadastrados no momento."
+                    : `Não há produtos na categoria "${filtro}".`}
               </p>
               {error && (
                 <Button

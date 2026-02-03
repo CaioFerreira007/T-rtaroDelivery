@@ -12,7 +12,7 @@ export async function criarPedido(dadosPedido) {
     console.error("Mensagem:", error.response?.data);
 
     throw new Error(
-      error.response?.data?.message || error.message || "Erro ao criar pedido"
+      error.response?.data?.message || error.message || "Erro ao criar pedido",
     );
   }
 }
@@ -28,7 +28,9 @@ export async function buscarMeusPedidos() {
     console.error("Mensagem:", error.response?.data);
 
     throw new Error(
-      error.response?.data?.message || error.message || "Erro ao buscar pedidos"
+      error.response?.data?.message ||
+        error.message ||
+        "Erro ao buscar pedidos",
     );
   }
 }
@@ -49,7 +51,7 @@ export async function buscarDetalhesPedido(pedidoId) {
     // Mensagens específicas por tipo de erro
     if (error.response?.status === 403) {
       throw new Error(
-        "Você não tem permissão para ver os detalhes deste pedido."
+        "Você não tem permissão para ver os detalhes deste pedido.",
       );
     }
 
@@ -64,14 +66,36 @@ export async function buscarDetalhesPedido(pedidoId) {
     if (error.response?.status === 500) {
       throw new Error(
         error.response?.data?.error ||
-          "Erro no servidor ao buscar detalhes do pedido."
+          "Erro no servidor ao buscar detalhes do pedido.",
       );
     }
 
     throw new Error(
       error.response?.data?.message ||
         error.message ||
-        "Não foi possível carregar os itens do pedido."
+        "Não foi possível carregar os itens do pedido.",
     );
   }
 }
+
+export const deleteProduto = async (id) => {
+  try {
+    console.log(` Deletando produto ID: ${id}...`);
+
+    const { data } = await axiosConfig.delete(`/produtos/${id}`);
+
+    console.log(` Produto ${id} deletado com sucesso:`, data);
+    return data;
+  } catch (error) {
+    console.error(` Erro ao deletar produto ${id}:`, error);
+    console.error("Status:", error.response?.status);
+    console.error("Mensagem:", error.response?.data);
+
+    // Lançar erro com mensagem clara
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Erro ao excluir produto",
+    );
+  }
+};

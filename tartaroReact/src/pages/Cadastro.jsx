@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Container, Form, Button, Alert, Spinner, Card, Row, Col } from "react-bootstrap";
+import {
+  Container,
+  Form,
+  Button,
+  Alert,
+  Spinner,
+  Card,
+  Row,
+  Col,
+} from "react-bootstrap";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "../styles/Cadastro.css";
@@ -7,14 +16,14 @@ import "../styles/Cadastro.css";
 function Cadastro() {
   const navigate = useNavigate();
   const { register, isLoggedIn, isInitialized } = useAuth();
-  
+
   const [formData, setFormData] = useState({
     nome: "",
     email: "",
     telefone: "",
-    endereco: "",  // Campo adicionado
+    endereco: "",
     senha: "",
-    confirmarSenha: ""
+    confirmarSenha: "",
   });
 
   const [erro, setErro] = useState("");
@@ -31,26 +40,28 @@ function Cadastro() {
 
   const formatarTelefone = (value) => {
     const numbers = value.replace(/\D/g, "");
-    
+
     if (numbers.length <= 2) return numbers;
-    if (numbers.length <= 6) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
-    if (numbers.length <= 10) return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`;
+    if (numbers.length <= 6)
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    if (numbers.length <= 10)
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`;
     return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (name === "telefone") {
       const formatted = formatarTelefone(value);
-      setFormData(prev => ({ ...prev, [name]: formatted }));
+      setFormData((prev) => ({ ...prev, [name]: formatted }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
 
     // Limpar erros ao digitar
     if (validationErrors[name]) {
-      setValidationErrors(prev => ({ ...prev, [name]: "" }));
+      setValidationErrors((prev) => ({ ...prev, [name]: "" }));
     }
     if (erro) setErro("");
   };
@@ -59,37 +70,43 @@ function Cadastro() {
     switch (name) {
       case "nome":
         if (!value.trim()) return "Nome é obrigatório";
-        return value.trim().length < 2 ? "Nome deve ter pelo menos 2 caracteres" : "";
-      
+        return value.trim().length < 2
+          ? "Nome deve ter pelo menos 2 caracteres"
+          : "";
+
       case "email":
         if (!value.trim()) return "Email é obrigatório";
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return !emailRegex.test(value) ? "Email inválido" : "";
-      
+
       case "telefone":
         if (!value) return "Telefone é obrigatório";
         const phoneNumbers = value.replace(/\D/g, "");
-        if (phoneNumbers.length < 10) return "Telefone deve ter pelo menos 10 dígitos";
-        if (phoneNumbers.length > 11) return "Telefone deve ter no máximo 11 dígitos";
+        if (phoneNumbers.length < 10)
+          return "Telefone deve ter pelo menos 10 dígitos";
+        if (phoneNumbers.length > 11)
+          return "Telefone deve ter no máximo 11 dígitos";
         const ddd = parseInt(phoneNumbers.slice(0, 2));
         if (ddd < 11 || ddd > 99) return "DDD inválido";
-        if (phoneNumbers.length === 11 && phoneNumbers[2] !== '9') {
+        if (phoneNumbers.length === 11 && phoneNumbers[2] !== "9") {
           return "Celular deve começar com 9 após o DDD";
         }
         return "";
-      
+
       case "endereco":
         if (!value.trim()) return "Endereço é obrigatório";
-        return value.trim().length < 5 ? "Endereço deve ter pelo menos 5 caracteres" : "";
-      
+        return value.trim().length < 5
+          ? "Endereço deve ter pelo menos 5 caracteres"
+          : "";
+
       case "senha":
         if (!value) return "Senha é obrigatória";
         return value.length < 6 ? "Senha deve ter pelo menos 6 caracteres" : "";
-      
+
       case "confirmarSenha":
         if (!value) return "Confirmação de senha é obrigatória";
         return value !== formData.senha ? "Senhas não coincidem" : "";
-      
+
       default:
         return "";
     }
@@ -97,7 +114,7 @@ function Cadastro() {
 
   const validateForm = () => {
     const errors = {};
-    Object.keys(formData).forEach(key => {
+    Object.keys(formData).forEach((key) => {
       const error = validateField(key, formData[key]);
       if (error) errors[key] = error;
     });
@@ -109,9 +126,13 @@ function Cadastro() {
     e.preventDefault();
     setErro("");
     setSucesso("");
-    
+
     console.log("=== INICIANDO CADASTRO ===");
-    console.log("Dados do formulário:", { ...formData, senha: "***", confirmarSenha: "***" });
+    console.log("Dados do formulário:", {
+      ...formData,
+      senha: "***",
+      confirmarSenha: "***",
+    });
 
     if (!validateForm()) {
       setErro("Por favor, corrija os erros no formulário.");
@@ -126,38 +147,37 @@ function Cadastro() {
         email: formData.email.trim().toLowerCase(),
         telefone: formData.telefone.replace(/\D/g, ""),
         endereco: formData.endereco.trim(),
-        senha: formData.senha
+        senha: formData.senha,
       };
 
       console.log("Enviando dados:", { ...userData, senha: "***" });
 
       const response = await register(userData);
       console.log("Cadastro bem-sucedido:", response);
-      
+
       setSucesso("Cadastro realizado com sucesso! Redirecionando...");
-      
+
       setTimeout(() => {
         navigate("/home");
       }, 1500);
-
     } catch (error) {
       console.error("Erro detalhado no cadastro:", error);
-      
+
       let mensagemErro = "Erro ao realizar cadastro. Tente novamente.";
-      
+
       if (error.response) {
         const status = error.response.status;
         const data = error.response.data;
-        
+
         console.log("Status do erro:", status);
         console.log("Dados do erro:", data);
-        
+
         if (status === 409) {
           mensagemErro = "Email ou telefone já cadastrado.";
         } else if (status === 400) {
           if (data?.errors) {
-            const errorList = Array.isArray(data.errors) 
-              ? data.errors 
+            const errorList = Array.isArray(data.errors)
+              ? data.errors
               : Object.values(data.errors).flat();
             mensagemErro = errorList.join(". ");
           } else {
@@ -173,15 +193,17 @@ function Cadastro() {
       } else if (error.message) {
         mensagemErro = error.message;
       }
-      
+
       setErro(mensagemErro);
     } finally {
       setLoading(false);
     }
   };
 
-  const senhasCoincident = formData.senha && formData.confirmarSenha && 
-                          formData.senha === formData.confirmarSenha;
+  const senhasCoincident =
+    formData.senha &&
+    formData.confirmarSenha &&
+    formData.senha === formData.confirmarSenha;
 
   if (!isInitialized) {
     return (
@@ -196,19 +218,17 @@ function Cadastro() {
     <Container className="cadastro-container mt-5">
       <Card className="shadow-sm">
         <Card.Body className="p-4">
-          <h2 className="text-center mb-4">📝 Criar Conta - Tártaro Delivery</h2>
-          
+          <h2 className="text-center mb-4">
+            📝 Criar Conta - Tártaro Delivery
+          </h2>
+
           {erro && (
             <Alert variant="danger" dismissible onClose={() => setErro("")}>
               {erro}
             </Alert>
           )}
-          
-          {sucesso && (
-            <Alert variant="success">
-              {sucesso}
-            </Alert>
-          )}
+
+          {sucesso && <Alert variant="success">{sucesso}</Alert>}
 
           <Form onSubmit={handleSubmit} noValidate>
             <Form.Group className="mb-3">
@@ -249,7 +269,7 @@ function Cadastro() {
                   </Form.Control.Feedback>
                 </Form.Group>
               </Col>
-              
+
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label>Telefone</Form.Label>
@@ -313,7 +333,7 @@ function Cadastro() {
                   </Form.Control.Feedback>
                 </Form.Group>
               </Col>
-              
+
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label>Confirmar Senha</Form.Label>
@@ -339,10 +359,10 @@ function Cadastro() {
               </Col>
             </Row>
 
-            <Button 
-              variant="success" 
-              type="submit" 
-              size="lg" 
+            <Button
+              variant="success"
+              type="submit"
+              size="lg"
               className="w-100 mb-3"
               disabled={loading}
             >
@@ -366,7 +386,10 @@ function Cadastro() {
             <div className="text-center">
               <p className="mb-0">
                 Já tem uma conta?{" "}
-                <Link to="/login" className="text-decoration-none fw-bold text-success">
+                <Link
+                  to="/login"
+                  className="text-decoration-none fw-bold text-success"
+                >
                   Faça login aqui
                 </Link>
               </p>

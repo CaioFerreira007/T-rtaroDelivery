@@ -41,29 +41,56 @@ namespace TartaroAPI.Controllers
             return Ok(categorias);
         }
 
-        //  GET com paginação 
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> GetAll(int page = 1, int pageSize = 100)
         {
-            var produtosDto = await _context.Produtos
-                .AsNoTracking()
-                .OrderByDescending(p => p.Preco)
-                .Select(p => new ProdutoReadDTO
-                {
-                    Id = p.Id,
-                    Nome = p.Nome,
-                    Descricao = p.Descricao,
-                    Categoria = p.Categoria,
-                    Preco = p.Preco,
-                    ImagemUrls = p.Imagens.Select(img => img.Url).ToList(),
-                    Disponivel = p.Disponivel
-                })
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+            try
+            {
+                // Buscar todos os produtos do banco
+                var todosProdutos = await _context.Produtos
+                    .AsNoTracking()
+                    .Include(p => p.Imagens)
+                    .ToListAsync();
 
-            return Ok(produtosDto);
+                // Definir ordem de prioridade das categorias
+                var ordemCategorias = new Dictionary<string, int>
+        {
+            { "Artesanais", 1 },
+            { "Tradicionais", 2 },
+            { "Batatas", 3 },
+            { "Bebidas", 4 },
+            { "Adicionais", 5 },
+            { "Combos", 6 }
+        };
+
+                // Ordenar EM MEMÓRIA (não no banco)
+                var produtosOrdenados = todosProdutos
+                    .OrderBy(p => ordemCategorias.ContainsKey(p.Categoria)
+                        ? ordemCategorias[p.Categoria]
+                        : 999)
+                    .ThenByDescending(p => p.Preco)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(p => new ProdutoReadDTO
+                    {
+                        Id = p.Id,
+                        Nome = p.Nome,
+                        Descricao = p.Descricao,
+                        Categoria = p.Categoria,
+                        Preco = p.Preco,
+                        ImagemUrls = p.Imagens.Select(img => img.Url).ToList(),
+                        Disponivel = p.Disponivel
+                    })
+                    .ToList();
+
+                return Ok(produtosOrdenados);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao buscar produtos");
+                return StatusCode(500, new { message = "Erro ao buscar produtos", error = ex.Message });
+            }
         }
 
         //  GET por ID
@@ -380,40 +407,112 @@ namespace TartaroAPI.Controllers
                 return StatusCode(500, new { message = "Erro interno do servidor.", error = ex.Message });
             }
         }
-
-        //  DELETE 
         [HttpDelete("{id:int}")]
         [Authorize(Roles = "ADM")]
         public async Task<IActionResult> Delete(int id)
         {
+            var errosImagens = new List<string>();
+            var imagensDeletadas = new List<string>();
+
             try
             {
                 _logger.LogInformation("=== DELETANDO PRODUTO ID: {Id} ===", id);
 
-                var p = await _context.Produtos.Include(x => x.Imagens).FirstOrDefaultAsync(x => x.Id == id);
+                var p = await _context.Produtos
+                    .Include(x => x.Imagens)
+                    .FirstOrDefaultAsync(x => x.Id == id);
+
                 if (p == null)
                 {
                     _logger.LogWarning("Produto ID {Id} não encontrado", id);
                     return NotFound(new { message = "Produto não encontrado." });
                 }
 
-                _logger.LogInformation(" Deletando {Count} imagens...", p.Imagens.Count);
-                foreach (var img in p.Imagens)
+                _logger.LogInformation("Produto: {Nome}, Total de imagens: {Count}", p.Nome, p.Imagens.Count);
+
+                foreach (var img in p.Imagens.ToList())
                 {
-                    _storageService.ApagarArquivo(img.Url, DiretorioImagens);
+                    try
+                    {
+                        _logger.LogInformation("Tentando deletar imagem: {Url}", img.Url);
+                        _storageService.ApagarArquivo(img.Url, DiretorioImagens);
+                        imagensDeletadas.Add(img.Url);
+                        _logger.LogInformation("  Imagem deletada: {Url}", img.Url);
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        // Arquivo não existe, mas tudo bem
+                        _logger.LogWarning(" Arquivo não encontrado (ok): {Url}", img.Url);
+                        imagensDeletadas.Add(img.Url);
+                    }
+                    catch (DirectoryNotFoundException)
+                    {
+                        // Diretório não existe, mas tudo bem
+                        _logger.LogWarning("  Diretório não encontrado (ok): {Url}", img.Url);
+                        imagensDeletadas.Add(img.Url);
+                    }
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        _logger.LogError(ex, " Sem permissão para deletar: {Url}", img.Url);
+                        errosImagens.Add($"{img.Url}: Sem permissão");
+                    }
+                    catch (IOException ex)
+                    {
+                        _logger.LogError(ex, "  Erro de I/O ao deletar: {Url}", img.Url);
+                        errosImagens.Add($"{img.Url}: Arquivo em uso ou erro de I/O");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, " Erro inesperado ao deletar: {Url}", img.Url);
+                        errosImagens.Add($"{img.Url}: {ex.Message}");
+                    }
                 }
 
+                _logger.LogInformation("Removendo {Count} imagens do banco...", p.Imagens.Count);
+                _context.ProductImages.RemoveRange(p.Imagens);
+
+                _logger.LogInformation("Removendo produto do banco...");
                 _context.Produtos.Remove(p);
+
+                _logger.LogInformation("Salvando alterações...");
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation(" Produto e imagens removidos com sucesso");
+                _logger.LogInformation(" Produto ID {Id} removido com sucesso!", id);
 
-                return Ok(new { message = "Produto e imagens removidos com sucesso." });
+                return Ok(new
+                {
+                    message = errosImagens.Any()
+                        ? $"Produto excluído, mas {errosImagens.Count} imagem(ns) não puderam ser deletadas do disco."
+                        : "Produto excluído com sucesso!",
+                    sucesso = true,
+                    imagensDeletadas = imagensDeletadas.Count,
+                    imagensComErro = errosImagens.Count,
+                    detalhesErros = errosImagens.Any() ? errosImagens : null
+                });
+            }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogError(dbEx, "❌ Erro ao salvar no banco ao deletar produto ID: {Id}", id);
+                return StatusCode(500, new
+                {
+                    message = "Erro ao remover produto do banco de dados.",
+                    error = dbEx.InnerException?.Message ?? dbEx.Message,
+                    imagensDeletadas = imagensDeletadas.Count,
+                    imagensComErro = errosImagens
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, " Erro ao deletar produto ID: {Id}", id);
-                return StatusCode(500, new { message = "Erro interno do servidor.", error = ex.Message });
+                _logger.LogError(ex, "❌ ERRO CRÍTICO ao deletar produto ID: {Id}", id);
+                return StatusCode(500, new
+                {
+                    message = "Erro crítico ao excluir produto.",
+                    error = ex.Message,
+                    type = ex.GetType().Name,
+                    innerError = ex.InnerException?.Message,
+                    imagensDeletadas = imagensDeletadas.Count,
+                    imagensComErro = errosImagens
+                });
             }
         }
     }
